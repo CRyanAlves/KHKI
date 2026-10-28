@@ -5,7 +5,8 @@
     "author": "Acabashi",
     "source": "https://commons.wikimedia.org/wiki/File:Disabled_accessible_toilet_cubicle_lavatory_washroom_restroom.jpg",
     "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "usedInSeed": false
   },
   {
     "key": "mercado",
@@ -13,6 +14,79 @@
     "author": "Acabashi",
     "source": "https://commons.wikimedia.org/wiki/File:Spitalfields_Market_accessible_toilet_cubicle_interior_Tower_Hamlets_London_England_01.jpg",
     "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/"
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "usedInSeed": false
+  },
+  {
+    "key": "anexo-01",
+    "title": "Foto ilustrativa de banheiro 01",
+    "source": "Anexo fornecido pelo usuário para a seed do KHKI.",
+    "author": null,
+    "license": null,
+    "usedInSeed": true
+  },
+  {
+    "key": "anexo-02",
+    "title": "Foto ilustrativa de banheiro 02",
+    "source": "Anexo fornecido pelo usuário para a seed do KHKI.",
+    "author": null,
+    "license": null,
+    "usedInSeed": true
+  },
+  {
+    "key": "anexo-03",
+    "title": "Foto ilustrativa de banheiro 03",
+    "source": "Anexo fornecido pelo usuário para a seed do KHKI.",
+    "author": null,
+    "license": null,
+    "usedInSeed": true
+  },
+  {
+    "key": "anexo-04",
+    "title": "Foto ilustrativa de banheiro 04",
+    "source": "Anexo fornecido pelo usuário para a seed do KHKI.",
+    "author": null,
+    "license": null,
+    "usedInSeed": true
+  },
+  {
+    "key": "anexo-05",
+    "title": "Foto ilustrativa de banheiro 05",
+    "source": "Anexo fornecido pelo usuário para a seed do KHKI.",
+    "author": null,
+    "license": null,
+    "usedInSeed": true
+  },
+  {
+    "key": "anexo-06",
+    "title": "Foto ilustrativa de banheiro 06",
+    "source": "Anexo fornecido pelo usuário para a seed do KHKI.",
+    "author": null,
+    "license": null,
+    "usedInSeed": true
+  },
+  {
+    "key": "anexo-07",
+    "title": "Foto ilustrativa de banheiro 07",
+    "source": "Anexo fornecido pelo usuário para a seed do KHKI.",
+    "author": null,
+    "license": null,
+    "usedInSeed": true
+  },
+  {
+    "key": "anexo-08",
+    "title": "Foto ilustrativa de banheiro 08",
+    "source": "Anexo fornecido pelo usuário para a seed do KHKI.",
+    "author": null,
+    "license": null,
+    "usedInSeed": true
+  },
+  {
+    "key": "anexo-09",
+    "title": "Foto ilustrativa de banheiro 09",
+    "source": "Anexo fornecido pelo usuário para a seed do KHKI.",
+    "author": null,
+    "license": null,
+    "usedInSeed": true
   }
 ]
