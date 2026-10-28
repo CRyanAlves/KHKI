@@ -5,6 +5,7 @@ import { MapsService, TravelRoute } from '../core/maps.service';
 import { ThemeService } from '../core/theme.service';
 import { IconComponent } from './icon.component';
 import { animateRoute } from './route-animation';
+import { motionDurationMilliseconds } from './motion-duration';
 
 @Component({ selector: 'app-map', imports: [IconComponent], templateUrl: './map.component.html', styleUrl: './map.component.scss' })
 export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
@@ -136,7 +137,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
     for (const [key, marker] of this.markers) if (!active.has(key)) { marker.remove(); this.markers.delete(key); }
     this.decorateMarkers();
   }
-  private motionDuration(): number { return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--motion-map-duration')) || 600; }
+  private motionDuration(): number { return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : motionDurationMilliseconds(getComputedStyle(document.documentElement).getPropertyValue('--motion-map-duration')); }
   private cameraPadding(): { top: number; right: number; bottom: number; left: number } {
     const padding = { top: 50, right: 50, bottom: 50, left: 50 }; if (!this.overlayPanel || this.panelCollapsed) return padding;
     const panel = this.canvas.nativeElement.closest('.map-workspace')?.querySelector('.workspace-panel')?.getBoundingClientRect(); if (!panel) return padding;

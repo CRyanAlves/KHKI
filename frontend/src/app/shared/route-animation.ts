@@ -1,4 +1,5 @@
 import type { Map } from 'maplibre-gl';
+import { motionDurationMilliseconds } from './motion-duration';
 
 export function animateRoute(map: Map): { refresh(): void; destroy(): void } {
   const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -9,7 +10,7 @@ export function animateRoute(map: Map): { refresh(): void; destroy(): void } {
   const refresh = () => {
     stop(); if (destroyed || !map.getLayer(layer)) return;
     const tokens = getComputedStyle(document.documentElement); const number = (name: string) => Number.parseFloat(tokens.getPropertyValue(name));
-    const width = number('--route-line-width'); const dash = number('--route-dash-length'); const gap = number('--route-gap-length'); const duration = number('--motion-route-cycle'); const steps = number('--motion-route-steps');
+    const width = number('--route-line-width'); const dash = number('--route-dash-length'); const gap = number('--route-gap-length'); const duration = motionDurationMilliseconds(tokens.getPropertyValue('--motion-route-cycle')); const steps = number('--motion-route-steps');
     if (![width, dash, gap, duration, steps].every(value => Number.isFinite(value) && value > 0)) return;
     map.setPaintProperty(layer, 'line-width', width); map.setPaintProperty(layer, 'line-dasharray', [dash, gap]);
     if (preference.matches || document.hidden) return;
