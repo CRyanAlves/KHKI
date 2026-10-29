@@ -19,8 +19,10 @@ public class PhotoService {
     private final BathroomRepository bathrooms;
     private final ReviewRepository reviews;
     private final ContentService content;
-    public PhotoService(PhotoRepository photos, BathroomRepository bathrooms, ReviewRepository reviews, ContentService content) { this.photos = photos; this.bathrooms = bathrooms; this.reviews = reviews; this.content = content; }
-    public ContributionView upload(UUID bathroomId, UUID reviewId, UUID authorId, MultipartFile file) {
+    private final SubmissionService submissions;
+    public PhotoService(PhotoRepository photos, BathroomRepository bathrooms, ReviewRepository reviews, ContentService content, SubmissionService submissions) { this.photos = photos; this.bathrooms = bathrooms; this.reviews = reviews; this.content = content; this.submissions = submissions; }
+    public ContributionView upload(UUID bathroomId, UUID reviewId, UUID authorId, MultipartFile file, UUID submissionId) {
+        byte[] data = sanitize(file); String fingerprint = submissions.fingerprint(List.of(bathroomId.toString(), reviewId == null ? "" : reviewId.toString(), submissions.digest(data))); UUID previous = submissions.replay(submissionId, authorId, "PHOTO_UPLOAD", fingerprint); if (previous != null) return content.contribution(content.target(TargetType.PHOTO, previous));
         var bathroom = bathrooms.findById(bathroomId).orElseThrow(ApiException::missing);
         if (bathroom.status != Status.APPROVED && !(bathroom.status == Status.PENDING && bathroom.authorId.equals(authorId))) throw ApiException.missing();
         if (reviewId != null) {
@@ -28,7 +30,7 @@ public class PhotoService {
             if (!review.authorId.equals(authorId) || !review.bathroomId.equals(bathroomId) || review.status != Status.PENDING) throw ApiException.missing();
         }
         if (photos.findByAuthorIdOrderByCreatedAtDesc(authorId).stream().filter(photo -> photo.bathroomId.equals(bathroomId) && photo.status != Status.REMOVED).count() >= 10) throw new ApiException(HttpStatus.BAD_REQUEST, "Limite de 10 fotos por autor e banheiro.");
-        var photo = new Photo(); photo.bathroomId = bathroomId; photo.reviewId = reviewId; photo.authorId = authorId; photo.data = sanitize(file); return content.contribution(photos.save(photo));
+        var photo = new Photo(); photo.bathroomId = bathroomId; photo.reviewId = reviewId; photo.authorId = authorId; photo.data = data; photos.save(photo); submissions.remember(submissionId, authorId, "PHOTO_UPLOAD", fingerprint, TargetType.PHOTO, photo.id); return content.contribution(photo);
     }
     private byte[] sanitize(MultipartFile file) {
         if (file.isEmpty() || file.getSize() > 5 * 1024 * 1024) throw invalid();

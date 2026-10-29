@@ -23,6 +23,9 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() selectedId = '';
   @Input() highlightedId = '';
   @Input() preserveViewport = false;
+  @Input() referenceId = '';
+  @Input() fitAll = false;
+  @Input() pointAsPin = false;
   @Output() hovered = new EventEmitter<string>();
   @Output() boundsChanged = new EventEmitter<MapArea>();
   @Output() selected = new EventEmitter<string>();
@@ -64,7 +67,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.timer = window.setTimeout(() => this.fail(), 15000);
       this.map.on('style.load', () => { window.clearTimeout(this.timer); this.loading = false; this.error = ''; this.styleTheme(); this.render(!this.styleLoaded, !this.styleLoaded); this.styleLoaded = true; this.changeDetector.markForCheck(); });
       this.map.on('error', () => { if (this.loading) this.fail(); });
-      if (this.editable) this.map.on('click', event => this.moved.emit({ lat: event.lngLat.lat, lng: event.lngLat.lng }));
+      this.map.on('click', event => { if (this.editable) this.moved.emit({ lat: event.lngLat.lat, lng: event.lngLat.lng }); });
       this.observer = new ResizeObserver(() => this.map?.resize()); this.observer.observe(this.canvas.nativeElement);
     } catch { this.fail(); } finally { this.changeDetector.markForCheck(); }
   }
@@ -91,13 +94,13 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
       if (changes['selectedId'].currentValue && !changes['selectedId'].previousValue) { const center = this.map.getCenter(); this.searchCamera = { center: [center.lng, center.lat], zoom: this.map.getZoom() }; }
       if (!changes['selectedId'].currentValue && changes['selectedId'].previousValue) this.restoreCamera = true;
     }
-    if (Object.keys(changes).every(key => ['highlightedId', 'panelCollapsed', 'overlayPanel'].includes(key))) { this.decorateMarkers(); return; }
+    if (Object.keys(changes).every(key => ['highlightedId', 'panelCollapsed', 'overlayPanel'].includes(key) || this.fitAll && key === 'selectedId')) { this.decorateMarkers(); return; }
     const signature = this.bathrooms.map(bathroom => bathroom.id + ':' + bathroom.latitude + ':' + bathroom.longitude).sort().join('|'); const bathroomsChanged = signature !== this.bathroomSignature; this.bathroomSignature = signature;
     const updateViewport = !!(changes['route']?.currentValue || changes['point']?.currentValue || changes['selectedId'] || bathroomsChanged && !this.preserveViewport);
     this.render(updateViewport, !!changes['point']);
   }
   private decorateMarkers(): void {
-    for (const marker of this.markers.values()) { const element = marker.getElement(); const id = element.dataset['bathroomId']; if (!id) { element.classList.toggle('is-highlighted', !!this.highlightedId && (element.dataset['bathroomIds'] || '').split(',').includes(this.highlightedId)); continue; } element.classList.toggle('is-selected', id === this.selectedId); element.classList.toggle('is-highlighted', id === this.highlightedId); element.setAttribute('aria-pressed', String(id === this.selectedId)); }
+    for (const marker of this.markers.values()) { const element = marker.getElement(); const id = element.dataset['bathroomId']; if (!id) { element.classList.toggle('is-highlighted', !!this.highlightedId && (element.dataset['bathroomIds'] || '').split(',').includes(this.highlightedId)); continue; } element.classList.toggle('is-selected', id === this.selectedId); element.classList.toggle('is-reference', id === this.referenceId); element.classList.toggle('is-existing', !!this.referenceId && id !== this.referenceId); element.classList.toggle('is-highlighted', id === this.highlightedId); element.setAttribute('aria-pressed', String(id === this.selectedId)); }
   }
   private renderMarkers(): void {
     if (!this.map || !this.library || this.loading || this.error || this.destroyed) return;
@@ -105,7 +108,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
     const groups: Bathroom[][] = [];
     for (const bathroom of this.bathrooms) {
       const projected = this.map.project([bathroom.longitude, bathroom.latitude]);
-      const group = this.map.getZoom() < 16 && bathroom.id !== this.selectedId ? groups.find(group => group[0].id !== this.selectedId && Math.hypot(this.map!.project([group[0].longitude, group[0].latitude]).x - projected.x, this.map!.project([group[0].longitude, group[0].latitude]).y - projected.y) < 42) : undefined;
+      const group = !this.fitAll && this.map.getZoom() < 16 && bathroom.id !== this.selectedId ? groups.find(group => group[0].id !== this.selectedId && Math.hypot(this.map!.project([group[0].longitude, group[0].latitude]).x - projected.x, this.map!.project([group[0].longitude, group[0].latitude]).y - projected.y) < 42) : undefined;
       if (group) group.push(bathroom); else groups.push([bathroom]);
     }
     for (const group of groups) {
@@ -130,7 +133,8 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (point) {
       active.add('origin'); const label = this.editable ? 'Localização do banheiro: arraste ou clique no mapa para ajustar' : origin ? 'Origem da rota' : 'Localização selecionada';
       let marker = this.markers.get('origin');
-      if (!marker) { marker = new this.library.Marker({ element: this.pin(label, true), draggable: this.editable }).setLngLat([point.lng, point.lat]).addTo(this.map); marker.on('dragend', () => { const point = marker!.getLngLat(); this.moved.emit({ lat: point.lat, lng: point.lng }); }); this.markers.set('origin', marker); }
+      if (!marker) { const element = this.pin(label, !(this.editable || this.pointAsPin)); if (this.pointAsPin) element.classList.add('registration-draft-pin'); marker = new this.library.Marker({ element, draggable: this.editable }).setLngLat([point.lng, point.lat]).addTo(this.map); marker.on('dragend', () => { if (!this.editable) return; const point = marker!.getLngLat(); this.moved.emit({ lat: point.lat, lng: point.lng }); }); this.markers.set('origin', marker); }
+      marker.setDraggable(this.editable);
       marker.getElement().setAttribute('aria-label', label); marker.getElement().title = label;
       if (marker.getLngLat().lat !== point.lat || marker.getLngLat().lng !== point.lng) marker.setLngLat([point.lng, point.lat]);
     }
@@ -155,9 +159,9 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.renderMarkers();
     const selected = this.bathrooms.find(bathroom => bathroom.id === this.selectedId);
     if (updateViewport && !this.route && this.restoreCamera && this.searchCamera) { this.map.easeTo({ ...this.searchCamera, duration: this.motionDuration() }); this.restoreCamera = false; }
-    else if (updateViewport && !this.route && selected) this.map.flyTo({ center: [selected.longitude, selected.latitude], offset: this.cameraOffset(), zoom: Math.max(this.map.getZoom(), 15), duration: this.motionDuration(), easing: progress => 1 - Math.pow(1 - progress, 3) });
-    else if (updateViewport && !this.route && this.point && focusPoint) this.map.panTo([this.point.lng, this.point.lat], { offset: this.cameraOffset(), duration: this.motionDuration() });
-    else if (updateViewport && !this.route && !this.preserveViewport && this.bathrooms.length) { const bounds = new this.library.LngLatBounds(); this.bathrooms.forEach(bathroom => bounds.extend([bathroom.longitude, bathroom.latitude])); this.map.fitBounds(bounds, { padding: this.cameraPadding(), maxZoom: 14, duration: 0 }); }
+    else if (updateViewport && !this.route && selected && !this.fitAll) this.map.flyTo({ center: [selected.longitude, selected.latitude], offset: this.cameraOffset(), zoom: Math.max(this.map.getZoom(), 15), duration: this.motionDuration(), easing: progress => 1 - Math.pow(1 - progress, 3) });
+    else if (updateViewport && !this.route && this.point && focusPoint) { if (this.editable) this.map.flyTo({ center: [this.point.lng, this.point.lat], zoom: Math.max(18, this.map.getZoom()), duration: this.motionDuration() }); else this.map.panTo([this.point.lng, this.point.lat], { offset: this.cameraOffset(), duration: this.motionDuration() }); }
+    else if (updateViewport && !this.route && !this.preserveViewport && this.bathrooms.length) { const bounds = new this.library.LngLatBounds(); this.bathrooms.forEach(bathroom => bounds.extend([bathroom.longitude, bathroom.latitude])); this.map.fitBounds(bounds, { padding: this.cameraPadding(), maxZoom: this.fitAll ? 19 : 14, duration: 0 }); }
     const source = this.map.getSource('walking-route') as GeoJSONSource | undefined;
     if (this.route) {
       if (source) { if (this.renderedRoute !== this.route) source.setData(this.route.geometry); }

@@ -32,7 +32,7 @@ public class SecurityConfig {
             .csrf(config -> config.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()).csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
             .authorizeHttpRequests(config -> config
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET, "/api/bathrooms/duplicates").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/bathrooms/duplicates", "/api/bathrooms/nearby").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/auth/csrf", "/api/bathrooms", "/api/bathrooms/*", "/api/bathrooms/*/reviews", "/api/photos/*", "/api/health").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/reports").permitAll()
                 .requestMatchers("/api/**").authenticated().anyRequest().denyAll())
