@@ -5,6 +5,9 @@
   "account_id": "decc1e1261647936029b8e6d548debc7",
   "compatibility_date": "2026-10-28",
   "workers_dev": true,
+  "triggers": {
+    "crons": ["*/10 0-1,10-23 * * *"]
+  },
   "assets": {
     "directory": "../frontend/dist/frontend/browser",
     "binding": "ASSETS",
