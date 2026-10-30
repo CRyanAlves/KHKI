@@ -1,9 +1,12 @@
 import { expect, test } from '@playwright/test';
 
-test.beforeEach(async ({ page }) => { await page.route('**/config.js', route => route.fulfill({ contentType: 'application/javascript', body: "window.KHKI_CONFIG = { geoapifyApiKey: '' };" })); });
+test.beforeEach(async ({ page }) => {
+  await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: "window.KHKI_CONFIG = { geoapifyApiKey: '' };" }));
+});
 
 test('public exploration, filters, details and honest map fallback', async ({ page }) => {
-  const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
   await expect(page.getByRole('heading', { name: /Seu próximo/ })).toBeVisible();
   await expect(page.getByText('3 banheiros encontrados')).toBeVisible();
@@ -21,7 +24,7 @@ test('public exploration, filters, details and honest map fallback', async ({ pa
   await page.getByRole('button', { name: 'Denunciar informações deste local' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Tab');
-  expect(await page.locator('.small-modal').evaluate(element => element.contains(document.activeElement))).toBe(true);
+  expect(await page.locator('.small-modal').evaluate((element) => element.contains(document.activeElement))).toBe(true);
   await page.getByRole('button', { name: 'Enviar denúncia', exact: true }).click();
   await expect(page.getByText('Obrigado. A denúncia foi recebida para análise.')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -119,7 +122,7 @@ test('mobile layout, keyboard login and theme tokens', async ({ page }) => {
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.evaluate(() => document.documentElement.style.setProperty('--color-accent', 'rgb(220, 180, 90)'));
   await page.getByRole('button', { name: 'Abrir navegação' }).click();
-  await expect.poll(() => page.getByRole('button', { name: 'Entrar', exact: true }).evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(220, 180, 90)');
+  await expect.poll(() => page.getByRole('button', { name: 'Entrar', exact: true }).evaluate((element) => getComputedStyle(element).backgroundColor)).toBe('rgb(220, 180, 90)');
 });
 
 test('standalone photo upload stays private and can be rejected independently', async ({ page, browser, baseURL }) => {
@@ -133,7 +136,7 @@ test('standalone photo upload stays private and can be rejected independently', 
   await expect(page).toHaveURL(/\/fotos$/);
   const image = await page.screenshot();
   await page.getByLabel('Foto do banheiro').setInputFiles({ name: 'fixture-interface.png', mimeType: 'image/png', buffer: image });
-  const uploaded = page.waitForResponse(response => response.url().includes('/photos') && response.request().method() === 'POST');
+  const uploaded = page.waitForResponse((response) => response.url().includes('/photos') && response.request().method() === 'POST');
   await page.getByRole('button', { name: 'Enviar foto para análise' }).click();
   const photo = await (await uploaded).json();
   expect(photo.status).toBe('PENDING');
@@ -143,7 +146,11 @@ test('standalone photo upload stays private and can be rejected independently', 
   await visitor.close();
   await page.getByRole('link', { name: 'Moderação', exact: true }).click();
   await page.getByRole('button', { name: /^Fotos \(/ }).click();
-  await page.locator('.queue-table tbody tr').filter({ has: page.locator('img[src$="' + photo.id + '"]') }).getByRole('button', { name: 'Analisar Foto: Café do Centro', exact: true }).click();
+  await page
+    .locator('.queue-table tbody tr')
+    .filter({ has: page.locator('img[src$="' + photo.id + '"]') })
+    .getByRole('button', { name: 'Analisar Foto: Café do Centro', exact: true })
+    .click();
   await expect(page.getByRole('img', { name: 'Foto privada para análise humana' })).toBeVisible();
   await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Imagem de teste de interface; não mostra um banheiro vazio.');
   await page.getByRole('button', { name: 'Rejeitar', exact: true }).click();

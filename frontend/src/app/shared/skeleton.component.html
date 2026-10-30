@@ -1,0 +1,51 @@
+<span class="sr-only">{{ label }}</span>
+<div [class]="'skeleton-layout skeleton-' + variant" aria-hidden="true">
+  @switch (variant) {
+    @case ('cards') {
+      @for (row of rows; track row) {
+        <div class="skeleton-card">
+          <span class="skeleton-shape skeleton-thumbnail"></span>
+          <div class="skeleton-copy"><span class="skeleton-shape skeleton-title"></span><span class="skeleton-shape skeleton-line"></span><span class="skeleton-shape skeleton-line short"></span><span class="skeleton-shape skeleton-badge"></span></div>
+        </div>
+      }
+    }
+    @case ('rows') {
+      @for (row of rows; track row) {
+        <div class="skeleton-row">
+          <span class="skeleton-shape skeleton-avatar"></span>
+          <div class="skeleton-copy"><span class="skeleton-shape skeleton-title"></span><span class="skeleton-shape skeleton-line"></span><span class="skeleton-shape skeleton-line short"></span></div>
+          <span class="skeleton-shape skeleton-badge"></span>
+        </div>
+      }
+    }
+    @case ('detail') {
+      <span class="skeleton-shape skeleton-cover"></span><span class="skeleton-shape skeleton-title"></span><span class="skeleton-shape skeleton-line short"></span>
+      <div class="skeleton-actions"><span class="skeleton-shape skeleton-field"></span><span class="skeleton-shape skeleton-field"></span></div>
+      @for (row of rows; track row) {
+        <span class="skeleton-shape skeleton-line"></span><span class="skeleton-shape skeleton-line short"></span>
+      }
+    }
+    @case ('form') {
+      <span class="skeleton-shape skeleton-title"></span><span class="skeleton-shape skeleton-line"></span>
+      @for (row of rows; track row) {
+        <div class="skeleton-copy"><span class="skeleton-shape skeleton-line short"></span><span class="skeleton-shape skeleton-field"></span></div>
+      }
+      <span class="skeleton-shape skeleton-field"></span>
+    }
+    @case ('route') {
+      <span class="skeleton-shape skeleton-title"></span><span class="skeleton-shape skeleton-line short"></span>
+      @for (row of rows; track row) {
+        <div class="skeleton-row">
+          <span class="skeleton-shape skeleton-avatar"></span>
+          <div class="skeleton-copy"><span class="skeleton-shape skeleton-line"></span><span class="skeleton-shape skeleton-line short"></span></div>
+        </div>
+      }
+    }
+    @case ('map') {
+      <span class="skeleton-shape skeleton-map-surface"></span><span class="skeleton-shape skeleton-map-control"></span>
+    }
+    @default {
+      <span class="skeleton-shape skeleton-line"></span><span class="skeleton-shape skeleton-line short"></span><span class="skeleton-shape skeleton-line"></span>
+    }
+  }
+</div>

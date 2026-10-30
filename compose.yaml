@@ -6,11 +6,11 @@ services:
       POSTGRES_USER: khki
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Defina DATABASE_PASSWORD no arquivo .env}
     ports:
-      - "127.0.0.1:${DATABASE_PORT:-5432}:5432"
+      - '127.0.0.1:${DATABASE_PORT:-5432}:5432'
     volumes:
       - khki-postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U khki -d khki"]
+      test: ['CMD-SHELL', 'pg_isready -U khki -d khki']
       interval: 5s
       timeout: 3s
       retries: 10

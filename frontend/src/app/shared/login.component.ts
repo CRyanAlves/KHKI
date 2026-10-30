@@ -12,7 +12,27 @@ export class LoginComponent {
   readonly auth = inject(AuthService);
   readonly theme = inject(ThemeService);
   private readonly api = inject(ApiService);
-  register = false; visible = false; name = ''; email = ''; password = ''; error = ''; busy = false;
-  close(): void { if (!this.busy) this.auth.opened.set(false); }
-  async submit(): Promise<void> { this.busy = true; this.error = ''; try { if (this.register) await this.auth.register(this.name, this.email, this.password); else await this.auth.login(this.email, this.password); } catch (error) { this.error = this.api.error(error); } finally { this.changeDetector.markForCheck(); this.busy = false; } }
+  register = false;
+  visible = false;
+  name = '';
+  email = '';
+  password = '';
+  error = '';
+  busy = false;
+  close(): void {
+    if (!this.busy) this.auth.opened.set(false);
+  }
+  async submit(): Promise<void> {
+    this.busy = true;
+    this.error = '';
+    try {
+      if (this.register) await this.auth.register(this.name, this.email, this.password);
+      else await this.auth.login(this.email, this.password);
+    } catch (error) {
+      this.error = this.api.error(error);
+    } finally {
+      this.changeDetector.markForCheck();
+      this.busy = false;
+    }
+  }
 }

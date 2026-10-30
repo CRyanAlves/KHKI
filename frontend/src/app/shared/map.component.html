@@ -1,5 +1,15 @@
 <div class="map-canvas" #canvas aria-label="Mapa interativo de banheiros"></div>
 @if (!maps.configured || error) {
-  <div class="map-placeholder"><div class="illustrated-streets" aria-hidden="true"></div><div class="map-notice"><span class="map-notice-icon"><app-icon name="Map" [size]="28" /></span><h3>{{ error ? 'Mapa indisponível' : 'O próximo alívio está por perto.' }}</h3><p>{{ error || 'Configure a chave gratuita da Geoapify para explorar os banheiros no mapa e calcular rotas a pé.' }}</p><span class="tag">{{ error ? 'Tente recarregar a página' : 'Mapa ilustrativo · sem dados geográficos' }}</span></div></div>
+  <div class="map-placeholder">
+    <div class="illustrated-streets" aria-hidden="true"></div>
+    <div class="map-notice">
+      <span class="map-notice-icon"><app-icon name="Map" [size]="28" /></span>
+      <h3>{{ error ? 'Mapa indisponível' : 'O próximo alívio está por perto.' }}</h3>
+      <p>{{ error || 'Configure a chave gratuita da Geoapify para explorar os banheiros no mapa e calcular rotas a pé.' }}</p>
+      <span class="tag">{{ error ? 'Tente recarregar a página' : 'Mapa ilustrativo · sem dados geográficos' }}</span>
+    </div>
+  </div>
 }
-@if (loading) { <div class="map-loading" role="status">Carregando mapa…</div> }
+@if (loading) {
+  <div class="map-loading"><app-skeleton variant="map" label="Carregando mapa…" /></div>
+}

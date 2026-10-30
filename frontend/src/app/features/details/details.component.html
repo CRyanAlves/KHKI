@@ -1,12 +1,109 @@
-<section class="details-panel"><a routerLink="/" class="back-link"><app-icon name="ArrowLeft" [size]="18" />Voltar aos resultados</a>@if (error) { <div class="state-box" role="alert">{{ error }}</div> } @else if (!bathroom) { <div class="state-box" role="status">Carregando detalhes…</div> } @else {
-  <section class="gallery" aria-label="Fotos aprovadas">@if (bathroom.photoIds.length) { <div class="main-photo"><img [src]="'/api/photos/' + bathroom.photoIds[photo]" alt="Foto aprovada do banheiro" /><span class="gallery-count">{{ photo + 1 }} / {{ bathroom.photoIds.length }}</span><button class="photo-report" (click)="report = { type: 'PHOTO', id: bathroom.photoIds[photo] }"><app-icon name="Flag" [size]="15" />Denunciar foto</button></div><div class="thumbnails">@for (id of bathroom.photoIds; track id; let index = $index) { <button [class.active]="photo === index" (click)="photo = index" [attr.aria-label]="'Ver foto ' + (index + 1)" [attr.aria-pressed]="photo === index"><img [src]="'/api/photos/' + id" alt="" /></button> }</div>@if (bathroom.demo) { <p class="muted"><small>Fotos ilustrativas de outros locais. <a class="text-button" href="assets/demo-regional/credits.html" target="_blank" rel="noopener noreferrer">Créditos e licenças</a></small></p> } } @else { <div class="gallery-empty"><span class="brand-pin"><app-icon name="Toilet" [size]="25" /></span><p>Este local ainda não tem fotos aprovadas.</p></div> }</section>
-  <div class="title-row"><h1>{{ bathroom.name }}</h1></div><div class="details-rating-row"><p class="rating detail-rating"><app-icon name="Star" [size]="21" />@if (bathroom.rating !== null) { <strong>{{ bathroom.rating | number:'1.1-1' }}</strong><span>({{ bathroom.reviewCount }} {{ bathroom.reviewCount === 1 ? 'avaliação' : 'avaliações' }})</span> } @else { <span>Ainda sem avaliações</span> }</p><span class="tag success"><app-icon name="CheckCircle" [size]="14" />Aprovado</span></div>
-  <div class="detail-actions"><a class="button primary" [routerLink]="['/banheiros', bathroom.id, 'rota']"><app-icon name="Navigation" [size]="18" />Como chegar</a><a class="button secondary" [routerLink]="['/banheiros', bathroom.id, 'avaliar']"><app-icon name="Star" [size]="18" />Avaliar</a></div>
-  @if (bathroom.demo) { <p class="demo-banner">Local fictício de demonstração. Não use como indicação real.</p> }
-  <div class="detail-facts"><p><app-icon name="Coffee" [size]="18" />{{ bathroom.category }}</p><p><app-icon name="MapPin" [size]="18" />{{ bathroom.address }}</p><p><app-icon name="Clock" [size]="18" />{{ bathroom.hours || 'Horário não informado' }}</p></div>
-  <section class="detail-section"><h2>Acesso</h2><p>{{ accessLabels[bathroom.access] }}</p>@if (bathroom.accessDetails) { <p class="muted">{{ bathroom.accessDetails }}</p> }</section>
-  <section class="detail-section"><h2>Itens e acessibilidade</h2><div class="item-grid">@for (item of bathroom.items; track item) { <span><app-icon name="Check" [size]="16" />{{ itemLabels[item] }}</span> }<span><app-icon name="Accessibility" [size]="18" />{{ bathroom.accessible === null ? 'Acessibilidade não informada' : bathroom.accessible ? 'Acessível' : 'Sem acessibilidade informada' }}</span></div></section>
-  <div class="surface photo-invite"><app-icon name="Camera" [size]="20" /><div><strong>Você conhece este lugar?</strong><p>Envie uma foto do banheiro vazio.</p></div><a class="text-button" [routerLink]="['/banheiros', bathroom.id, 'fotos']">Contribuir <app-icon name="ArrowRight" [size]="16" /></a></div>
-  <section class="detail-section"><div class="section-title"><h2>Avaliações da comunidade</h2><a class="text-button" [routerLink]="['/banheiros', bathroom.id, 'avaliar']">Avaliar banheiro</a></div><small class="muted">Somente avaliações aprovadas compõem a nota.</small>@for (review of reviews; track review.id) { <article class="surface review-card"><div class="review-header"><span class="avatar"><app-icon name="User" [size]="18" /></span><div><strong>{{ review.author }}</strong><p class="rating"><app-icon name="Star" [size]="14" />{{ (review.cleanliness + review.structure) / 2 | number:'1.1-1' }}</p></div><time>{{ review.createdAt | date:'dd/MM/yyyy' }}</time></div><p>{{ review.comment || 'Sem comentário.' }}</p><small class="muted">Limpeza: {{ review.cleanliness }}/5 · Estrutura: {{ review.structure }}/5</small><button class="text-button subtle" (click)="report = { type: 'REVIEW', id: review.id }">Denunciar avaliação</button></article> } @empty { <div class="surface empty-reviews">Ainda sem avaliações. Compartilhe sua experiência.</div> }</section>
-  <button class="text-button subtle report-place" (click)="report = { type: 'BATHROOM', id: bathroom.id }"><app-icon name="Flag" [size]="15" />Denunciar informações deste local</button>
-}@if (report) { <app-report [target]="report" (closed)="report = null" /> }</section>
+<section class="details-panel">
+  <a routerLink="/" class="back-link"><app-icon name="ArrowLeft" [size]="18" />Voltar aos resultados</a>
+  @if (error) {
+    <div class="state-box" role="alert">{{ error }}</div>
+  } @else if (!bathroom) {
+    <app-skeleton variant="detail" label="Carregando detalhes…" />
+  } @else {
+    <section class="gallery" aria-label="Fotos aprovadas">
+      @if (bathroom.photoIds.length) {
+        <div class="main-photo">
+          <img [src]="'/api/photos/' + bathroom.photoIds[photo]" alt="Foto aprovada do banheiro" /><span class="gallery-count">{{ photo + 1 }} / {{ bathroom.photoIds.length }}</span
+          ><button class="photo-report" (click)="report = { type: 'PHOTO', id: bathroom.photoIds[photo] }"><app-icon name="Flag" [size]="15" />Denunciar foto</button>
+        </div>
+        <div class="thumbnails">
+          @for (id of bathroom.photoIds; track id; let index = $index) {
+            <button [class.active]="photo === index" (click)="photo = index" [attr.aria-label]="'Ver foto ' + (index + 1)" [attr.aria-pressed]="photo === index"><img [src]="'/api/photos/' + id" alt="" /></button>
+          }
+        </div>
+        @if (bathroom.demo) {
+          <p class="muted">
+            <small>Fotos ilustrativas de outros locais.</small>
+          </p>
+        }
+      } @else {
+        <div class="gallery-empty">
+          <span class="brand-pin"><app-icon name="Toilet" [size]="25" /></span>
+          <p>Este local ainda não tem fotos aprovadas.</p>
+        </div>
+      }
+    </section>
+    <div class="title-row">
+      <h1>{{ bathroom.name }}</h1>
+    </div>
+    <div class="details-rating-row">
+      <p class="rating detail-rating">
+        <app-icon name="Star" [size]="21" />
+        @if (bathroom.rating !== null) {
+          <strong>{{ bathroom.rating | number: '1.1-1' }}</strong
+          ><span>({{ bathroom.reviewCount }} {{ bathroom.reviewCount === 1 ? 'avaliação' : 'avaliações' }})</span>
+        } @else {
+          <span>Ainda sem avaliações</span>
+        }
+      </p>
+      <span class="tag success"><app-icon name="CheckCircle" [size]="14" />Aprovado</span>
+    </div>
+    <div class="detail-actions">
+      <a class="button primary" [routerLink]="['/banheiros', bathroom.id, 'rota']"><app-icon name="Navigation" [size]="18" />Como chegar</a><a class="button secondary" [routerLink]="['/banheiros', bathroom.id, 'avaliar']"><app-icon name="Star" [size]="18" />Avaliar</a>
+    </div>
+    @if (bathroom.demo) {
+      <p class="demo-banner">Local fictício de demonstração. Não use como indicação real.</p>
+    }
+    <div class="detail-facts">
+      <p><app-icon name="Coffee" [size]="18" />{{ bathroom.category }}</p>
+      <p><app-icon name="MapPin" [size]="18" />{{ bathroom.address }}</p>
+      <p><app-icon name="Clock" [size]="18" />{{ bathroom.hours || 'Horário não informado' }}</p>
+    </div>
+    <section class="detail-section">
+      <h2>Acesso</h2>
+      <p>{{ accessLabels[bathroom.access] }}</p>
+      @if (bathroom.accessDetails) {
+        <p class="muted">{{ bathroom.accessDetails }}</p>
+      }
+    </section>
+    <section class="detail-section">
+      <h2>Itens e acessibilidade</h2>
+      <div class="item-grid">
+        @for (item of bathroom.items; track item) {
+          <span><app-icon name="Check" [size]="16" />{{ itemLabels[item] }}</span>
+        }
+        <span><app-icon name="Accessibility" [size]="18" />{{ bathroom.accessible === null ? 'Acessibilidade não informada' : bathroom.accessible ? 'Acessível' : 'Sem acessibilidade informada' }}</span>
+      </div>
+    </section>
+    <div class="surface photo-invite">
+      <app-icon name="Camera" [size]="20" />
+      <div>
+        <strong>Você conhece este lugar?</strong>
+        <p>Envie uma foto do banheiro vazio.</p>
+      </div>
+      <a class="text-button" [routerLink]="['/banheiros', bathroom.id, 'fotos']">Contribuir <app-icon name="ArrowRight" [size]="16" /></a>
+    </div>
+    <section class="detail-section">
+      <div class="section-title">
+        <h2>Avaliações da comunidade</h2>
+        <a class="text-button" [routerLink]="['/banheiros', bathroom.id, 'avaliar']">Avaliar banheiro</a>
+      </div>
+      <small class="muted">Somente avaliações aprovadas compõem a nota.</small>
+      @for (review of reviews; track review.id) {
+        <article class="surface review-card">
+          <div class="review-header">
+            <span class="avatar"><app-icon name="User" [size]="18" /></span>
+            <div>
+              <strong>{{ review.author }}</strong>
+              <p class="rating"><app-icon name="Star" [size]="14" />{{ (review.cleanliness + review.structure) / 2 | number: '1.1-1' }}</p>
+            </div>
+            <time>{{ review.createdAt | date: 'dd/MM/yyyy' }}</time>
+          </div>
+          <p>{{ review.comment || 'Sem comentário.' }}</p>
+          <small class="muted">Limpeza: {{ review.cleanliness }}/5 · Estrutura: {{ review.structure }}/5</small><button class="text-button subtle" (click)="report = { type: 'REVIEW', id: review.id }">Denunciar avaliação</button>
+        </article>
+      } @empty {
+        <div class="surface empty-reviews">Ainda sem avaliações. Compartilhe sua experiência.</div>
+      }
+    </section>
+    <button class="text-button subtle report-place" (click)="report = { type: 'BATHROOM', id: bathroom.id }"><app-icon name="Flag" [size]="15" />Denunciar informações deste local</button>
+  }
+  @if (report) {
+    <app-report [target]="report" (closed)="report = null" />
+  }
+</section>

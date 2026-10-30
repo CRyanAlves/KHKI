@@ -3,17 +3,129 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ExplorationState } from '../workspace/exploration-state.service';
 import { ApiService } from '../../core/api.service';
-import { Bathroom, Contribution, Review } from '../../core/models';
+import { Contribution, Review } from '../../core/models';
 import { IconComponent } from '../../shared/icon.component';
 import { validatePhoto } from '../../shared/photo-validation';
 
-@Component({ selector: 'app-review', imports: [FormsModule, RouterLink, IconComponent], template: `<main class="narrow-page"><a class="back-link" [routerLink]="['/banheiros', id]"><app-icon name="ArrowLeft" [size]="18" />Voltar ao banheiro</a><section class="surface form-surface"><span class="eyebrow">SUA EXPERIÊNCIA FAZ DIFERENÇA</span><h1>Avaliar banheiro<span class="accent">.</span></h1><p class="muted">{{ name }}</p>@if (sent) { <div class="submission-success"><app-icon name="CheckCircle" [size]="40" /><h2>Avaliação em análise</h2><p>Obrigado por compartilhar. Sua avaliação ainda não é pública.</p>@if (warning) { <p role="alert" class="error-message">{{ warning }}</p> }<a routerLink="/contribuicoes" class="button primary">Acompanhar contribuição</a></div> } @else { <form (ngSubmit)="submit()"><fieldset><legend>Como estava a limpeza? *</legend><div class="rating-picker">@for (score of [1,2,3,4,5]; track score) { <button type="button" [class.active]="cleanliness >= score" [attr.aria-label]="'Limpeza: ' + score + ' de 5'" [attr.aria-pressed]="cleanliness === score" (click)="cleanliness = score"><app-icon name="Star" [size]="30" /></button> }</div></fieldset><fieldset><legend>E a estrutura? *</legend><div class="rating-picker">@for (score of [1,2,3,4,5]; track score) { <button type="button" [class.active]="structure >= score" [attr.aria-label]="'Estrutura: ' + score + ' de 5'" [attr.aria-pressed]="structure === score" (click)="structure = score"><app-icon name="Star" [size]="30" /></button> }</div></fieldset><label>Conte sua experiência <span class="optional">opcional</span><textarea name="comment" [(ngModel)]="comment" rows="4" maxlength="1500" placeholder="O que pode ajudar a próxima pessoa?"></textarea></label><label>Foto do banheiro <span class="optional">opcional</span><input type="file" accept="image/jpeg,image/png" (change)="choose($event)" /></label><div class="photo-warning"><app-icon name="Camera" /><p>Envie apenas fotos do banheiro vazio, sem pessoas, reflexos de pessoas ou informações pessoais.</p></div><p class="muted">Avaliações positivas e negativas são bem-vindas. A análise verifica as regras de conteúdo.</p>@if (error) { <p role="alert" class="error-message">{{ error }}</p> }<button class="button primary full" [disabled]="busy || !cleanliness || !structure">{{ busy ? 'Enviando…' : 'Enviar avaliação para análise' }}</button></form> }</section></main>` })
+import { SkeletonComponent } from '../../shared/skeleton.component';
+
+@Component({
+  selector: 'app-review',
+  imports: [SkeletonComponent, FormsModule, RouterLink, IconComponent],
+  template: `<main class="narrow-page">
+    <a class="back-link" [routerLink]="['/banheiros', id]"><app-icon name="ArrowLeft" [size]="18" />Voltar ao banheiro</a>
+    <section class="surface form-surface">
+      <span class="eyebrow">SUA EXPERIÊNCIA FAZ DIFERENÇA</span>
+      <h1>Avaliar banheiro<span class="accent">.</span></h1>
+      <p class="muted">{{ name }}</p>
+      @if (loading) {
+        <app-skeleton variant="form" label="Carregando formulário…" />
+      } @else if (sent) {
+        <div class="submission-success">
+          <app-icon name="CheckCircle" [size]="40" />
+          <h2>Avaliação em análise</h2>
+          <p>Obrigado por compartilhar. Sua avaliação ainda não é pública.</p>
+          @if (warning) {
+            <p role="alert" class="error-message">{{ warning }}</p>
+          }
+          <a routerLink="/contribuicoes" class="button primary">Acompanhar contribuição</a>
+        </div>
+      } @else {
+        <form (ngSubmit)="submit()">
+          <fieldset>
+            <legend>Como estava a limpeza? *</legend>
+            <div class="rating-picker">
+              @for (score of [1, 2, 3, 4, 5]; track score) {
+                <button type="button" [class.active]="cleanliness >= score" [attr.aria-label]="'Limpeza: ' + score + ' de 5'" [attr.aria-pressed]="cleanliness === score" (click)="cleanliness = score"><app-icon name="Star" [size]="30" /></button>
+              }
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>E a estrutura? *</legend>
+            <div class="rating-picker">
+              @for (score of [1, 2, 3, 4, 5]; track score) {
+                <button type="button" [class.active]="structure >= score" [attr.aria-label]="'Estrutura: ' + score + ' de 5'" [attr.aria-pressed]="structure === score" (click)="structure = score"><app-icon name="Star" [size]="30" /></button>
+              }
+            </div>
+          </fieldset>
+          <label>Conte sua experiência <span class="optional">opcional</span><textarea name="comment" [(ngModel)]="comment" rows="4" maxlength="1500" placeholder="O que pode ajudar a próxima pessoa?"></textarea></label><label>Foto do banheiro <span class="optional">opcional</span><input type="file" accept="image/jpeg,image/png" (change)="choose($event)" /></label>
+          <div class="photo-warning">
+            <app-icon name="Camera" />
+            <p>Envie apenas fotos do banheiro vazio, sem pessoas, reflexos de pessoas ou informações pessoais.</p>
+          </div>
+          <p class="muted">Avaliações positivas e negativas são bem-vindas. A análise verifica as regras de conteúdo.</p>
+          @if (error) {
+            <p role="alert" class="error-message">{{ error }}</p>
+          }
+          <button class="button primary full" [disabled]="busy || !cleanliness || !structure">{{ busy ? 'Enviando…' : 'Enviar avaliação para análise' }}</button>
+        </form>
+      }
+    </section>
+  </main>`
+})
 export class ReviewComponent implements OnInit {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly exploration = inject(ExplorationState);
-  private readonly api = inject(ApiService); private readonly route = inject(ActivatedRoute);
-  id = ''; name = ''; editId = ''; cleanliness = 0; structure = 0; comment = ''; file: File | null = null; busy = false; error = ''; sent = false; warning = '';
-  async ngOnInit(): Promise<void> { this.exploration.enter('review'); this.id = this.route.snapshot.paramMap.get('id')!; this.editId = this.route.snapshot.queryParamMap.get('edit') || ''; try { this.name = (await this.exploration.select(this.id))?.name || ''; if (this.editId) { const review = await this.api.get<Review>('/me/contributions/REVIEW/' + this.editId); this.cleanliness = review.cleanliness; this.structure = review.structure; this.comment = review.comment || ''; } } catch (error) { this.error = this.api.error(error); } finally { this.changeDetector.markForCheck(); this.exploration.panelReady.update(value => value + 1); } }
-  choose(event: Event): void { const file = (event.target as HTMLInputElement).files?.[0]; this.error = file ? validatePhoto(file) || '' : ''; this.file = this.error ? null : file || null; }
-  async submit(): Promise<void> { this.busy = true; this.error = ''; try { const body = { cleanliness: this.cleanliness, structure: this.structure, comment: this.comment }; const contribution = this.editId ? await this.api.put<Contribution>('/reviews/' + this.editId, body) : await this.api.post<Contribution>('/bathrooms/' + this.id + '/reviews', body); if (this.file) { const data = new FormData(); data.append('file', this.file); try { await this.api.post('/bathrooms/' + this.id + '/photos?reviewId=' + contribution.id, data); } catch (error) { this.warning = 'Avaliação salva. A foto não foi enviada: ' + this.api.error(error); } } this.sent = true; } catch (error) { this.error = this.api.error(error); } finally { this.changeDetector.markForCheck(); this.busy = false; } }
+  private readonly api = inject(ApiService);
+  private readonly route = inject(ActivatedRoute);
+  loading = true;
+  id = '';
+  name = '';
+  editId = '';
+  cleanliness = 0;
+  structure = 0;
+  comment = '';
+  file: File | null = null;
+  busy = false;
+  error = '';
+  sent = false;
+  warning = '';
+  async ngOnInit(): Promise<void> {
+    this.exploration.enter('review');
+    this.id = this.route.snapshot.paramMap.get('id')!;
+    this.editId = this.route.snapshot.queryParamMap.get('edit') || '';
+    try {
+      this.name = (await this.exploration.select(this.id))?.name || '';
+      if (this.editId) {
+        const review = await this.api.get<Review>('/me/contributions/REVIEW/' + this.editId);
+        this.cleanliness = review.cleanliness;
+        this.structure = review.structure;
+        this.comment = review.comment || '';
+      }
+    } catch (error) {
+      this.error = this.api.error(error);
+    } finally {
+      this.loading = false;
+      this.changeDetector.markForCheck();
+      this.exploration.panelReady.update((value) => value + 1);
+    }
+  }
+  choose(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    this.error = file ? validatePhoto(file) || '' : '';
+    this.file = this.error ? null : file || null;
+  }
+  async submit(): Promise<void> {
+    this.busy = true;
+    this.error = '';
+    try {
+      const body = { cleanliness: this.cleanliness, structure: this.structure, comment: this.comment };
+      const contribution = this.editId ? await this.api.put<Contribution>('/reviews/' + this.editId, body) : await this.api.post<Contribution>('/bathrooms/' + this.id + '/reviews', body);
+      if (this.file) {
+        const data = new FormData();
+        data.append('file', this.file);
+        try {
+          await this.api.post('/bathrooms/' + this.id + '/photos?reviewId=' + contribution.id, data);
+        } catch (error) {
+          this.warning = 'Avaliação salva. A foto não foi enviada: ' + this.api.error(error);
+        }
+      }
+      this.sent = true;
+    } catch (error) {
+      this.error = this.api.error(error);
+    } finally {
+      this.changeDetector.markForCheck();
+      this.busy = false;
+    }
+  }
 }

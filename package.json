@@ -1,0 +1,8 @@
+{
+  "name": "khki",
+  "private": true,
+  "scripts": {
+    "format": "node scripts/format.cjs",
+    "format:check": "node scripts/format.cjs --check"
+  }
+}
