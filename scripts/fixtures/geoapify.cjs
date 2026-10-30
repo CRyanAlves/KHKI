@@ -26,9 +26,10 @@ http
       send(403, { statusCode: 403, error: 'Forbidden', message: 'Invalid apiKey' });
       return;
     }
-    if (url.pathname === '/v1/geocode/search') {
+    if (url.pathname === '/v1/geocode/search' || url.pathname === '/v1/geocode/autocomplete') {
+      const autocomplete = url.pathname.endsWith('/autocomplete');
       const text = url.searchParams.get('text') || '';
-      if (url.searchParams.get('format') !== 'json' || url.searchParams.get('filter') !== 'countrycode:br' || url.searchParams.get('lang') !== 'pt' || url.searchParams.get('limit') !== '1' || !text) {
+      if (url.searchParams.get('format') !== 'json' || url.searchParams.get('filter') !== 'countrycode:br' || url.searchParams.get('lang') !== 'pt' || url.searchParams.get('limit') !== (autocomplete ? '5' : '1') || !text) {
         send(400, { statusCode: 400, message: 'Invalid geocoding contract' });
         return;
       }
@@ -50,7 +51,14 @@ http
         send(200, { results: [] });
         return;
       }
-      send(200, { results: [{ lat: -23.556, lon: -46.658, formatted: 'Endereço simulado — São Paulo, Brasil', country_code: 'br' }], query: { text } });
+      const results = autocomplete
+        ? [
+            { lat: -23.556, lon: -46.658, formatted: text, address_line2: 'São Paulo — SP', country_code: 'br' },
+            { lat: -23.558, lon: -46.659, formatted: text + ' — alternativa', address_line2: 'São Paulo — SP', country_code: 'br' }
+          ]
+        : [{ lat: -23.556, lon: -46.658, formatted: 'Endereço simulado — São Paulo, Brasil', country_code: 'br' }];
+      if (text === 'lento') setTimeout(() => send(200, { results, query: { text } }), 1200);
+      else send(200, { results, query: { text } });
       return;
     }
     if (url.pathname === '/v1/routing') {
@@ -59,18 +67,34 @@ http
         return;
       }
       const waypoints = (url.searchParams.get('waypoints') || '').split('|').map((value) => value.split(',').map(Number));
-      if (!['walk', 'drive'].includes(url.searchParams.get('mode')) || url.searchParams.get('units') !== 'metric' || url.searchParams.get('format') !== 'geojson' || url.searchParams.get('lang') !== 'pt-BR' || waypoints.length !== 2 || waypoints.some((point) => point.length !== 2 || !Number.isFinite(point[0]) || !Number.isFinite(point[1]))) {
+      if (
+        !['walk', 'drive', 'bicycle', 'motorcycle'].includes(url.searchParams.get('mode')) ||
+        url.searchParams.get('units') !== 'metric' ||
+        url.searchParams.get('format') !== 'geojson' ||
+        url.searchParams.get('lang') !== 'pt-BR' ||
+        url.searchParams.get('details') !== 'instruction_details' ||
+        waypoints.length !== 2 ||
+        waypoints.some((point) => point.length !== 2 || !Number.isFinite(point[0]) || !Number.isFinite(point[1]))
+      ) {
         send(400, { statusCode: 400, message: 'Invalid routing contract' });
         return;
       }
       const mode = url.searchParams.get('mode');
-      const distance = mode === 'drive' ? 1100 : 300;
-      const time = mode === 'drive' ? 180 : 240;
+      const distance = { drive: 1100, motorcycle: 1000, bicycle: 700, walk: 300 }[mode];
+      const time = url.searchParams.get('simulationScenario') === 'long' ? 3900 : { drive: 180, motorcycle: 160, bicycle: 210, walk: 240 }[mode];
       const coordinates = waypoints.map((point) => [point[1], point[0]]);
       if (mode === 'drive') coordinates.splice(1, 0, [coordinates[0][0] - 0.002, coordinates[0][1]], [coordinates[0][0] - 0.002, coordinates[1][1]]);
+      const steps = coordinates.map((point, index) => ({
+        from_index: index,
+        to_index: Math.min(index + 1, coordinates.length - 1),
+        instruction: {
+          type: index === 0 ? 'StartAt' : index === coordinates.length - 1 ? 'DestinationReached' : index === 1 ? 'Left' : 'Right',
+          text: index === 0 ? (mode === 'drive' ? 'Contorne o quarteirão seguindo o sentido permitido da via simulada.' : 'Siga pela rua de teste até o destino.') : index === coordinates.length - 1 ? 'Chegue ao destino de teste.' : index === 1 ? 'Vire à esquerda na rua de teste.' : 'Vire à direita na avenida de teste.'
+        }
+      }));
       const result = {
         type: 'FeatureCollection',
-        features: [{ type: 'Feature', geometry: { type: 'MultiLineString', coordinates: [coordinates] }, properties: { mode, distance, distance_units: 'Meters', time, legs: [{ distance, time, steps: [{ instruction: { text: mode === 'drive' ? 'Contorne o quarteirão seguindo o sentido permitido da via simulada.' : 'Siga pela rua de teste até o destino.' } }] }] } }]
+        features: [{ type: 'Feature', geometry: { type: 'MultiLineString', coordinates: [coordinates] }, properties: { mode, distance, distance_units: 'Meters', time, legs: [{ distance, time, steps }] } }]
       };
       if (url.searchParams.get('simulationScenario') === 'slow') setTimeout(() => send(200, result), 1500);
       else send(200, result);

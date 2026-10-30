@@ -30,8 +30,8 @@ test('public exploration, filters, details and honest map fallback', async ({ pa
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Sua origem' }).fill('Avenida Paulista, São Paulo');
-  await page.getByRole('button', { name: 'Calcular rota' }).click();
+  await page.getByRole('combobox', { name: 'Sua origem' }).fill('Avenida Paulista, São Paulo');
+  await page.getByRole('combobox', { name: 'Sua origem', exact: true }).press('Enter');
   await expect(page.getByRole('alert')).toContainText('Configure a chave');
   await page.screenshot({ path: '../test-results/route-desktop.png', fullPage: true });
   expect(errors).toEqual([]);

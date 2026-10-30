@@ -18,9 +18,9 @@ test('Geoapify simulated HTTP: map, geocoding, pedestrian route and attribution'
   await expect(page.getByRole('status')).toContainText('Mapa centralizado');
   await page.getByRole('button', { name: 'Café do Centro', exact: true }).click();
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Sua origem' }).fill('Rua de teste, São Paulo');
-  await page.getByRole('radio', { name: 'A pé', exact: true }).check();
-  await page.getByRole('button', { name: 'Calcular rota', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Sua origem' }).fill('Rua de teste, São Paulo');
+  await page.getByRole('radio', { name: 'A pé', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Sua origem', exact: true }).press('Enter');
   await expect(page.getByRole('heading', { name: '4 min', exact: true })).toBeVisible();
   await expect(page.getByText('0,3 km a pé', { exact: true })).toBeVisible();
   await expect(page.getByText('Siga pela rua de teste até o destino.')).toBeVisible();
@@ -54,8 +54,8 @@ test('Geoapify simulated HTTP: clear errors for quota, missing result and malfor
     ['invalido', 'coordenadas inválidas'],
     ['falha', 'indisponível']
   ]) {
-    await page.getByRole('textbox', { name: 'Sua origem' }).fill(origin);
-    await page.getByRole('button', { name: 'Calcular rota', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Sua origem' }).fill(origin);
+    await page.getByRole('combobox', { name: 'Sua origem', exact: true }).press('Enter');
     await expect(page.getByRole('alert')).toContainText(expected);
     await expect(page.getByRole('heading', { name: '4 min', exact: true })).toHaveCount(0);
   }
@@ -66,27 +66,25 @@ test('driving profile uses vehicle routing and changing mode clears the previous
   await page.getByRole('link', { name: /Café do Centro/ }).click();
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
   await expect(page.getByRole('radio', { name: 'Carro', exact: true })).toBeChecked();
-  await page.getByRole('textbox', { name: 'Sua origem' }).fill('Rua de teste, São Paulo');
+  await page.getByRole('combobox', { name: 'Sua origem' }).fill('Rua de teste, São Paulo');
   const driving = page.waitForRequest((request) => {
     const url = new URL(request.url());
     return url.pathname.endsWith('/routing') && url.searchParams.get('mode') === 'drive';
   });
-  await page.getByRole('button', { name: 'Calcular rota', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Sua origem', exact: true }).press('Enter');
   await driving;
   await expect(page.getByText('1,1 km de carro', { exact: true })).toBeVisible();
   await expect(page.getByText('Contorne o quarteirão seguindo o sentido permitido da via simulada.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Origem da rota', exact: true })).toBeVisible();
   await page.screenshot({ path: '../test-results/route-driving.png', fullPage: true });
-  await page.getByRole('radio', { name: 'A pé', exact: true }).check();
-  await expect(page.getByText('1,1 km de carro', { exact: true })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Origem da rota', exact: true })).toHaveCount(0);
   const walking = page.waitForRequest((request) => {
     const url = new URL(request.url());
     return url.pathname.endsWith('/routing') && url.searchParams.get('mode') === 'walk';
   });
-  await page.getByRole('button', { name: 'Calcular rota', exact: true }).click();
+  await page.getByRole('radio', { name: 'A pé', exact: true }).click();
   await walking;
+  await expect(page.getByText('1,1 km de carro', { exact: true })).toHaveCount(0);
   await expect(page.getByText('0,3 km a pé', { exact: true })).toBeVisible();
-  await page.getByRole('textbox', { name: 'Sua origem' }).fill('Outra origem');
+  await page.getByRole('combobox', { name: 'Sua origem' }).fill('Outra origem');
   await expect(page.getByText('0,3 km a pé', { exact: true })).toHaveCount(0);
 });

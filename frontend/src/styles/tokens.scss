@@ -87,11 +87,17 @@
   --header-height: 72px;
   --panel-width: clamp(380px, 28vw, 420px);
   --control-size: 44px;
+  --font-weight-semibold: 600;
+  --origin-options-max-height: min(320px, 42dvh);
+  --origin-auto-label-width: 112px;
+  --focus-ring-width: 3px;
+  --focus-ring-offset: var(--space-1);
   --map-message-max-width: 320px;
   --panel-width-compact: 360px;
   --panel-mobile-height: min(64%, calc(100% - 170px));
   --motion-map-duration: 600ms;
   --navigation-simulator-width: 320px;
+  --navigation-directions-width: 360px;
   --navigation-simulator-mobile-width: 260px;
   --navigation-arrow-size: 32px;
   --navigation-pitch: 55;

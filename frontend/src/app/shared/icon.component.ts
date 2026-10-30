@@ -1,4 +1,5 @@
 import { Component, Input } from '@angular/core';
+import { LucideCar as Car, LucideMotorbike as Motorbike, LucideBike as Bike } from '@lucide/angular';
 import {
   LucideDynamicIcon,
   LucideIcon,
@@ -46,5 +47,47 @@ import {
 export class IconComponent {
   @Input() name = 'MapPin';
   @Input() size = 20;
-  readonly icons: Record<string, LucideIcon> = { Sun, Moon, Search, SlidersHorizontal, Accessibility, Baby, ArrowRight, ArrowLeft, MapPin, Navigation, Star, Clock, X, Plus, Minus, LocateFixed, ChevronRight, Check, Toilet, Eye, Flag, Upload, Coffee, ShieldCheck, LogOut, Map, Camera, User, Menu, CheckCircle, Heart, Footprints, Building2, Droplets, Trash2, ChevronDown, Info, LockKeyhole };
+  readonly icons: Record<string, LucideIcon> = {
+    Car,
+    Motorbike,
+    Bike,
+    Sun,
+    Moon,
+    Search,
+    SlidersHorizontal,
+    Accessibility,
+    Baby,
+    ArrowRight,
+    ArrowLeft,
+    MapPin,
+    Navigation,
+    Star,
+    Clock,
+    X,
+    Plus,
+    Minus,
+    LocateFixed,
+    ChevronRight,
+    Check,
+    Toilet,
+    Eye,
+    Flag,
+    Upload,
+    Coffee,
+    ShieldCheck,
+    LogOut,
+    Map,
+    Camera,
+    User,
+    Menu,
+    CheckCircle,
+    Heart,
+    Footprints,
+    Building2,
+    Droplets,
+    Trash2,
+    ChevronDown,
+    Info,
+    LockKeyhole
+  };
 }

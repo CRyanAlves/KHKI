@@ -1,0 +1,109 @@
+@use '../../../styles/settings';
+:host {
+  display: block;
+  position: relative;
+}
+label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+}
+.origin-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-size);
+  padding-inline: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+.origin-field:focus-within,
+.origin-field.is-open {
+  border-color: var(--color-accent);
+}
+.origin-field:has(input:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--color-focus);
+  outline-offset: var(--focus-ring-offset);
+}
+.origin-field input:focus-visible {
+  outline: 0;
+}
+.origin-field input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: var(--space-2) 0;
+  font-size: var(--text-sm);
+  box-shadow: none;
+}
+.origin-field .icon-button {
+  width: var(--space-6);
+  min-height: var(--space-6);
+  padding: 0;
+  flex-shrink: 0;
+}
+.origin-options {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  inset-inline: 0;
+  z-index: settings.$layer-panel-control;
+  max-height: var(--origin-options-max-height);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  padding: var(--space-2);
+}
+.origin-options button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: left;
+  min-height: var(--control-size);
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.origin-options button:hover,
+.origin-options button[aria-selected='true'] {
+  background: var(--color-accent-soft);
+}
+.origin-options button app-icon {
+  flex-shrink: 0;
+}
+.origin-options span {
+  overflow-wrap: anywhere;
+}
+.origin-options small,
+.origin-hint,
+#route-origin-status {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+.origin-options small {
+  display: block;
+}
+.origin-hint {
+  display: block;
+  padding: var(--space-2);
+}
+#route-origin-status:empty {
+  display: none;
+}
+#route-origin-status:not(:empty) {
+  display: block;
+  margin-top: var(--space-2);
+}

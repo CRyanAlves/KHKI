@@ -32,15 +32,15 @@ test('one map survives selection, route, browser history and panel collapse with
   expect(await map!.evaluate((element) => element === document.querySelector('app-map'))).toBe(true);
   expect(await page.locator('.site-header').boundingBox()).toEqual(header);
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Sua origem' }).fill('Rua de teste, São Paulo');
-  await page.getByRole('button', { name: 'Calcular rota', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Sua origem' }).fill('Rua de teste, São Paulo');
+  await page.getByRole('combobox', { name: 'Sua origem', exact: true }).press('Enter');
   await expect(page.getByText('1,1 km de carro', { exact: true })).toBeVisible();
   expect(await map!.evaluate((element) => element === document.querySelector('app-map'))).toBe(true);
   expect(await page.locator('.site-header').boundingBox()).toEqual(header);
   await page.goBack();
   await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true })).toBeVisible();
   await page.goForward();
-  await expect(page.getByRole('textbox', { name: 'Sua origem' })).toHaveValue('Rua de teste, São Paulo');
+  await expect(page.getByRole('combobox', { name: 'Sua origem' })).toHaveValue('Rua de teste, São Paulo');
   await expect(page.getByText('1,1 km de carro', { exact: true })).toBeVisible();
   await page.goBack();
   await page.getByRole('link', { name: 'Voltar aos resultados', exact: true }).click();

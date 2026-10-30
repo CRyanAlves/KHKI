@@ -22,6 +22,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() point: Location | null = null;
   @Input() route: TravelRoute | null = null;
   @Input() editable = false;
+  @Input() selectOrigin = false;
   @Input() overlayPanel = false;
   @Input() panelCollapsed = false;
   @Input() selectedId = '';
@@ -31,6 +32,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() fitAll = false;
   @Input() pointAsPin = false;
   @Input() navigation: NavigationFrame | null = null;
+  @Input() navigationBottomInset = 0;
   @Output() followPaused = new EventEmitter<void>();
   @Output() hovered = new EventEmitter<string>();
   @Output() boundsChanged = new EventEmitter<MapArea>();
@@ -72,6 +74,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
       if (this.destroyed) return;
       this.library.setWorkerUrl(new URL('maplibre-gl-worker.mjs', document.baseURI).toString());
       this.map = new this.library.Map({ container: this.canvas.nativeElement, style: this.maps.styleUrl(this.theme.mode()), center: this.point ? [this.point.lng, this.point.lat] : [-46.65, -23.555], zoom: 14, attributionControl: false });
+      this.map.getCanvas().style.cursor = this.selectOrigin ? 'crosshair' : '';
       this.routeAnimation = animateRoute(this.map);
       this.map.addControl(new this.library.NavigationControl({ showCompass: false }), 'bottom-right');
       this.map.on('moveend', () => {
@@ -96,7 +99,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
         if (this.loading) this.fail();
       });
       this.map.on('click', (event) => {
-        if (this.editable) this.moved.emit({ lat: event.lngLat.lat, lng: event.lngLat.lng });
+        if (this.editable || this.selectOrigin) this.moved.emit({ lat: event.lngLat.lat, lng: event.lngLat.lng });
       });
       for (const event of ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart'] as const)
         this.map.on(event, (change) => {
@@ -165,8 +168,9 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.changeDetector.markForCheck();
   }
   ngOnChanges(changes: SimpleChanges): void {
+    if (this.map && changes['selectOrigin']) this.map.getCanvas().style.cursor = this.selectOrigin ? 'crosshair' : '';
     if (changes['navigation']?.previousValue && !this.navigation && this.map) this.map.easeTo({ pitch: 0, bearing: 0, duration: this.motionDuration() });
-    if (changes['navigation'] && Object.keys(changes).every((key) => ['navigation', 'panelCollapsed', 'overlayPanel'].includes(key))) {
+    if (changes['navigation'] && Object.keys(changes).every((key) => ['navigation', 'navigationBottomInset', 'panelCollapsed', 'overlayPanel'].includes(key))) {
       if (this.navigation) this.updateNavigation();
       else if (changes['navigation'].previousValue && this.map) this.render(false);
       return;
@@ -178,7 +182,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
       }
       if (!changes['selectedId'].currentValue && changes['selectedId'].previousValue) this.restoreCamera = true;
     }
-    if (Object.keys(changes).every((key) => ['highlightedId', 'panelCollapsed', 'overlayPanel'].includes(key) || (this.fitAll && key === 'selectedId'))) {
+    if (Object.keys(changes).every((key) => ['highlightedId', 'panelCollapsed', 'overlayPanel', 'selectOrigin', 'navigationBottomInset'].includes(key) || (this.fitAll && key === 'selectedId'))) {
       this.decorateMarkers();
       if (this.navigation) this.updateNavigation();
       return;
@@ -240,6 +244,11 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
           element.addEventListener('click', (event) => {
             event.stopPropagation();
             if (!this.map || !this.library) return;
+            if (this.selectOrigin) {
+              const point = this.map.unproject(this.map.project([bathroom.longitude, bathroom.latitude]));
+              this.moved.emit({ lat: point.lat, lng: point.lng });
+              return;
+            }
             const bounds = new this.library.LngLatBounds();
             this.bathrooms.filter((value) => (element.dataset['bathroomIds'] || '').split(',').includes(value.id)).forEach((value) => bounds.extend([value.longitude, value.latitude]));
             this.map.fitBounds(bounds, { padding: this.cameraPadding(), maxZoom: Math.min(17, this.map.getZoom() + 2), duration: this.motionDuration() });
@@ -248,7 +257,8 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
           element.dataset['bathroomId'] = bathroom.id;
           element.addEventListener('click', (event) => {
             event.stopPropagation();
-            this.selected.emit(bathroom.id);
+            if (this.selectOrigin) this.moved.emit({ lat: bathroom.latitude, lng: bathroom.longitude });
+            else this.selected.emit(bathroom.id);
           });
           element.addEventListener('mouseenter', () => this.hovered.emit(bathroom.id));
           element.addEventListener('mouseleave', () => this.hovered.emit(''));
@@ -295,6 +305,12 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private motionDuration(): number {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : motionDurationMilliseconds(getComputedStyle(document.documentElement).getPropertyValue('--motion-map-duration'));
   }
+  confirmOrigin(): void {
+    if (this.selectOrigin && this.map) {
+      const point = this.map.getCenter();
+      this.moved.emit({ lat: point.lat, lng: point.lng });
+    }
+  }
   private cameraPadding(): { top: number; right: number; bottom: number; left: number } {
     const padding = { top: 50, right: 50, bottom: 50, left: 50 };
     if (!this.overlayPanel || this.panelCollapsed) return padding;
@@ -337,7 +353,12 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
     const tokens = getComputedStyle(document.documentElement);
     const mobile = window.matchMedia('(max-width: ' + tokens.getPropertyValue('--breakpoint-mobile').trim() + ')').matches;
     const offset = this.cameraOffset();
-    if (mobile) offset[1] += Math.max(0, this.canvas.nativeElement.clientHeight - (this.cameraPadding().bottom - 50)) * Number(tokens.getPropertyValue('--navigation-camera-offset'));
+    if (mobile) {
+      const visibleHeight = Math.max(0, this.canvas.nativeElement.clientHeight - (this.cameraPadding().bottom - 50));
+      const obstruction = Math.max(0, Math.min(Number.isFinite(this.navigationBottomInset) ? this.navigationBottomInset : 0, visibleHeight - Number.parseFloat(tokens.getPropertyValue('--control-size')) * 2));
+      offset[1] -= obstruction / 2;
+      offset[1] += (visibleHeight - obstruction) * Number(tokens.getPropertyValue('--navigation-camera-offset'));
+    }
     const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : motionDurationMilliseconds(tokens.getPropertyValue('--motion-navigation-camera'));
     const current = this.map.getBearing();
     this.map.easeTo({ center: [frame.position.lng, frame.position.lat], bearing: current + headingDelta(current, frame.heading), pitch: mobile ? Number(tokens.getPropertyValue('--navigation-pitch')) : 0, zoom: Number(tokens.getPropertyValue('--navigation-zoom')), offset, duration });

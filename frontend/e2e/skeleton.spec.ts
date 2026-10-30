@@ -87,7 +87,7 @@ test('details, route and contribution forms keep the map while loading', async (
     expect(await map!.evaluate((element) => element === document.querySelector('app-map'))).toBe(true);
     release();
     await expect(skeleton).toHaveCount(0);
-    await expect(page.locator(selector + ' form')).toBeVisible();
+    await expect(page.locator(selector + (path === 'rota' ? ' app-origin-picker' : ' form'))).toBeVisible();
   }
 });
 
@@ -183,9 +183,9 @@ test('map and route calculation skeletons release the same canvas when ready', a
   });
   await page.locator('.bathroom-card').first().click();
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Sua origem', exact: true }).fill('Rua Augusta, São Paulo');
-  await page.getByRole('button', { name: 'Calcular rota', exact: true }).click();
-  await expect(page.locator('app-route app-skeleton')).toContainText('Calculando rota…');
+  await page.getByRole('combobox', { name: 'Sua origem', exact: true }).fill('Rua Augusta, São Paulo');
+  await page.getByRole('combobox', { name: 'Sua origem', exact: true }).press('Enter');
+  await expect(page.locator('app-route app-skeleton')).toContainText('Atualizando rota…');
   releaseRoute();
   await expect(page.locator('app-route app-skeleton')).toHaveCount(0);
   await expect(page.locator('.route-summary')).toBeVisible();

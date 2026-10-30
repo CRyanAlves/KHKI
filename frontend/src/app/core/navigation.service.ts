@@ -3,6 +3,7 @@ import type { Location } from './models';
 import { MapsService, TravelMode, TravelRoute } from './maps.service';
 import { RouteTrack, bearing, buildTrack, compassHeading, distanceMeters, headingDelta, nearestProgress, normalizeHeading, remainingTrack, sampleTrack, validPoint } from './navigation-geometry';
 import { NAVIGATION_POLICY } from './navigation-policy';
+import { TRAVEL_MODES } from './travel-modes';
 
 export interface NavigationFrame {
   position: Location;
@@ -294,7 +295,7 @@ export class NavigationService {
   }
   advanceSimulation(seconds: number): void {
     if (!this.simulationEnabled || !this.simulated() || !this.track || !Number.isFinite(seconds) || seconds < 0 || seconds > 60) return;
-    this.traveled.set(Math.min(this.track.length, this.traveled() + seconds * (this.mode === 'walk' ? 1.4 : 8.33) * this.speedMultiplier()));
+    this.traveled.set(Math.min(this.track.length, this.traveled() + seconds * TRAVEL_MODES.find((mode) => mode.value === this.mode)!.simulationSpeed * this.speedMultiplier()));
     this.applySimulation();
     if (this.traveled() >= this.track.length) {
       this.pauseSimulation();

@@ -1,128 +1,136 @@
+@use './settings';
 .route-panel {
-  padding: var(--space-8);
+  padding: var(--space-5);
 }
-.route-panel h1 {
-  margin: var(--space-3) 0;
-}
-.location-choice {
-  margin: var(--space-3) 0 var(--space-2);
+.workspace-panel .route-panel h1 {
+  font-size: var(--text-xl);
+  margin: var(--space-3) 0 var(--space-5);
 }
 .route-panel small {
   display: block;
 }
+.destination-label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+  margin: var(--space-3) 0 var(--space-2);
+}
 .destination-box {
   display: flex;
-  gap: var(--space-3);
   align-items: center;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-sm);
-  margin-top: var(--space-6);
-  padding: var(--space-4);
-}
-.destination-box > app-icon {
-  color: var(--color-accent);
-}
-.destination-box p {
-  font-size: var(--text-xs);
-  color: var(--color-muted);
-}
-.route-empty {
-  padding: var(--space-8) var(--space-3);
-  text-align: center;
-  color: var(--color-muted);
+  background: var(--color-surface);
   font-size: var(--text-sm);
 }
+.destination-box app-icon {
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+.destination-box p {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.travel-mode {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-1);
+  margin: var(--space-3) 0;
+}
+.travel-mode button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--control-size);
+  padding: var(--space-2) var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.travel-mode button.selected {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-color: var(--color-accent);
+}
+.travel-mode button:hover {
+  border-color: var(--color-accent);
+}
 .route-summary {
-  padding: var(--space-5);
-  margin-top: var(--space-6);
-  background: var(--color-accent-soft);
-  border-radius: var(--radius-md);
-}
-.route-summary h2 {
-  font-size: 2.3rem;
-  margin-top: var(--space-2);
-}
-.route-summary small {
-  color: var(--color-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border-block: var(--border-width) solid var(--color-border);
+  padding: var(--space-3) 0;
   margin-top: var(--space-3);
 }
-.route-step {
+.route-summary h2 {
+  font-size: var(--text-xl);
+  margin: 0;
+}
+.route-summary p {
+  font-size: var(--text-sm);
+  margin: 0;
+}
+.route-auto {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--color-border);
+  max-width: var(--origin-auto-label-width);
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+.route-empty,
+.route-updating {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  padding-block: var(--space-4);
 }
 .route-attribution {
   font-size: var(--text-xs);
 }
-
-.travel-mode {
-  margin: var(--space-5) 0;
-}
-.travel-mode-options {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-.travel-mode-options label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  cursor: pointer;
+.route-map-hint {
   padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-}
-.travel-mode-options label.selected {
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft);
-}
-.travel-mode-options input {
-  margin: 0;
-}
-
-.workspace-panel .route-panel h1 {
-  font-size: 1.55rem;
-  margin-bottom: var(--space-6);
-}
-.workspace-panel .route-panel > .eyebrow {
-  font-size: 0.56rem;
-  color: var(--color-muted);
-}
-.workspace-panel .destination-box {
-  margin-top: var(--space-5);
-  padding: var(--space-3);
-}
-.workspace-panel .route-summary {
-  background: transparent;
-  border-top: 1px solid var(--color-border);
-  border-radius: 0;
-  padding: var(--space-5) 0;
-}
-.workspace-panel .route-summary h2 {
-  font-size: 1.8rem;
-}
-.workspace-panel .route-step {
   font-size: var(--text-sm);
-  align-items: flex-start;
-  counter-increment: route-step;
-  gap: var(--space-3);
+  border: var(--border-width) solid var(--color-accent);
+  border-radius: var(--radius-sm);
 }
-.workspace-panel .route-step::before {
-  content: counter(route-step);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface-raised);
-  border-radius: var(--radius-pill);
-  min-width: 25px;
-  height: 25px;
-  display: grid;
-  place-items: center;
+.route-picking-tools {
+  position: absolute;
+  top: calc(var(--control-size) + var(--space-6));
+  right: var(--space-4);
+  left: max(var(--space-4), var(--map-left-inset));
+  z-index: settings.$layer-panel-control;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+.route-picking-tools span {
+  flex: 1;
+}
+.route-picking-tools .button {
+  padding: var(--space-2);
   font-size: var(--text-xs);
 }
-.workspace-panel .route-panel {
-  counter-reset: route-step;
+.route-panel .demo-banner {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  margin-block: var(--space-3);
+}
+.route-panel .navigation-route-controls {
+  margin-block: var(--space-3);
+  gap: var(--space-2);
 }

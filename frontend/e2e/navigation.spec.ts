@@ -42,8 +42,8 @@ async function prepare(page: Page, enabled = true): Promise<void> {
   await page.goto('/');
   await page.locator('.bathroom-card').first().click();
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Sua origem', exact: true }).fill('Rua Augusta, São Paulo');
-  await page.getByRole('button', { name: 'Calcular rota', exact: true }).click();
+  await page.getByRole('combobox', { name: 'Sua origem', exact: true }).fill('Rua Augusta, São Paulo');
+  await page.getByRole('combobox', { name: 'Sua origem', exact: true }).press('Enter');
   await expect(page.locator('.route-summary')).toBeVisible();
   await page.waitForFunction(() => {
     const runtime = (window as unknown as { ng: { getComponent(element: Element | null): MapRuntime } }).ng.getComponent(document.querySelector('app-map'));
@@ -75,11 +75,13 @@ async function fix(page: Page, fraction = 0, overrides: Partial<GeolocationCoord
     { fraction, overrides, old }
   );
 }
-async function camera(page: Page): Promise<{ pitch: number; bearing: number; y: number; height: number }> {
+async function camera(page: Page): Promise<{ pitch: number; bearing: number; y: number; height: number; availableHeight: number }> {
   return page.locator('app-map').evaluate((element) => {
     const component = (window as unknown as { ng: { getComponent(element: Element): MapRuntime & { navigation: { position: { lat: number; lng: number } } | null } } }).ng.getComponent(element);
     const point = component.navigation?.position;
-    return { pitch: component.map.getPitch(), bearing: component.map.getBearing(), y: point ? component.map.project([point.lng, point.lat]).y : 0, height: component.map.getCanvas().clientHeight };
+    const height = component.map.getCanvas().clientHeight;
+    const obstruction = document.querySelector('.navigation-map-stack')?.getBoundingClientRect().height || 0;
+    return { pitch: component.map.getPitch(), bearing: component.map.getBearing(), y: point ? component.map.project([point.lng, point.lat]).y : 0, height, availableHeight: height - obstruction };
   });
 }
 async function deviation(page: Page, accuracy = 10): Promise<void> {
@@ -154,7 +156,7 @@ test('GPS watch and absolute compass follow an inclined mobile camera while pres
   await fix(page);
   await expect(page.locator('.map-position.is-navigating')).toBeVisible();
   await expect.poll(async () => (await camera(page)).pitch).toBeCloseTo(55, 3);
-  await expect.poll(async () => (await camera(page)).y / (await camera(page)).height).toBeGreaterThan(0.55);
+  await expect.poll(async () => (await camera(page)).y / (await camera(page)).availableHeight).toBeGreaterThan(0.55);
   const initialUpdates = await page.evaluate(() => window.navigationHarness.dataUpdates);
   await page.evaluate(() => window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { absolute: true, alpha: 90, beta: 90, gamma: 0 })));
   await expect.poll(async () => (await state(page)).source).toBe('compass');

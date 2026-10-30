@@ -1,23 +1,53 @@
-@if (navigation.active()) {
-  <section class="navigation-hud" aria-label="Navegação em andamento">
-    <div>
-      <strong>{{ navigation.simulated() ? 'Simulação' : 'Navegação GPS' }}{{ navigation.arrived() ? ' · chegada' : '' }}</strong>
-      <p>
-        {{ navigation.remainingMeters() | number: '1.0-0' }} m restantes <span class="muted">· {{ navigation.headingSource() === 'compass' ? 'Bússola' : navigation.simulated() ? 'Trajeto simulado' : 'Direção do GPS/trajeto' }}</span>
-      </p>
-      @if (navigation.accuracy() !== null) {
-        <small>Precisão: {{ navigation.accuracy() | number: '1.0-0' }} m</small>
+<div class="navigation-map-stack" #stack>
+  @if (route) {
+    <section class="navigation-directions" aria-label="Orientações do trajeto">
+      @if (navigation.recalculating()) {
+        <p role="status">Recalculando orientações…</p>
+      } @else {
+        @let upcoming = directions;
+        @for (direction of upcoming; track direction.index) {
+          <div class="navigation-direction" [class.is-next]="$first" [attr.data-maneuver]="direction.type" [attr.data-step-index]="direction.index">
+            <span class="navigation-direction-icon" aria-hidden="true"><app-maneuver-icon [name]="direction.icon" [size]="$first ? 27 : 21" /></span>
+            <div>
+              <small
+                >{{ navigation.arrived() ? 'Destino' : $first ? 'Próxima direção' : 'Depois' }}
+                @if (distanceLabel(direction)) {
+                  <span> · {{ distanceLabel(direction) }}</span>
+                }
+              </small>
+              <p [attr.aria-live]="$first ? 'polite' : null" aria-atomic="true">{{ direction.text }}</p>
+            </div>
+          </div>
+        }
+        @if (!upcoming.length) {
+          <p class="muted">O serviço não retornou orientações para esse trajeto.</p>
+        } @else if (!positioned && !navigation.arrived()) {
+          <small class="muted">Orientações sem referência de posição. O avanço automático está indisponível para esta rota.</small>
+        }
       }
-    </div>
-    @if (!navigation.following()) {
-      <button class="button secondary" type="button" (click)="navigation.recenter()"><app-icon name="LocateFixed" [size]="18" />Recentralizar</button>
-    }
-    <button class="icon-button" type="button" aria-label="Encerrar navegação" (click)="navigation.stop()"><app-icon name="X" /></button>
-    @if (navigation.notice()) {
-      <p class="navigation-notice" role="status">{{ navigation.notice() }}</p>
-    }
-  </section>
-}
+    </section>
+  }
+  @if (navigation.active()) {
+    <section class="navigation-hud" aria-label="Navegação em andamento">
+      <div>
+        <strong>{{ navigation.simulated() ? 'Simulação' : 'Navegação GPS' }}{{ navigation.arrived() ? ' · chegada' : '' }}</strong>
+        <p>
+          {{ navigation.remainingMeters() | number: '1.0-0' }} m restantes <span class="muted">· {{ navigation.headingSource() === 'compass' ? 'Bússola' : navigation.simulated() ? 'Trajeto simulado' : 'Direção do GPS/trajeto' }}</span>
+        </p>
+        @if (navigation.accuracy() !== null) {
+          <small>Precisão: {{ navigation.accuracy() | number: '1.0-0' }} m</small>
+        }
+      </div>
+      @if (!navigation.following()) {
+        <button class="button secondary" type="button" (click)="navigation.recenter()"><app-icon name="LocateFixed" [size]="18" />Recentralizar</button>
+      }
+      <button class="icon-button" type="button" aria-label="Encerrar navegação" (click)="navigation.stop()"><app-icon name="X" /></button>
+      @if (navigation.notice()) {
+        <p class="navigation-notice" role="status">{{ navigation.notice() }}</p>
+      }
+    </section>
+  }
+</div>
 @if (navigation.simulationEnabled && route) {
   <section class="navigation-simulator surface" aria-label="Simulador de rota para desenvolvimento">
     <strong><app-icon name="Navigation" [size]="17" />Simulador de rota <span class="tag">DEV</span></strong

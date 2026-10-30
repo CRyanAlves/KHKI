@@ -1,7 +1,8 @@
 @use './settings';
 
 .navigation-hud,
-.navigation-simulator {
+.navigation-simulator,
+.navigation-directions {
   position: absolute;
   z-index: settings.$layer-panel-control;
   background: var(--color-surface);
@@ -12,9 +13,7 @@
   font-size: var(--text-sm);
 }
 .navigation-hud {
-  left: calc(var(--map-left-inset) + var(--space-4));
-  right: calc(var(--control-size) + var(--space-6));
-  bottom: var(--space-4);
+  position: static;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -25,6 +24,52 @@
   p {
     margin: 0;
   }
+}
+.navigation-map-stack {
+  position: absolute;
+  left: calc(var(--map-left-inset) + var(--space-4));
+  bottom: calc(var(--map-bottom-inset) + var(--space-4));
+  z-index: settings.$layer-panel-control;
+  width: var(--navigation-directions-width);
+  max-width: calc(100% - var(--map-left-inset) - var(--control-size) - var(--space-10));
+  max-height: calc(100% - var(--map-bottom-inset) - var(--control-size) - var(--space-8));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  gap: var(--space-3);
+}
+.navigation-directions {
+  position: static;
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-3);
+}
+.navigation-direction {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border);
+}
+.navigation-direction.is-next {
+  padding-top: 0;
+  border-top: 0;
+}
+.navigation-direction-icon {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+.navigation-direction.is-next .navigation-direction-icon {
+  color: var(--color-accent);
+}
+.navigation-direction p {
+  margin: var(--space-1) 0 0;
+  overflow-wrap: anywhere;
+  font-size: var(--text-sm);
+}
+.navigation-direction small {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
 }
 .navigation-notice {
   flex-basis: 100%;
