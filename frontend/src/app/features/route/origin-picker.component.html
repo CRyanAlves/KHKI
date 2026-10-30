@@ -1,0 +1,49 @@
+<label for="route-origin">Sua origem</label>
+<div class="origin-field" [class.is-open]="open" [class.is-selected]="selected">
+  <app-icon [name]="selected ? (value === 'Minha localização' ? 'LocateFixed' : 'MapPin') : 'Search'" [size]="18" />
+  <input
+    #input
+    id="route-origin"
+    role="combobox"
+    aria-autocomplete="list"
+    aria-controls="route-origin-options"
+    [attr.aria-expanded]="open"
+    [attr.aria-activedescendant]="open && activeIndex >= 0 ? 'route-origin-option-' + activeIndex : null"
+    [attr.aria-busy]="busy"
+    aria-describedby="route-origin-status"
+    [attr.aria-invalid]="!!error"
+    autocomplete="off"
+    maxlength="300"
+    placeholder="Escolha o ponto de partida"
+    [ngModel]="value"
+    (ngModelChange)="edit($event)"
+    (focus)="show()"
+    (click)="!open && show()"
+    (keydown)="keydown($event)"
+  />
+  @if (value) {
+    <button class="icon-button" type="button" aria-label="Limpar origem" (click)="clear()"><app-icon name="X" [size]="16" /></button>
+  } @else {
+    <app-icon name="ChevronDown" [size]="16" />
+  }
+  @if (open) {
+    <div id="route-origin-options" class="origin-options" role="listbox" aria-label="Opções de origem">
+      <button id="route-origin-option-0" type="button" role="option" tabindex="-1" [attr.aria-selected]="activeIndex === 0" (pointerdown)="$event.preventDefault()" (click)="choose(0)"><app-icon name="LocateFixed" [size]="18" /><span>Usar minha localização</span></button>
+      <button id="route-origin-option-1" type="button" role="option" tabindex="-1" [attr.aria-selected]="activeIndex === 1" (pointerdown)="$event.preventDefault()" (click)="choose(1)"><app-icon name="MapPin" [size]="18" /><span>Marcar início no mapa</span></button>
+      @for (suggestion of suggestions; track $index) {
+        <button [id]="'route-origin-option-' + ($index + 2)" type="button" role="option" tabindex="-1" [attr.aria-selected]="activeIndex === $index + 2" (pointerdown)="$event.preventDefault()" (click)="choose($index + 2)">
+          <app-icon name="MapPin" [size]="18" /><span
+            >{{ suggestion.label }}
+            @if (suggestion.detail) {
+              <small>{{ suggestion.detail }}</small>
+            }
+          </span>
+        </button>
+      }
+      @if (!busy && !selected && value.trim().length < 3) {
+        <small class="origin-hint">Digite para buscar endereços.</small>
+      }
+    </div>
+  }
+</div>
+<small id="route-origin-status" [class.error-message]="!!error" [attr.role]="error ? 'alert' : 'status'">{{ error || status }}</small>

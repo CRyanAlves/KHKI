@@ -2,12 +2,16 @@
   <aside #panel id="exploration-panel" class="workspace-panel" aria-label="Painel de exploração" [inert]="state.collapsed()"><router-outlet /></aside>
   <section class="workspace-map" [class.has-location-control]="state.scene() !== 'route'" aria-label="Mapa de banheiros">
     <app-map
+      #routeMap
       [overlayPanel]="true"
       [panelCollapsed]="state.collapsed()"
       [bathrooms]="state.mapBathrooms()"
       [point]="state.scene() === 'route' ? state.routeOrigin() || state.position() : state.position()"
       [route]="state.path()"
       [navigation]="navigation.frame()"
+      [navigationBottomInset]="state.scene() === 'route' && !state.originPicking() ? navigationBottomInset() : 0"
+      [selectOrigin]="state.originPicking()"
+      (moved)="state.chooseRouteOrigin($event)"
       (followPaused)="navigation.pauseFollow()"
       [selectedId]="state.selected()?.id || ''"
       [highlightedId]="state.highlighted()"
@@ -16,6 +20,9 @@
       (hovered)="state.highlighted.set($event)"
       (boundsChanged)="state.bounds.set($event)"
     />
+    @if (state.originPicking()) {
+      <div class="route-picking-tools" role="status"><span>Clique no mapa para definir sua origem</span><button class="button secondary" type="button" (click)="routeMap.confirmOrigin()">Usar centro do mapa</button><button class="text-button" type="button" (click)="state.originPicking.set(false)">Cancelar seleção</button></div>
+    }
     @if (maps.configured && state.scene() === 'search') {
       <button class="button secondary search-area" (click)="searchArea()" [disabled]="state.loading() || !state.bounds()"><app-icon name="Search" [size]="17" />Buscar nesta área</button>
     }
@@ -25,8 +32,8 @@
         <div class="workspace-map-tools"><button class="button secondary" (click)="state.locateAddress()">Localizar endereço</button></div>
       }
     }
-    @if (state.scene() === 'route') {
-      <app-navigation-tools [route]="state.path()" />
+    @if (state.scene() === 'route' && !state.originPicking()) {
+      <app-navigation-tools [route]="state.path()" (occlusionChanged)="navigationBottomInset.set($event)" />
     }
     @if (state.message()) {
       <div class="map-message" role="status">

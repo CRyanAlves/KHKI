@@ -3,18 +3,26 @@ import { Theme } from './theme.service';
 import { Location } from './models';
 import { validPoint } from './navigation-geometry';
 import type { Feature, MultiLineString } from 'geojson';
+import { isTravelMode, TravelMode } from './travel-modes';
+import { parseManeuvers, RouteManeuver } from './route-guidance';
+export type { TravelMode } from './travel-modes';
 
 declare global {
   interface Window {
     KHKI_CONFIG?: { geoapifyApiKey: string; geoapifyApiBaseUrl?: string; geoapifyMapsBaseUrl?: string; devRouteSimulation?: boolean };
   }
 }
-export type TravelMode = 'walk' | 'drive';
+export interface AddressSuggestion {
+  label: string;
+  detail: string;
+  position: Location;
+}
 export interface TravelRoute {
   geometry: Feature<MultiLineString>;
   distanceMeters?: number;
   durationMillis?: number;
   instructions: string[];
+  maneuvers?: RouteManeuver[];
 }
 export type WalkingRoute = TravelRoute;
 function record(value: unknown): Record<string, unknown> {
@@ -88,17 +96,31 @@ export class MapsService {
     const [lng, lat] = this.coordinate([result['lon'], result['lat']]);
     return { lat, lng };
   }
+  async autocomplete(address: string, signal?: AbortSignal, bias?: Location | null): Promise<AddressSuggestion[]> {
+    const text = address.trim();
+    if (text.length < 3 || text.length > 300) throw new Error('Digite entre 3 e 300 caracteres para buscar um endereço.');
+    const parameters: Record<string, string> = { text, format: 'json', limit: '5', lang: 'pt', filter: 'countrycode:br' };
+    if (bias && validPoint(bias)) parameters['bias'] = `proximity:${bias.lng},${bias.lat}`;
+    const response = await this.request('/geocode/autocomplete', parameters, signal);
+    if (!Array.isArray(response['results'])) throw new Error('O serviço de endereços retornou uma resposta inválida.');
+    return response['results'].slice(0, 5).map((value) => {
+      const result = record(value);
+      const [lng, lat] = this.coordinate([result['lon'], result['lat']]);
+      if (typeof result['formatted'] !== 'string' || !result['formatted'].trim() || result['formatted'].length > 500) throw new Error('O serviço de endereços retornou uma resposta inválida.');
+      return { label: result['formatted'], detail: typeof result['address_line2'] === 'string' ? result['address_line2'].slice(0, 300) : '', position: { lat, lng } };
+    });
+  }
   walking(origin: string | Location, destination: Location): Promise<WalkingRoute> {
     return this.directions(origin, destination, 'walk');
   }
   async directions(origin: string | Location, destination: Location, mode: TravelMode = 'drive', signal?: AbortSignal): Promise<TravelRoute> {
-    if (!['walk', 'drive'].includes(mode)) throw new Error('Selecione um modo de transporte válido.');
+    if (!isTravelMode(mode)) throw new Error('Selecione um modo de transporte válido.');
     const start = typeof origin === 'string' ? await this.geocode(origin, signal) : origin;
     if (!validPoint(start) || !validPoint(destination)) throw new Error('Informe uma origem e um destino com coordenadas válidas.');
-    const response = await this.request('/routing', { waypoints: `${start.lat},${start.lng}|${destination.lat},${destination.lng}`, mode, format: 'geojson', units: 'metric', lang: 'pt-BR' }, signal);
+    const response = await this.request('/routing', { waypoints: `${start.lat},${start.lng}|${destination.lat},${destination.lng}`, mode, format: 'geojson', units: 'metric', lang: 'pt-BR', details: 'instruction_details' }, signal);
     if (!Array.isArray(response['features'])) throw new Error('O serviço de mapas retornou uma resposta inválida.');
     const feature = record(response['features'][0]);
-    if (!Object.keys(feature).length) throw new Error(mode === 'drive' ? 'Nenhuma rota de carro disponível para esse trajeto.' : 'Nenhuma rota a pé disponível para esse trajeto.');
+    if (!Object.keys(feature).length) throw new Error('Nenhuma rota disponível para esse trajeto com o transporte selecionado.');
     const geometry = record(feature['geometry']),
       properties = record(feature['properties']);
     const segments = geometry['type'] === 'LineString' ? [geometry['coordinates']] : geometry['type'] === 'MultiLineString' ? list(geometry['coordinates']) : [];
@@ -110,13 +132,10 @@ export class MapsService {
       })
     );
     if (!coordinates.length || coordinates.some((segment) => segment.length < 2)) throw new Error('O serviço de mapas retornou um trajeto inválido.');
-    const instructions = list(properties['legs'])
-      .flatMap((leg) => list(record(leg)['steps']))
-      .map((step) => record(record(step)['instruction'])['text'])
-      .filter((text): text is string => typeof text === 'string' && text.length <= 2000)
-      .slice(0, 500);
+    const maneuvers = parseManeuvers(properties['legs'], coordinates);
+    const instructions = maneuvers.map((maneuver) => maneuver.text);
     const seconds = nonnegative(properties['time']);
-    return { geometry: { type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates } }, distanceMeters: nonnegative(properties['distance']), durationMillis: seconds === undefined ? undefined : nonnegative(seconds * 1000), instructions };
+    return { geometry: { type: 'Feature', properties: {}, geometry: { type: 'MultiLineString', coordinates } }, distanceMeters: nonnegative(properties['distance']), durationMillis: seconds === undefined ? undefined : nonnegative(seconds * 1000), instructions, maneuvers };
   }
   async locationIfGranted(): Promise<Location | null> {
     if (!navigator.permissions?.query || !navigator.geolocation) return null;
