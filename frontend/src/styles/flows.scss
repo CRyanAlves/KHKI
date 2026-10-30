@@ -1,18 +1,94 @@
-.contribution-icon { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: var(--radius-pill); background: var(--color-accent-soft); flex-shrink: 0; }
-.photo-warning { display: flex; align-items: center; gap: var(--space-4); background: var(--color-accent-soft); border-radius: var(--radius-sm); padding: var(--space-4); font-size: var(--text-sm); margin: var(--space-5) 0; }
-.photo-warning p { margin: 0; }
-.submission-success { display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-5); padding: var(--space-10) var(--space-4); }
-.submission-success p { color: var(--color-muted); max-width: 520px; }
-.form-surface { padding: var(--space-10); }
-.form-surface h1 { margin-top: var(--space-2); }
-.form-surface .button.full { margin-top: var(--space-6); }
-.rating-picker { display: flex; gap: var(--space-2); }
-.rating-picker button { border: 0; background: none; color: var(--color-muted); padding: var(--space-2); }
-.rating-picker button.active { color: var(--color-accent); }
-.rating-picker button.active svg { fill: currentColor; }
-.contribution-row { display: flex; align-items: flex-start; gap: var(--space-4); margin-top: var(--space-3); }
-.contribution-row > .tag { margin-left: auto; white-space: nowrap; }
-.contribution-row h3 { margin: 4px 0; }
-.contribution-row .text-button { margin-top: var(--space-3); }
-.decision-reason { font-size: var(--text-sm); }
-@media (max-width: 640px) { .form-surface { padding: var(--space-6) var(--space-4); } .contribution-row { flex-wrap: wrap; } .contribution-row > div { flex: 1; min-width: 180px; } .contribution-row > .tag { margin-left: 60px; } }
+.contribution-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent-soft);
+  flex-shrink: 0;
+}
+.photo-warning {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  font-size: var(--text-sm);
+  margin: var(--space-5) 0;
+}
+.photo-warning p {
+  margin: 0;
+}
+.submission-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-5);
+  padding: var(--space-10) var(--space-4);
+}
+.submission-success p {
+  color: var(--color-muted);
+  max-width: 520px;
+}
+.form-surface {
+  padding: var(--space-10);
+}
+.form-surface h1 {
+  margin-top: var(--space-2);
+}
+.form-surface .button.full {
+  margin-top: var(--space-6);
+}
+.rating-picker {
+  display: flex;
+  gap: var(--space-2);
+}
+.rating-picker button {
+  border: 0;
+  background: none;
+  color: var(--color-muted);
+  padding: var(--space-2);
+}
+.rating-picker button.active {
+  color: var(--color-accent);
+}
+.rating-picker button.active svg {
+  fill: currentColor;
+}
+.contribution-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+.contribution-row > .tag {
+  margin-left: auto;
+  white-space: nowrap;
+}
+.contribution-row h3 {
+  margin: 4px 0;
+}
+.contribution-row .text-button {
+  margin-top: var(--space-3);
+}
+.decision-reason {
+  font-size: var(--text-sm);
+}
+@media (max-width: 640px) {
+  .form-surface {
+    padding: var(--space-6) var(--space-4);
+  }
+  .contribution-row {
+    flex-wrap: wrap;
+  }
+  .contribution-row > div {
+    flex: 1;
+    min-width: 180px;
+  }
+  .contribution-row > .tag {
+    margin-left: 60px;
+  }
+}

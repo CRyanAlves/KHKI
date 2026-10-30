@@ -1,0 +1,47 @@
+@if (navigation.active()) {
+  <section class="navigation-hud" aria-label="Navegação em andamento">
+    <div>
+      <strong>{{ navigation.simulated() ? 'Simulação' : 'Navegação GPS' }}{{ navigation.arrived() ? ' · chegada' : '' }}</strong>
+      <p>
+        {{ navigation.remainingMeters() | number: '1.0-0' }} m restantes <span class="muted">· {{ navigation.headingSource() === 'compass' ? 'Bússola' : navigation.simulated() ? 'Trajeto simulado' : 'Direção do GPS/trajeto' }}</span>
+      </p>
+      @if (navigation.accuracy() !== null) {
+        <small>Precisão: {{ navigation.accuracy() | number: '1.0-0' }} m</small>
+      }
+    </div>
+    @if (!navigation.following()) {
+      <button class="button secondary" type="button" (click)="navigation.recenter()"><app-icon name="LocateFixed" [size]="18" />Recentralizar</button>
+    }
+    <button class="icon-button" type="button" aria-label="Encerrar navegação" (click)="navigation.stop()"><app-icon name="X" /></button>
+    @if (navigation.notice()) {
+      <p class="navigation-notice" role="status">{{ navigation.notice() }}</p>
+    }
+  </section>
+}
+@if (navigation.simulationEnabled && route) {
+  <section class="navigation-simulator surface" aria-label="Simulador de rota para desenvolvimento">
+    <strong><app-icon name="Navigation" [size]="17" />Simulador de rota <span class="tag">DEV</span></strong
+    ><small>Posição simulada · não utiliza o GPS real</small>
+    @if (navigation.simulated()) {
+      <progress [value]="navigation.progress()" max="100" aria-label="Progresso da simulação"></progress><small>{{ navigation.progress() | number: '1.0-0' }}% do trajeto{{ navigation.arrived() ? ' · concluído' : '' }}</small>
+    }
+    <div class="navigation-simulator-actions">
+      @if (!navigation.simulated()) {
+        <button class="button primary" type="button" (click)="navigation.simulate(route)">Simular percurso</button>
+      } @else {
+        @if (!navigation.arrived()) {
+          <button class="button secondary" type="button" (click)="navigation.paused() ? navigation.resumeSimulation() : navigation.pauseSimulation()">{{ navigation.paused() ? 'Continuar simulação' : 'Pausar simulação' }}</button>
+        }
+        <button class="button secondary" type="button" (click)="navigation.simulate(route)">Reiniciar</button><button class="button secondary" type="button" (click)="navigation.advanceSimulation(10)" [disabled]="navigation.arrived()">Avançar 10 s</button><button class="text-button" type="button" (click)="navigation.stop()">Encerrar simulação</button>
+      }
+    </div>
+    <label
+      >Velocidade<select aria-label="Velocidade da simulação" [value]="navigation.speedMultiplier()" (change)="speed($event)">
+        <option value="1">1×</option>
+        <option value="5">5×</option>
+        <option value="10">10×</option>
+        <option value="30">30×</option>
+      </select></label
+    >
+  </section>
+}

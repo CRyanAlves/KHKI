@@ -34,6 +34,7 @@
     "@angular/compiler-cli": "21.2.25",
     "@playwright/test": "1.56.1",
     "prettier": "^3.8.1",
+    "prettier-plugin-java": "^2.11.0",
     "typescript": "~5.9.2"
   },
   "overrides": {
