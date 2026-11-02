@@ -25,6 +25,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() selectOrigin = false;
   @Input() overlayPanel = false;
   @Input() panelCollapsed = false;
+  @Input() splitPanel = false;
   @Input() selectedId = '';
   @Input() highlightedId = '';
   @Input() preserveViewport = false;
@@ -108,6 +109,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.observer = new ResizeObserver(() => {
         this.map?.resize();
         if (this.navigation) this.updateNavigation();
+        else if (this.overlayPanel && this.selectedId) this.render(true);
       });
       this.observer.observe(this.canvas.nativeElement);
     } catch {
@@ -168,6 +170,15 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.changeDetector.markForCheck();
   }
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['pointAsPin']) {
+      this.markers.get('origin')?.remove();
+      this.markers.delete('origin');
+      if ((!this.pointAsPin || !this.point) && !this.selectedId && !this.route) {
+        this.restoreCamera = false;
+        this.render(false);
+        return;
+      }
+    }
     if (this.map && changes['selectOrigin']) this.map.getCanvas().style.cursor = this.selectOrigin ? 'crosshair' : '';
     if (changes['navigation']?.previousValue && !this.navigation && this.map) this.map.easeTo({ pitch: 0, bearing: 0, duration: this.motionDuration() });
     if (changes['navigation'] && Object.keys(changes).every((key) => ['navigation', 'navigationBottomInset', 'panelCollapsed', 'overlayPanel'].includes(key))) {
@@ -193,7 +204,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
       .join('|');
     const bathroomsChanged = signature !== this.bathroomSignature;
     this.bathroomSignature = signature;
-    const updateViewport = !!(changes['route']?.currentValue || changes['point']?.currentValue || changes['selectedId'] || (bathroomsChanged && !this.preserveViewport));
+    const updateViewport = !!(changes['route']?.currentValue || changes['point']?.currentValue || changes['selectedId'] || changes['splitPanel'] || (bathroomsChanged && !this.preserveViewport));
     this.render(updateViewport, !!changes['point']);
   }
   private decorateMarkers(): void {
@@ -391,7 +402,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.restoreCamera = false;
     } else if (updateViewport && !this.route && selected && !this.fitAll) this.map.flyTo({ center: [selected.longitude, selected.latitude], offset: this.cameraOffset(), zoom: Math.max(this.map.getZoom(), 15), duration: this.motionDuration(), easing: (progress) => 1 - Math.pow(1 - progress, 3) });
     else if (updateViewport && !this.route && this.point && focusPoint) {
-      if (this.editable) this.map.flyTo({ center: [this.point.lng, this.point.lat], zoom: Math.max(18, this.map.getZoom()), duration: this.motionDuration() });
+      if (this.editable) this.map.flyTo({ center: [this.point.lng, this.point.lat], zoom: Math.max(18, this.map.getZoom()), offset: this.cameraOffset(), duration: this.motionDuration() });
       else this.map.panTo([this.point.lng, this.point.lat], { offset: this.cameraOffset(), duration: this.motionDuration() });
     } else if (updateViewport && !this.route && !this.preserveViewport && this.bathrooms.length) {
       const bounds = new this.library.LngLatBounds();

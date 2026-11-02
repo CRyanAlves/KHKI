@@ -21,13 +21,14 @@ test('one map survives selection, route, browser history and panel collapse with
   await page.getByRole('combobox', { name: 'Condição de acesso', exact: true }).selectOption('FREE');
   await expect(page.getByText('2 banheiros encontrados', { exact: true })).toBeVisible();
   await page.getByRole('combobox', { name: 'Ordenação', exact: true }).selectOption('rating');
-  await panel.evaluate((element) => {
+  const list = page.locator('.result-list');
+  await list.evaluate((element) => {
     element.scrollTop = 100;
   });
-  const scroll = await panel.evaluate((element) => element.scrollTop);
+  const scroll = await list.evaluate((element) => element.scrollTop);
   expect(scroll).toBeGreaterThan(0);
   await page.getByRole('button', { name: 'Café do Centro', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true, level: 1 })).toBeVisible();
   await expect(page.locator('.map-marker.is-selected')).toHaveCount(1);
   expect(await map!.evaluate((element) => element === document.querySelector('app-map'))).toBe(true);
   expect(await page.locator('.site-header').boundingBox()).toEqual(header);
@@ -38,15 +39,15 @@ test('one map survives selection, route, browser history and panel collapse with
   expect(await map!.evaluate((element) => element === document.querySelector('app-map'))).toBe(true);
   expect(await page.locator('.site-header').boundingBox()).toEqual(header);
   await page.goBack();
-  await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true, level: 1 })).toBeVisible();
   await page.goForward();
   await expect(page.getByRole('combobox', { name: 'Sua origem' })).toHaveValue('Rua de teste, São Paulo');
   await expect(page.getByText('1,1 km de carro', { exact: true })).toBeVisible();
   await page.goBack();
-  await page.getByRole('link', { name: 'Voltar aos resultados', exact: true }).click();
+  await page.getByRole('link', { name: 'Fechar detalhes', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Condição de acesso', exact: true })).toHaveValue('FREE');
   await expect(page.getByRole('combobox', { name: 'Ordenação', exact: true })).toHaveValue('rating');
-  await expect.poll(() => panel.evaluate((element) => element.scrollTop)).toBeCloseTo(scroll, 0);
+  await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBeCloseTo(scroll, 0);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
   expect(styles).toBe(1);
   await page.getByRole('button', { name: 'Recolher painel', exact: true }).click();
@@ -62,9 +63,9 @@ test('direct links, map area, marker highlight and mobile sheet remain usable', 
   const bathrooms = await (await page.request.get('/api/bathrooms')).json();
   const bathroom = bathrooms.find((value: { name: string }) => value.name === 'Café do Centro');
   await page.goto('/banheiros/' + bathroom.id);
-  await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true, level: 1 })).toBeVisible();
   await expect(page.locator('.map-marker.is-selected')).toHaveAttribute('aria-pressed', 'true');
-  await page.getByRole('link', { name: 'Voltar aos resultados', exact: true }).click();
+  await page.getByRole('link', { name: 'Fechar detalhes', exact: true }).click();
   const card = page.getByRole('link', { name: /Café do Centro/ });
   await card.hover();
   await expect(page.getByRole('button', { name: 'Café do Centro', exact: true })).toHaveClass(/is-highlighted/);
@@ -87,7 +88,7 @@ test('direct links, map area, marker highlight and mobile sheet remain usable', 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.getByRole('link', { name: /Café do Centro/ }).click();
   await expect(map).toBeInViewport();
-  await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true, level: 1 })).toBeVisible();
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
   await expect(map).toBeInViewport();
   await expect(page.getByRole('radio', { name: 'Carro', exact: true })).toBeVisible();
@@ -136,13 +137,14 @@ test('sidebar overlays a full-size map and selection flies without replacing map
     });
   });
   await page.getByRole('link', { name: /Café do Centro/ }).click();
-  await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true, level: 1 })).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as unknown as { flight: { elapsed: number } }).flight.elapsed)).toBeGreaterThan(200);
   expect(await pin!.evaluate((element) => element === document.querySelector('.map-marker.is-selected'))).toBe(true);
   expect(await canvas!.evaluate((element) => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
   expect(await pin!.evaluate((element) => element === document.querySelector('.map-marker.is-selected'))).toBe(true);
   expect(await page.locator('.maplibregl-canvas').boundingBox()).toEqual(before);
+  await expect(page.getByRole('heading', { name: 'Como chegar.', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Recolher painel', exact: true }).click();
   expect(await page.locator('.maplibregl-canvas').boundingBox()).toEqual(before);
   await page.getByRole('button', { name: 'Reabrir painel', exact: true }).click();

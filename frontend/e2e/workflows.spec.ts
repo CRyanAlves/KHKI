@@ -8,9 +8,9 @@ test('public exploration, filters, details and honest map fallback', async ({ pa
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /Seu próximo/ })).toBeVisible();
+  await expect(page.getByPlaceholder('Buscar banheiro ou endereço')).toBeVisible();
   await expect(page.getByText('3 banheiros encontrados')).toBeVisible();
-  await expect(page.getByText('Mapa ilustrativo · sem dados geográficos')).toBeVisible();
+  await expect(page.getByText('Mapa indisponível', { exact: true })).toBeVisible();
   await page.screenshot({ path: '../test-results/explore-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Acessível', exact: true }).click();
   await expect(page.getByText('2 banheiros encontrados')).toBeVisible();
@@ -19,8 +19,8 @@ test('public exploration, filters, details and honest map fallback', async ({ pa
   await page.getByRole('button', { name: 'Buscar', exact: true }).click();
   await expect(page.getByText('1 banheiro encontrado', { exact: true })).toBeVisible();
   await page.getByRole('link', { name: /Café do Centro/ }).click();
-  await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true })).toBeVisible();
-  await expect(page.getByText('Local fictício de demonstração.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true, level: 1 })).toBeVisible();
+  await expect(page.getByText('Local fictício de demonstração.')).toHaveCount(0);
   await page.getByRole('button', { name: 'Denunciar informações deste local' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Tab');
@@ -38,6 +38,8 @@ test('public exploration, filters, details and honest map fallback', async ({ pa
 });
 
 test('registration preserves intent and submits a private contribution without photos', async ({ page }) => {
+  const simulation = process.env['KHKI_MAPS_SIMULATION_URL'];
+  await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: `window.KHKI_CONFIG = ${JSON.stringify({ geoapifyApiKey: 'simulation-key', geoapifyApiBaseUrl: simulation + '/v1', geoapifyMapsBaseUrl: simulation + '/v1' })};` }));
   await page.goto('/');
   await page.getByRole('link', { name: 'Cadastrar banheiro', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
@@ -49,15 +51,16 @@ test('registration preserves intent and submits a private contribution without p
   await page.getByLabel('Senha', { exact: true }).fill('Browser-test-password-123');
   await page.getByRole('button', { name: 'Criar conta', exact: true }).click();
   await expect(page).toHaveURL(/\/cadastrar$/);
-  await page.getByRole('textbox', { name: 'Nome do local' }).fill('Banheiro do teste no navegador');
-  await page.getByRole('textbox', { name: 'Endereço completo' }).fill('Rua de teste, 100 — São Paulo');
+  await page.getByRole('combobox', { name: 'Categoria do local' }).selectOption('Outro');
+  await page.getByRole('textbox', { name: 'Nome do estabelecimento ou espaço' }).fill('Banheiro do teste no navegador');
+  await page.getByRole('combobox', { name: 'Endereço completo' }).fill('Rua de teste, 100 — São Paulo');
   await page.screenshot({ path: '../test-results/register-desktop.png', fullPage: true });
-  await page.getByText('Ajustar coordenadas manualmente', { exact: true }).click();
-  await page.getByRole('spinbutton', { name: 'Latitude' }).fill('-23.58');
-  await page.getByRole('spinbutton', { name: 'Longitude' }).fill('-46.69');
+  await page.getByRole('combobox', { name: 'Endereço completo' }).press('Enter');
+  await expect(page.locator('.registration-draft-pin')).toBeVisible();
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   await page.getByLabel('Papel higiênico', { exact: true }).check();
   await expect(page.getByRole('combobox', { name: 'Horário de funcionamento', exact: true })).toHaveValue('unknown');
+  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   await page.getByRole('button', { name: 'Enviar para análise', exact: true }).click();
   await expect(page.getByRole('heading', { name: /Recebemos seu cadastro/ })).toBeVisible();
   await page.getByRole('link', { name: 'Ver minhas contribuições' }).click();
@@ -74,7 +77,7 @@ test('review and human moderation publish a negative review and preserve audit',
   test.skip(!process.env['KHKI_TEST_ADMIN_PASSWORD'], 'Use o executor isolado npm test para validar a moderação.');
   await page.goto('/');
   await page.getByRole('link', { name: /Café do Centro/ }).click();
-  await page.getByRole('link', { name: 'Avaliar banheiro', exact: true }).click();
+  await page.getByRole('link', { name: 'Avaliar', exact: true }).click();
   await page.getByRole('button', { name: 'Cadastre-se', exact: true }).click();
   await page.getByRole('textbox', { name: 'Nome', exact: true }).fill('Avaliador de teste');
   await page.getByRole('textbox', { name: 'E-mail', exact: true }).fill(`review-${Date.now()}@khki.test`);
@@ -129,7 +132,7 @@ test('standalone photo upload stays private and can be rejected independently', 
   test.skip(!process.env['KHKI_TEST_ADMIN_PASSWORD'], 'Use npm test para executar com administrador isolado.');
   await page.goto('/');
   await page.getByRole('link', { name: /Café do Centro/ }).click();
-  await page.getByRole('link', { name: 'Contribuir', exact: true }).click();
+  await page.getByRole('link', { name: 'Adicionar foto', exact: true }).click();
   await page.getByRole('textbox', { name: 'E-mail', exact: true }).fill(process.env['KHKI_TEST_ADMIN_EMAIL']!);
   await page.getByLabel('Senha', { exact: true }).fill(process.env['KHKI_TEST_ADMIN_PASSWORD']!);
   await page.getByRole('button', { name: 'Entrar', exact: true }).last().click();

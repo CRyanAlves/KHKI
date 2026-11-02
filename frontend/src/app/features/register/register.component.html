@@ -1,23 +1,26 @@
 <main class="registration-workspace">
   <section class="registration-form-panel" aria-label="Cadastro de banheiro">
-    <form class="registration-form" novalidate (ngSubmit)="step === 0 ? next() : submit()">
+    <form class="registration-form" novalidate (ngSubmit)="step < 2 ? next() : submit()">
       <header class="registration-heading">
-        <h1>{{ editId ? 'Corrigir cadastro' : 'Cadastrar banheiro' }}</h1>
-        <p>{{ success ? 'Seu envio foi recebido para moderação.' : step === 0 ? 'Primeiro, indique onde fica o banheiro.' : 'Agora, adicione os detalhes e fotos deste banheiro.' }}</p>
+        <h1>{{ step === 2 ? 'Fotos e revisão' : editId ? 'Corrigir cadastro' : 'Cadastrar banheiro' }}</h1>
+        <p>{{ success ? 'Seu envio foi recebido para moderação.' : step === 0 ? 'Onde fica e como chegar à entrada?' : step === 1 ? 'Quem pode usar, funcionamento e recursos disponíveis?' : 'Adicione fotos opcionais e confira as informações antes de enviar.' }}</p>
       </header>
       @if (!success) {
         <ol class="registration-progress" aria-label="Etapas do cadastro">
-          <li [class.current]="step === 0" [class.complete]="step > 0" [attr.aria-current]="step === 0 ? 'step' : null">
-            <span>
-              @if (step > 0) {
-                <app-icon name="Check" />
-              } @else {
-                1
-              }</span
-            >Localização
-          </li>
-          <li class="step-connector" aria-hidden="true"></li>
-          <li [class.current]="step === 1" [attr.aria-current]="step === 1 ? 'step' : null"><span>2</span>Detalhes e fotos</li>
+          @for (title of ['Localização', 'Acesso', 'Revisão']; track $index) {
+            @if ($index > 0) {
+              <li class="step-connector" aria-hidden="true"></li>
+            }
+            <li tabindex="-1" [class.current]="step === $index" [class.complete]="step > $index" [attr.aria-current]="step === $index ? 'step' : null">
+              <span>
+                @if (step > $index) {
+                  <app-icon name="Check" />
+                } @else {
+                  {{ $index + 1 }}
+                }</span
+              >{{ title }}
+            </li>
+          }
         </ol>
       }
       <div class="registration-fields">
@@ -35,37 +38,64 @@
             <app-icon name="CheckCircle" [size]="40" />
             <h2>Recebemos seu cadastro</h2>
             <span class="tag warning">Em análise</span>
-            <p>O cadastro e as fotos serão analisados separadamente antes de aparecerem no mapa.</p>
+            <p>O cadastro e as fotos anexadas serão analisados juntos antes de aparecerem no mapa.</p>
             <a routerLink="/contribuicoes" class="button primary">Ver minhas contribuições<app-icon name="ArrowRight" /></a><a routerLink="/" class="text-button">Voltar para o mapa</a>
           </div>
         } @else if (step === 0) {
           <fieldset class="registration-location-fields" [disabled]="locked">
-            <label for="registration-name">Nome do local *<input id="registration-name" name="name" [(ngModel)]="form.name" (ngModelChange)="placeChanged()" maxlength="120" autocomplete="organization" placeholder="Ex.: Biblioteca Central" [attr.aria-invalid]="!!errors['name']" aria-describedby="registration-name-error" /></label>
+            <h2 class="registration-section-title">Identifique o local</h2>
+            <label for="registration-name">Nome do estabelecimento ou espaço *<input id="registration-name" name="name" [(ngModel)]="form.name" (ngModelChange)="placeChanged()" maxlength="120" autocomplete="organization" placeholder="Ex.: Biblioteca Central" [attr.aria-invalid]="!!errors['name']" aria-describedby="registration-name-error" /></label>
             @if (errors['name']) {
               <p id="registration-name-error" class="field-error" role="alert">{{ errors['name'] }}</p>
             }
-            <label for="registration-address"
-              >Endereço completo *<span class="registration-address-field"
-                ><input id="registration-address" name="address" [(ngModel)]="form.address" (ngModelChange)="placeChanged()" maxlength="300" autocomplete="street-address" placeholder="Endereço, lugar ou estabelecimento" [attr.aria-invalid]="!!errors['address']" aria-describedby="registration-address-error" (keydown.enter)="$event.preventDefault(); geocode()" /><button
-                  class="icon-button"
-                  type="button"
-                  [disabled]="locating"
-                  aria-label="Localizar endereço no mapa"
-                  (click)="geocode()"
-                >
-                  <app-icon name="Search" /></button></span
-            ></label>
-            @if (errors['address']) {
-              <p id="registration-address-error" class="field-error" role="alert">{{ errors['address'] }}</p>
+            <label
+              >Categoria do local *<select name="category" [(ngModel)]="form.category" (ngModelChange)="changed = true" [attr.aria-invalid]="!!errors['category']">
+                <option value="" disabled>Selecione uma categoria</option>
+                @if (form.category && !categories.includes(form.category)) {
+                  <option [value]="form.category">{{ form.category }}</option>
+                }
+                @for (category of categories; track category) {
+                  <option [value]="category">{{ category }}</option>
+                }
+              </select></label
+            >
+            @if (errors['category']) {
+              <p role="alert" class="field-error">{{ errors['category'] }}</p>
             }
-            <label>Complemento ou localização interna <span class="optional">(opcional)</span><input name="complement" [(ngModel)]="form.complement" (ngModelChange)="placeChanged()" maxlength="200" placeholder="Ex.: 2º andar, próximo à praça de alimentação" /></label>
-            <button type="button" class="text-button registration-location-action" [disabled]="locating" (click)="locate()"><app-icon name="LocateFixed" />{{ locating ? 'Obtendo localização…' : 'Usar minha localização' }}</button>
+            <h2 class="registration-section-title">Localização</h2>
+            <app-origin-picker
+              inputId="registration-address"
+              label="Endereço completo *"
+              placeholder="Endereço, lugar ou estabelecimento"
+              mapLabel="Marcar entrada no mapa"
+              clearLabel="Limpar endereço"
+              optionsLabel="Opções de endereço"
+              [value]="form.address"
+              [validationError]="errors['address'] || ''"
+              [selected]="!!point && !addressChanged && !!form.address.trim()"
+              [bias]="point"
+              [disabled]="locked || locating"
+              [preserveAddressOnLocate]="true"
+              (edited)="addressEdited($event)"
+              (chosen)="addressChosen($event)"
+              (mapRequested)="selectAddressOnMap()"
+            />
+            @if (resolvingAddress) {
+              <p class="registration-disclaimer" role="status">Buscando endereço da posição…</p>
+            }
+            @if (errors['reverseAddress']) {
+              <p class="field-error" role="alert">{{ errors['reverseAddress'] }} O ponto foi mantido; você pode informar o endereço manualmente.</p>
+            }
+            @if (pickingAddress) {
+              <p class="registration-disclaimer" role="status">Clique no mapa para definir a entrada do local. <button type="button" class="text-button" (click)="cancelAddressSelection()">Cancelar seleção</button></p>
+            }
+            <label>Como encontrar o banheiro <span class="optional">(opcional)</span><textarea rows="2" name="complement" [(ngModel)]="form.complement" (ngModelChange)="placeChanged()" maxlength="200" placeholder="Ex.: térreo, corredor à direita da recepção"></textarea></label>
           </fieldset>
           <div class="registration-position-note">
             <app-icon name="MapPin" />
             <div>
-              <strong>Arraste o pin para ajustar a posição.</strong>
-              <p>Você também pode clicar ou tocar no mapa para posicionar o banheiro.</p>
+              <strong>Marque no mapa a entrada usada para chegar ao banheiro.</strong>
+              <p>Arraste o pin ou clique no mapa para ajustar a posição da entrada.</p>
               @if (positionHint) {
                 <small>{{ positionHint }}</small>
               }
@@ -77,83 +107,47 @@
           @if (errors['location']) {
             <p class="field-error" role="alert">{{ errors['location'] }}</p>
           }
-          <details class="registration-coordinates">
-            <summary>Ajustar coordenadas manualmente</summary>
-            <p class="muted">Alternativa para teclado ou mapa indisponível.</p>
-            <div class="two-columns">
-              <label>Latitude<input name="latitude" type="number" [(ngModel)]="form.latitude" (ngModelChange)="manualCoordinates()" [disabled]="locked" min="-90" max="90" step="any" /></label><label>Longitude<input name="longitude" type="number" [(ngModel)]="form.longitude" (ngModelChange)="manualCoordinates()" [disabled]="locked" min="-180" max="180" step="any" /></label>
-            </div>
-          </details>
-          <section class="registration-nearby" aria-label="Banheiros próximos">
-            <div class="registration-nearby-heading">
-              <h2><app-icon name="Info" />Banheiros próximos</h2>
-              <label
-                ><span class="sr-only">Raio de proximidade</span
-                ><select name="radius" [(ngModel)]="radius" (ngModelChange)="checkNearby()" [disabled]="nearbyLoading || !point">
-                  <option [ngValue]="null">Raio padrão</option>
-                  <option [ngValue]="50">50 m</option>
-                  <option [ngValue]="150">150 m</option>
-                  <option [ngValue]="300">300 m</option>
-                  <option [ngValue]="1000">1 km</option>
-                </select></label
-              >
-            </div>
-            @if (nearbyLoading || initialMapLoading) {
-              <app-skeleton variant="compact" [label]="nearbyLoading ? 'Buscando banheiros próximos…' : 'Carregando banheiros cadastrados…'" />
-            } @else if (nearbyError) {
-              <p role="alert">Consulta indisponível: {{ nearbyError }}</p>
-              <button class="text-button" type="button" (click)="point ? checkNearby() : loadInitialMap()">Tentar novamente</button>
-            } @else if (nearby) {
-              @for (candidate of nearby.candidates; track candidate.bathroom.id) {
-                <article class="registration-nearby-card" [class.possible-duplicate]="candidate.possibleDuplicate">
-                  @if (candidate.bathroom.photoIds[0]) {
-                    <img [src]="'/api/photos/' + candidate.bathroom.photoIds[0]" alt="" loading="lazy" />
-                  }
-                  <div>
-                    <strong>{{ candidate.bathroom.name }}</strong
-                    ><small>{{ candidate.bathroom.complement || 'Complemento não informado' }} · {{ candidate.distanceMeters | number: '1.0-0' }} m</small><small>{{ candidate.possibleDuplicate ? 'Nome ou endereço semelhante' : 'Cadastro nas proximidades' }}</small>
-                  </div>
-                  <button type="button" class="button secondary" (click)="inspect(candidate.bathroom)">Ver cadastro</button>
-                </article>
-              } @empty {
-                <p>Nenhum candidato encontrado em até {{ nearby.radiusMeters }} m. Isso não garante que não exista outro banheiro no local.</p>
-              }
-              <small>Banheiros em andares ou blocos diferentes podem ter cadastros próprios. Proximidade não confirma duplicidade.</small>
-            } @else {
-              <p>Escolha o ponto para consultar registros já publicados.</p>
-            }
-          </section>
-        } @else {
+        } @else if (step === 1) {
           <div class="registration-place-summary">
             <app-icon name="Toilet" [size]="28" />
             <div>
               <strong>{{ form.name }}</strong>
               <p>{{ form.address }}{{ form.complement ? ' · ' + form.complement : '' }}</p>
             </div>
-            <button class="button secondary" type="button" [disabled]="busy" (click)="step = 0">Editar localização</button>
+            <button class="button secondary" type="button" [disabled]="busy" (click)="goTo(0)">Editar localização</button>
           </div>
           @if (uploadWarning) {
             <p role="alert" class="registration-warning">{{ uploadWarning }}</p>
           }
           <fieldset class="registration-details-fields" [disabled]="locked">
-            <div class="registration-access-grid">
-              <label>Tipo de estabelecimento *<input name="category" [(ngModel)]="form.category" (ngModelChange)="changed = true" maxlength="80" placeholder="Cafeteria, shopping, centro cultural…" /></label>
-              @if (errors['category']) {
-                <p class="field-error" role="alert">{{ errors['category'] }}</p>
-              }
-              <label
-                >Condições de acesso *<select name="access" [(ngModel)]="form.access" (ngModelChange)="changed = true">
-                  <option value="FREE">Livre para todos</option>
-                  <option value="CUSTOMERS">Apenas clientes</option>
-                  <option value="PAID">Com taxa</option>
-                  <option value="OTHER">Outra condição / não sei informar</option>
-                </select></label
-              >
-            </div>
-            <details class="registration-access-extra">
-              <summary>Detalhes do acesso (opcional)</summary>
-              <label>Detalhes do acesso<textarea name="accessDetails" [(ngModel)]="form.accessDetails" (ngModelChange)="changed = true" maxlength="300" rows="2" placeholder="Condições de entrada, valores ou orientações"></textarea></label>
-            </details>
+            <label
+              >Quem pode usar?<select name="audience" [(ngModel)]="details.audience" (ngModelChange)="changed = true">
+                <option value="UNKNOWN">Não sei informar</option>
+                <option value="PUBLIC">Livre para todos</option>
+                <option value="CUSTOMERS">Apenas clientes</option>
+                <option value="AUTHORIZATION">Mediante autorização</option>
+                <option value="OTHER">Outra condição</option>
+              </select></label
+            >
+            <label
+              >Há cobrança?<select name="charge" [(ngModel)]="details.charge" (ngModelChange)="chargeChanged()">
+                <option value="UNKNOWN">Não sei informar</option>
+                <option value="NO">Não</option>
+                <option value="YES">Sim</option>
+              </select></label
+            >
+            @if (details.charge === 'YES') {
+              <label>Valor da taxa em reais <span class="optional">(opcional)</span><input name="feeAmount" type="number" min="0.01" max="999999.99" step="0.01" [(ngModel)]="details.feeAmount" (ngModelChange)="changed = true" /></label>
+            }
+            @if (errors['fee']) {
+              <p role="alert" class="field-error">{{ errors['fee'] }}</p>
+            }
+            @if (['CUSTOMERS', 'AUTHORIZATION', 'OTHER'].includes(details.audience) || form.accessDetails) {
+              <details class="registration-access-extra">
+                <summary>Detalhes do acesso (opcional)</summary>
+                <label>Detalhes do acesso<textarea name="accessDetails" [(ngModel)]="form.accessDetails" (ngModelChange)="changed = true" maxlength="300" rows="2" placeholder="Condições de entrada, valores ou orientações"></textarea></label>
+              </details>
+            }
             <label
               >Horário de funcionamento<select name="hourMode" [(ngModel)]="hours.mode" (ngModelChange)="changed = true">
                 <option value="unknown">Não sei informar</option>
@@ -174,22 +168,49 @@
               <p class="field-error" role="alert">{{ errors['hours'] }}</p>
             }
             <fieldset class="registration-items">
-              <legend>Itens e acessibilidade</legend>
-              <p class="muted">Marque somente o que você confirmou. Itens desmarcados não foram informados.</p>
+              <legend>Tipo de banheiro</legend>
+              <p class="muted">Selecione os tipos confirmados. Não marcado = não informado.</p>
+              <div class="registration-item-grid">
+                @for (type of typeEntries; track type[0]) {
+                  <label><input type="checkbox" [checked]="details.bathroomTypes.includes(type[0])" (change)="toggleType(type[0])" />{{ type[1] }}</label>
+                }
+              </div>
+            </fieldset>
+            <fieldset class="registration-items">
+              <legend>Estrutura disponível</legend>
+              <p class="muted">Marque somente o que você confirmou. Itens não marcados ficam como não informados.</p>
               <div class="registration-item-grid">
                 @for (item of itemEntries; track item[0]) {
                   <label><input type="checkbox" [checked]="form.items.includes(item[0])" (change)="toggle(item[0])" />{{ item[1] }}</label>
                 }
               </div>
-              <label
-                >Acessibilidade<select name="accessible" [(ngModel)]="form.accessible" (ngModelChange)="changed = true">
-                  <option [ngValue]="null">Não sei informar</option>
-                  <option [ngValue]="true">Acessível</option>
-                  <option [ngValue]="false">Não acessível</option>
-                </select></label
-              >
+              <details class="registration-accessibility" open>
+                <summary><app-icon name="Accessibility" />Acessibilidade</summary>
+                <p class="muted">Informe apenas o que você confirmou. Estes recursos não comprovam conformidade integral.</p>
+                @for (field of accessibilityFields; track field.key) {
+                  <label
+                    >{{ field.label
+                    }}<select [name]="field.key" [(ngModel)]="details[field.key]" (ngModelChange)="changed = true">
+                      <option [ngValue]="null">Não sei informar</option>
+                      <option [ngValue]="true">Sim</option>
+                      <option [ngValue]="false">Não</option>
+                    </select></label
+                  >
+                }
+                <label
+                  >Acessibilidade geral informada<select name="accessible" [(ngModel)]="form.accessible" (ngModelChange)="changed = true">
+                    <option [ngValue]="null">Não sei informar</option>
+                    <option [ngValue]="true">Acessível</option>
+                    <option [ngValue]="false">Não acessível</option>
+                  </select></label
+                >
+              </details>
             </fieldset>
           </fieldset>
+        } @else {
+          @if (uploadWarning) {
+            <p role="alert" class="registration-warning">{{ uploadWarning }}</p>
+          }
           <section class="registration-photos">
             <h2>Fotos <span class="optional">(opcional)</span></h2>
             <p class="muted">Adicione fotos do banheiro para ajudar outras pessoas.</p>
@@ -214,33 +235,35 @@
             }
           </section>
           <p class="registration-disclaimer"><app-icon name="Info" />Envie apenas fotos do banheiro vazio, sem pessoas, reflexos de pessoas ou informações pessoais.</p>
-          <p class="registration-disclaimer"><app-icon name="ShieldCheck" />Seu cadastro será analisado antes de aparecer no mapa.</p>
+          <label class="registration-last-visit">Última visita <span class="optional">(opcional)</span><input name="lastVisited" type="date" [max]="today" [(ngModel)]="details.lastVisited" (ngModelChange)="changed = true" [disabled]="locked" /></label>
+          @if (errors['lastVisited']) {
+            <p role="alert" class="field-error">{{ errors['lastVisited'] }}</p>
+          }
+          <h2 class="registration-section-title">Confira antes de enviar</h2>
+          <dl class="registration-review">
+            @for (row of reviewRows; track row.label) {
+              <div>
+                <dt>{{ row.label }}</dt>
+                <dd>{{ row.value }}</dd>
+                <button type="button" class="text-button" [attr.aria-label]="'Editar ' + row.label" (click)="goTo(row.step)" [disabled]="locked">Editar</button>
+              </div>
+            }
+          </dl>
+          <p class="registration-disclaimer"><app-icon name="ShieldCheck" />Seu cadastro ficará em análise antes de aparecer no mapa.</p>
         }
       </div>
       @if (!success) {
         <footer class="registration-actions">
           @if (step === 0) {
-            <button class="button primary" [disabled]="busy || loadingEdit || locating">Continuar<app-icon name="ArrowRight" /></button><button type="button" class="button secondary" [disabled]="busy" (click)="cancel()">Cancelar</button>
+            <button class="button primary" [disabled]="busy || loadingEdit || locating || resolvingAddress">Continuar<app-icon name="ArrowRight" /></button><button type="button" class="button secondary" [disabled]="busy" (click)="cancel()">Cancelar</button>
+          } @else if (step === 1) {
+            <button type="button" class="button secondary" [disabled]="busy" (click)="goTo(0)"><app-icon name="ArrowLeft" />Voltar</button><button class="button primary" [disabled]="busy || resolvingAddress">Continuar<app-icon name="ArrowRight" /></button>
           } @else {
-            <button type="button" class="button secondary" [disabled]="busy" (click)="step = 0"><app-icon name="ArrowLeft" />Voltar</button><button class="button primary" [disabled]="busy">{{ busy ? 'Enviando…' : submission.createdId ? 'Tentar enviar fotos restantes' : 'Enviar para análise' }}<app-icon name="ArrowRight" /></button>
+            <button type="button" class="button secondary" [disabled]="busy" (click)="goTo(1)"><app-icon name="ArrowLeft" />Voltar</button><button class="button primary" [disabled]="busy || resolvingAddress">{{ busy ? 'Enviando…' : submission.createdId ? 'Tentar enviar fotos restantes' : 'Enviar para análise' }}<app-icon name="ArrowRight" /></button>
           }
         </footer>
       }
     </form>
-  </section>
-  <section class="registration-map" aria-label="Mapa da localização do cadastro">
-    <app-map [point]="point" [bathrooms]="bathrooms" [editable]="!locked && !success" [pointAsPin]="true" [preserveViewport]="!!point" [highlightedId]="preview?.id || ''" (moved)="moved($event)" (selected)="selectExisting($event)" /><button
-      type="button"
-      class="registration-map-location icon-button"
-      aria-label="Usar minha localização no mapa"
-      [disabled]="locked || locating || success"
-      (click)="locate()"
-    >
-      <app-icon name="LocateFixed" />
-    </button>
-    @if (point) {
-      <small class="registration-map-coordinates">Lat: {{ point.lat | number: '1.4-6' }} · Lng: {{ point.lng | number: '1.4-6' }}</small>
-    }
   </section>
 </main>
 <dialog #existingDialog class="registration-existing-dialog" aria-label="Cadastro existente">

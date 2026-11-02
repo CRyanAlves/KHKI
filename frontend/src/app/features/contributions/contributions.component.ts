@@ -21,7 +21,7 @@ import { SkeletonComponent } from '../../shared/skeleton.component';
     </div>
     <div class="notice">
       <app-icon name="ShieldCheck" />
-      <p>Conteúdo em análise ainda não é público. As fotos são avaliadas separadamente do cadastro.</p>
+      <p>Conteúdo em análise ainda não é público. Fotos anexadas acompanham a aprovação do cadastro ou avaliação; fotos avulsas passam por análise própria.</p>
     </div>
     @if (error) {
       <p role="alert" class="error-message">{{ error }}</p>

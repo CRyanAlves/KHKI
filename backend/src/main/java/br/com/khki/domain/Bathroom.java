@@ -1,6 +1,8 @@
 package br.com.khki.domain;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "bathrooms")
@@ -37,4 +39,22 @@ public class Bathroom extends ModeratedContent {
   public String items = "";
 
   public boolean demo;
+
+  @Column(length = 20)
+  public String usageRestriction;
+
+  @Column(length = 12)
+  public String charging;
+
+  @Column(precision = 8, scale = 2)
+  public BigDecimal feeAmount;
+
+  @Column(length = 80)
+  public String bathroomTypes;
+
+  public Boolean stepFreeAccess;
+  public Boolean elevator;
+  public Boolean adaptedCabin;
+  public Boolean grabBars;
+  public LocalDate lastVisited;
 }

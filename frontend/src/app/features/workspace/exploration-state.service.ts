@@ -10,7 +10,13 @@ export interface RouteDraft {
   mode: TravelMode;
   route: TravelRoute | null;
 }
-export type ExplorationScene = 'search' | 'details' | 'route' | 'review' | 'photos';
+export interface PhotoView {
+  bathroomId: string;
+  name: string;
+  photoIds: string[];
+  index: number;
+}
+export type ExplorationScene = 'search' | 'details' | 'route' | 'review' | 'photos' | 'registration';
 const MAP_MESSAGE_DURATION_MS = 6000;
 
 @Injectable({ providedIn: 'root' })
@@ -52,6 +58,21 @@ export class ExplorationState {
   readonly area = signal<MapArea | null>(null);
   readonly panelReady = signal(0);
   readonly panelScrolls = new Map<string, number>();
+  readonly photoView = signal<PhotoView | null>(null);
+  openPhoto(bathroom: Bathroom, index: number): void {
+    if (!Number.isSafeInteger(index) || index < 0 || index >= bathroom.photoIds.length) return;
+    this.photoView.set({ bathroomId: bathroom.id, name: bathroom.name, photoIds: [...bathroom.photoIds], index });
+  }
+  movePhoto(delta: number): void {
+    const view = this.photoView();
+    if (!view || (delta !== -1 && delta !== 1)) return;
+    this.photoView.set({ ...view, index: (((view.index + delta) % view.photoIds.length) + view.photoIds.length) % view.photoIds.length });
+  }
+  closePhoto(): void {
+    const view = this.photoView();
+    if (view) this.photoIndexes.set(view.bathroomId, view.index);
+    this.photoView.set(null);
+  }
   readonly photoIndexes = new Map<string, number>();
   readonly routeDrafts = new Map<string, RouteDraft>();
   readonly visible = computed(() => {
@@ -113,16 +134,12 @@ export class ExplorationState {
   async select(id: string): Promise<Bathroom | null> {
     const sequence = ++this.selectedSequence;
     if (this.selected()?.id !== id) this.selected.set(this.results().find((bathroom) => bathroom.id === id) || null);
-    try {
-      const bathroom = await this.api.get<Bathroom>('/bathrooms/' + id);
-      if (sequence === this.selectedSequence) this.selected.set(bathroom);
-      return sequence === this.selectedSequence ? bathroom : null;
-    } catch (error) {
-      if (sequence === this.selectedSequence) this.error.set(this.api.error(error));
-      throw error;
-    }
+    const bathroom = await this.api.get<Bathroom>('/bathrooms/' + id);
+    if (sequence === this.selectedSequence) this.selected.set(bathroom);
+    return sequence === this.selectedSequence ? bathroom : null;
   }
   enter(scene: ExplorationScene): void {
+    if (scene !== 'details') this.closePhoto();
     this.scene.set(scene);
     this.collapsed.set(false);
     this.highlighted.set('');

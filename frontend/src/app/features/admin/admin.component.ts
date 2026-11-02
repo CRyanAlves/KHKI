@@ -1,3 +1,4 @@
+import { BathroomMetadataComponent } from '../../shared/bathroom-metadata.component';
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
@@ -10,7 +11,7 @@ import { ModerationAudit, ModerationCategory, ModerationQueueItem, ModerationRep
 
 import { SkeletonComponent } from '../../shared/skeleton.component';
 
-@Component({ selector: 'app-admin', imports: [SkeletonComponent, FormsModule, DatePipe, DecimalPipe, IconComponent, MapComponent], templateUrl: './admin.component.html' })
+@Component({ selector: 'app-admin', imports: [BathroomMetadataComponent, SkeletonComponent, FormsModule, DatePipe, DecimalPipe, IconComponent, MapComponent], templateUrl: './admin.component.html' })
 export class AdminComponent implements OnInit, OnDestroy {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly api = inject(ApiService);
@@ -122,7 +123,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   can(status: Status): boolean {
     const current = this.detail?.contribution.status;
     return status === 'APPROVED'
-      ? ['PENDING', 'NEEDS_INFORMATION', 'HIDDEN'].includes(current || '')
+      ? ['PENDING', 'NEEDS_INFORMATION', 'HIDDEN'].includes(current || '') || (current === 'APPROVED' && this.selected?.type !== 'PHOTO' && !!this.detail?.photos.some((photo) => photo.status === 'PENDING'))
       : status === 'REJECTED'
         ? ['PENDING', 'NEEDS_INFORMATION'].includes(current || '')
         : status === 'NEEDS_INFORMATION'
@@ -271,6 +272,28 @@ export class AdminComponent implements OnInit, OnDestroy {
     this.historyPanel?.nativeElement.scrollIntoView({ block: 'nearest' });
     this.historyPanel?.nativeElement.querySelector('summary')?.focus({ preventScroll: true });
   }
+  attachmentDecision: ModerationDetail | null = null;
+  async rejectAttachment(id: string): Promise<void> {
+    if (this.busy || this.conflict || !this.detail?.photos.some((photo) => photo.id === id && photo.status === 'PENDING')) return;
+    if (!this.reason.trim()) {
+      this.error = 'Registre o motivo da rejeição da foto antes de confirmar.';
+      return;
+    }
+    this.busy = true;
+    this.error = '';
+    try {
+      const attachment = await this.api.get<ModerationDetail>('/admin/content/PHOTO/' + id);
+      if (attachment.contribution.status !== 'PENDING') throw new Error('A foto já foi analisada. Atualize o cadastro antes de continuar.');
+      this.attachmentDecision = attachment;
+      this.decisionAction = 'REJECTED';
+      this.confirmation.nativeElement.showModal();
+    } catch (error) {
+      this.error = this.api.error(error);
+    } finally {
+      this.busy = false;
+      this.changeDetector.markForCheck();
+    }
+  }
   requestDecision(action: Status | 'KEEP'): void {
     if (this.busy || this.conflict || !this.detail) return;
     if (!this.reason.trim()) {
@@ -278,25 +301,29 @@ export class AdminComponent implements OnInit, OnDestroy {
       return;
     }
     this.error = '';
+    this.attachmentDecision = null;
     this.decisionAction = action;
     this.confirmation.nativeElement.showModal();
   }
   get decisionLabel(): string {
+    if (this.attachmentDecision) return 'Confirmar rejeição da foto';
     return this.decisionAction === 'KEEP' ? 'Manter conteúdo e encerrar denúncia' : this.decisionAction === 'NEEDS_INFORMATION' ? 'Solicitar informações' : this.decisionAction === 'APPROVED' ? 'Confirmar aprovação' : this.decisionAction === 'REJECTED' ? 'Confirmar rejeição' : this.decisionAction === 'HIDDEN' ? 'Confirmar ocultação' : 'Confirmar remoção definitiva';
   }
   async confirmDecision(): Promise<void> {
     const row = this.selected;
     const detail = this.detail;
     const action = this.decisionAction;
+    const rejectingAttachment = !!this.attachmentDecision;
     if (this.busy || !row || !detail || !action) return;
     this.busy = true;
     this.error = '';
     try {
-      if (row.report) await this.api.post('/admin/reports/' + row.id + '/resolve', { reason: this.reason, expectedVersion: row.report.version, status: action === 'KEEP' ? null : action, contentVersion: detail.version });
+      if (this.attachmentDecision) await this.api.post('/admin/content/PHOTO/' + this.attachmentDecision.contribution.id + '/decision', { status: 'REJECTED', reason: this.reason, expectedVersion: this.attachmentDecision.version });
+      else if (row.report) await this.api.post('/admin/reports/' + row.id + '/resolve', { reason: this.reason, expectedVersion: row.report.version, status: action === 'KEEP' ? null : action, contentVersion: detail.version });
       else await this.api.post('/admin/content/' + row.type + '/' + row.targetId + '/decision', { status: action, reason: this.reason, expectedVersion: detail.version, duplicateOfId: action === 'REJECTED' ? this.duplicateOfId || null : null });
       this.confirmation.nativeElement.close();
       this.detail = await this.api.get<ModerationDetail>('/admin/content/' + row.type + '/' + row.targetId);
-      if (row.report) row.report.resolved = true;
+      if (row.report && !rejectingAttachment) row.report.resolved = true;
       await Promise.all([this.load(), this.loadHistory()]);
       this.message = 'Decisão registrada com responsável, data e motivo.';
       this.reason = '';
@@ -309,6 +336,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     } finally {
       this.busy = false;
       this.decisionAction = null;
+      this.attachmentDecision = null;
       this.changeDetector.markForCheck();
     }
   }

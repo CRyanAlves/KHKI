@@ -1,0 +1,44 @@
+@use './settings';
+.map-workspace.registration-scene {
+  --workspace-occupied-width: var(--registration-panel-width);
+  --map-left-inset: var(--registration-panel-width);
+  .workspace-results {
+    display: none;
+  }
+  .workspace-content {
+    flex-basis: var(--registration-panel-width);
+    overflow: hidden;
+  }
+  .workspace-content > app-register {
+    display: block;
+    height: 100%;
+  }
+  .registration-workspace {
+    display: block;
+    height: 100%;
+    min-height: 0;
+  }
+  .registration-form-panel,
+  .registration-form {
+    height: 100%;
+    overflow: hidden;
+  }
+  .registration-fields {
+    overflow-y: auto;
+  }
+  .registration-map-coordinates {
+    left: calc(var(--map-left-inset) + var(--space-3));
+  }
+  .registration-map {
+    height: 100%;
+  }
+}
+@media (max-width: settings.$breakpoint-mobile) {
+  .map-workspace.registration-scene {
+    --workspace-occupied-width: 100%;
+    --map-left-inset: 0%;
+    .workspace-content {
+      flex-basis: 100%;
+    }
+  }
+}
