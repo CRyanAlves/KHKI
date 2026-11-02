@@ -187,9 +187,22 @@ class WorkflowTest {
       .andExpect(jsonPath("$.reviewCount").value(0))
       .andExpect(jsonPath("$.rating").isEmpty());
     decide("REVIEW", reviewId, "APPROVED");
+    long reportCount = reports.count();
+    for (String targetType : java.util.List.of("BATHROOM", "REVIEW", "PHOTO")) {
+      mvc
+        .perform(
+          post("/api/reports")
+            .with(csrf())
+            .contentType("application/json")
+            .content("{\"targetType\":\"" + targetType + "\",\"targetId\":\"" + bathroomId + "\",\"reason\":\"INCORRECT\"}")
+        )
+        .andExpect(status().isUnauthorized());
+    }
+    assertThat(reports.count()).isEqualTo(reportCount);
     mvc
       .perform(
         post("/api/reports")
+          .with(user("reporter@khki.test"))
           .with(csrf())
           .contentType("application/json")
           .content("{\"targetType\":\"BATHROOM\",\"targetId\":\"" + bathroomId + "\",\"reason\":\"INCORRECT\"}")
@@ -198,6 +211,7 @@ class WorkflowTest {
     mvc
       .perform(
         post("/api/reports")
+          .with(user("reporter@khki.test"))
           .with(csrf())
           .contentType("application/json")
           .content("{\"targetType\":\"BATHROOM\",\"targetId\":\"" + bathroomId + "\",\"reason\":\"INCORRECT\"}")

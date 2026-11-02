@@ -1,6 +1,8 @@
 import type { RegisterComponent } from '../register/register.component';
 import { DecimalPipe } from '@angular/common';
-import { Location } from '../../core/models';
+import { Bathroom, Location } from '../../core/models';
+import { ApiService } from '../../core/api.service';
+import { distanceMeters, validPoint } from '../../core/navigation-geometry';
 import { Component, DestroyRef, ElementRef, OnInit, ViewChild, ViewEncapsulation, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -24,6 +26,9 @@ export class WorkspaceComponent implements OnInit {
   readonly state = inject(ExplorationState);
   readonly maps = inject(MapsService);
   readonly navigation = inject(NavigationService);
+  readonly urgentBusy = signal(false);
+  readonly urgentError = signal('');
+  private readonly api = inject(ApiService);
   readonly navigationBottomInset = signal(0);
   readonly registration = signal<RegisterComponent | null>(null);
   activatePanel(component: unknown, path: string | undefined): void {
@@ -72,7 +77,7 @@ export class WorkspaceComponent implements OnInit {
       const active = this.navigation.active() || this.state.originPicking();
       if (active && !this.wasNavigating) {
         this.previousPanelCollapsed = this.state.collapsed();
-        if (window.matchMedia('(max-width: ' + getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-mobile').trim() + ')').matches) this.state.collapsed.set(true);
+        if (this.navigation.active() || window.matchMedia('(max-width: ' + getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-mobile').trim() + ')').matches) this.state.collapsed.set(true);
       } else if (!active && this.wasNavigating) this.state.collapsed.set(this.previousPanelCollapsed);
       this.wasNavigating = active;
     });
@@ -133,8 +138,28 @@ export class WorkspaceComponent implements OnInit {
     if (registration) registration.selectExisting(id);
     else void this.router.navigate(['/banheiros', id]);
   }
-  async searchArea(): Promise<void> {
-    await this.router.navigate(['/']);
-    await this.state.search(true);
+  async urgent(): Promise<void> {
+    if (this.urgentBusy()) return;
+    this.urgentBusy.set(true);
+    this.urgentError.set('');
+    const originalUrl = this.router.url;
+    const current = () => !this.destroyRef.destroyed && this.router.url === originalUrl && this.state.scene() === 'search';
+    try {
+      const position = await this.maps.location();
+      if (!current()) return;
+      const bathrooms = await this.api.get<Bathroom[]>('/bathrooms');
+      if (!current()) return;
+      const nearest = bathrooms.filter((bathroom) => validPoint({ lat: bathroom.latitude, lng: bathroom.longitude })).sort((left, right) => distanceMeters(position, { lat: left.latitude, lng: left.longitude }) - distanceMeters(position, { lat: right.latitude, lng: right.longitude }))[0];
+      if (!nearest) throw new Error('Nenhum banheiro disponível para iniciar a navegação.');
+      const route = await this.maps.directions(position, { lat: nearest.latitude, lng: nearest.longitude }, 'drive');
+      if (!current()) return;
+      this.state.position.set(position);
+      this.state.routeDrafts.set(nearest.id, { origin: 'Minha localização', position, mode: 'drive', route, startNavigation: true });
+      await this.router.navigate(['/banheiros', nearest.id, 'rota']);
+    } catch (error) {
+      if (current()) this.urgentError.set(this.api.error(error));
+    } finally {
+      this.urgentBusy.set(false);
+    }
   }
 }

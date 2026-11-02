@@ -29,23 +29,25 @@
   }
   @if (navigation.active()) {
     <section class="navigation-hud" aria-label="Navegação em andamento">
-      <div>
-        <strong>{{ navigation.simulated() ? 'Simulação' : 'Navegação GPS' }}{{ navigation.arrived() ? ' · chegada' : '' }}</strong>
-        <p>
-          {{ navigation.remainingMeters() | number: '1.0-0' }} m restantes <span class="muted">· {{ navigation.headingSource() === 'compass' ? 'Bússola' : navigation.simulated() ? 'Trajeto simulado' : 'Direção do GPS/trajeto' }}</span>
-        </p>
-        @if (navigation.accuracy() !== null) {
-          <small>Precisão: {{ navigation.accuracy() | number: '1.0-0' }} m</small>
-        }
+      <div class="navigation-summary">
+        <div>
+          <strong>{{ remainingDistance }}</strong
+          ><small>Restantes</small>
+        </div>
+        <div>
+          <strong>{{ remainingDuration }}</strong
+          ><small>Tempo estimado</small>
+        </div>
+        <div>
+          <strong>{{ arrivalTime }}</strong
+          ><small>Chegada</small>
+        </div>
       </div>
-      @if (!navigation.following()) {
-        <button class="button secondary" type="button" (click)="navigation.recenter()"><app-icon name="LocateFixed" [size]="18" />Recentralizar</button>
-      }
       <button class="icon-button" type="button" aria-label="Encerrar navegação" (click)="navigation.stop()"><app-icon name="X" /></button>
-      @if (navigation.notice()) {
-        <p class="navigation-notice" role="status">{{ navigation.notice() }}</p>
-      }
     </section>
+    @if (navigation.notice()) {
+      <p class="navigation-notice muted" role="status">{{ navigation.notice() }}</p>
+    }
   }
 </div>
 @if (navigation.simulationEnabled && route) {

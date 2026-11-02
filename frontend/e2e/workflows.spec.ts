@@ -23,6 +23,13 @@ test('public exploration, filters, details and honest map fallback', async ({ pa
   await expect(page.getByText('Local fictício de demonstração.')).toHaveCount(0);
   await page.getByRole('button', { name: 'Denunciar informações deste local' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Enviar denúncia', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Cadastre-se', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Nome', exact: true }).fill('Pessoa denunciante');
+  await page.getByRole('textbox', { name: 'E-mail', exact: true }).fill(`report-${Date.now()}@khki.test`);
+  await page.getByLabel('Senha', { exact: true }).fill('Browser-report-password-123');
+  await page.getByRole('button', { name: 'Criar conta', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Denunciar conteúdo', exact: true })).toBeVisible();
   await page.keyboard.press('Tab');
   expect(await page.locator('.small-modal').evaluate((element) => element.contains(document.activeElement))).toBe(true);
   await page.getByRole('button', { name: 'Enviar denúncia', exact: true }).click();
