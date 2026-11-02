@@ -9,6 +9,7 @@ export interface RouteDraft {
   position: Location | null;
   mode: TravelMode;
   route: TravelRoute | null;
+  startNavigation?: boolean;
 }
 export interface PhotoView {
   bathroomId: string;

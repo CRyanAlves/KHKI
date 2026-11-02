@@ -52,7 +52,7 @@ public class SecurityConfig {
           .authenticated()
           .requestMatchers(HttpMethod.GET, "/api/auth/csrf", "/api/bathrooms", "/api/bathrooms/*", "/api/bathrooms/*/reviews", "/api/photos/*", "/api/health")
           .permitAll()
-          .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register", "/api/reports")
+          .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register")
           .permitAll()
           .requestMatchers("/api/**")
           .authenticated()

@@ -18,14 +18,28 @@
 }
 .search-field {
   box-shadow: none;
+  > app-icon {
+    flex-shrink: 0;
+    color: var(--color-text-muted);
+  }
 }
 .search-field:focus-within {
   border-color: var(--color-focus);
+  outline: var(--border-width) solid var(--color-focus);
+  outline-offset: var(--border-width);
+  > app-icon {
+    color: var(--color-focus);
+  }
 }
 .search-field input[name='search'] {
   background: transparent;
   flex: 1;
   width: 0;
+  border-radius: 0;
+  box-shadow: none;
+  &:focus-visible {
+    outline: none;
+  }
 }
 .filter-row {
   flex-wrap: wrap;

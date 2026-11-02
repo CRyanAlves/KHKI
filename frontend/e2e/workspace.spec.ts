@@ -6,6 +6,39 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: `window.KHKI_CONFIG = ${JSON.stringify({ geoapifyApiKey: 'simulation-key', geoapifyApiBaseUrl: simulation + '/v1', geoapifyMapsBaseUrl: simulation + '/v1' })};` }));
 });
 
+test('urgent action uses the nearest public bathroom outside the active search and starts GPS on the same map', async ({ page, context }) => {
+  const bathrooms = await (await page.request.get('/api/bathrooms')).json();
+  const nearest = bathrooms.find((bathroom: { name: string }) => bathroom.name === 'Café do Centro');
+  await context.grantPermissions(['geolocation']);
+  await context.setGeolocation({ latitude: nearest.latitude, longitude: nearest.longitude });
+  await page.goto('/');
+  await page.getByRole('textbox', { name: 'Buscar por nome, endereço ou região' }).fill('Shopping');
+  await page.getByRole('button', { name: 'Buscar', exact: true }).click();
+  await expect(page.locator('.bathroom-card')).toHaveCount(1);
+  const canvas = await page.locator('.maplibregl-canvas').elementHandle();
+  await page.getByRole('button', { name: 'Ta Urgente!', exact: true }).click();
+  await expect(page).toHaveURL('/banheiros/' + nearest.id + '/rota');
+  await expect(page.getByRole('region', { name: 'Navegação em andamento' })).toBeVisible();
+  await expect(page.locator('.map-workspace')).toHaveClass(/panel-collapsed/);
+  expect(await canvas!.evaluate((element) => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
+  await page.getByRole('button', { name: 'Reabrir painel', exact: true }).click();
+  await expect(page.locator('.destination-box')).toContainText(nearest.name);
+  await expect(page.getByRole('radio', { name: 'Carro', exact: true })).toBeChecked();
+  await page.locator('.navigation-hud').getByRole('button', { name: 'Encerrar navegação', exact: true }).click();
+});
+
+test('urgent action handles location denial without leaving exploration', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator.geolocation, 'getCurrentPosition', { configurable: true, value: (_success: PositionCallback, failure: PositionErrorCallback) => failure({ code: 1 } as GeolocationPositionError) });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Ta Urgente!', exact: true }).click();
+  await expect(page.locator('.map-message')).toContainText('Não foi possível acessar sua localização');
+  await expect(page).toHaveURL('/');
+  await expect(page.getByRole('button', { name: 'Ta Urgente!', exact: true })).toBeEnabled();
+  await expect(page.locator('.navigation-hud')).toHaveCount(0);
+});
+
 test('one map survives selection, route, browser history and panel collapse with search context', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 650 });
   let styles = 0;
@@ -77,9 +110,8 @@ test('direct links, map area, marker highlight and mobile sheet remain usable', 
     const runtime = window as unknown as { ng: { getComponent(element: Element | null): { map: { jumpTo(options: object): void } } } };
     runtime.ng.getComponent(document.querySelector('app-map')).map.jumpTo({ center: [-46.6558, -23.5535], zoom: 17 });
   });
-  await page.getByRole('button', { name: 'Buscar nesta área', exact: true }).click();
-  await expect(page.getByText('1 banheiro encontrado', { exact: true })).toBeVisible();
-  await expect(page.locator('.card-distance')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ta Urgente!', exact: true })).toBeVisible();
+  await expect(page.locator('.card-distance').first()).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   const map = page.locator('.workspace-map');
   const panel = page.locator('.workspace-panel');

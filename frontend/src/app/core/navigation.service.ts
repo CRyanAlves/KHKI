@@ -46,6 +46,11 @@ export class NavigationService {
   });
   readonly progress = computed(() => (this.total() ? Math.min(100, (this.traveled() / this.total()) * 100) : 0));
   readonly remainingMeters = computed(() => Math.max(0, this.total() - this.traveled()));
+  readonly remainingDurationMillis = computed(() => {
+    const duration = this.itinerary()?.durationMillis;
+    if (duration === undefined || !Number.isFinite(duration) || duration < 0) return undefined;
+    return this.total() > 0 ? duration * (this.remainingMeters() / this.total()) : 0;
+  });
   private route: TravelRoute | null = null;
   private mode: TravelMode = 'drive';
   private track: RouteTrack | null = null;
@@ -150,7 +155,7 @@ export class NavigationService {
     const progress = nearestProgress(this.track, point);
     const onRoute = progress.distance <= Math.max(NAVIGATION_POLICY.deviationMeters, accuracy);
     if (onRoute && accuracy <= NAVIGATION_POLICY.maximumRerouteAccuracyMeters) this.traveled.set(Math.max(this.traveled(), progress.traveled));
-    this.notice.set(accuracy > NAVIGATION_POLICY.maximumRerouteAccuracyMeters ? 'Precisão do GPS baixa. Aguarde uma posição mais precisa.' : !onRoute ? this.rerouteError || (this.recalculating() ? 'Recalculando a rota a partir da sua posição…' : 'Desvio detectado. Confirmando sua posição para recalcular…') : '');
+    this.notice.set(accuracy > NAVIGATION_POLICY.maximumRerouteAccuracyMeters ? '' : !onRoute ? this.rerouteError || (this.recalculating() ? 'Recalculando a rota a partir da sua posição…' : 'Desvio detectado. Confirmando sua posição para recalcular…') : '');
     this.checkDeviation(point, accuracy, fix.timestamp, onRoute);
     this.updateHeading();
     const destination = this.track.edges[this.track.edges.length - 1].end;
