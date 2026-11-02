@@ -36,7 +36,7 @@ public class ApiErrors {
     return error(HttpStatus.PAYLOAD_TOO_LARGE, "A foto deve ter no máximo 5 MB.");
   }
 
-  @ExceptionHandler({ DataIntegrityViolationException.class, ObjectOptimisticLockingFailureException.class })
+  @ExceptionHandler({ DataIntegrityViolationException.class, ObjectOptimisticLockingFailureException.class, jakarta.persistence.OptimisticLockException.class })
   ResponseEntity<ProblemDetail> conflict(Exception exception) {
     return error(HttpStatus.CONFLICT, "Os dados já existem ou foram alterados. Atualize e tente novamente.");
   }

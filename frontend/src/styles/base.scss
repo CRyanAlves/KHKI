@@ -308,18 +308,6 @@ form > label {
   font-weight: var(--weight-normal);
   margin-left: var(--space-2);
 }
-.demo-label {
-  display: block;
-  margin-top: var(--space-2);
-  color: var(--color-warning);
-}
-.demo-banner {
-  color: var(--color-warning);
-  background: var(--color-warning-soft);
-  font-size: var(--text-xs);
-  padding: var(--space-3);
-  border-radius: var(--radius-sm);
-}
 .rating {
   display: flex;
   align-items: center;

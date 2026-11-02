@@ -51,6 +51,11 @@ class WorkflowTest {
   @Autowired
   AbuseGuard abuse;
 
+  @BeforeEach
+  void isolateRateLimitState() {
+    ((java.util.Map<?, ?>) org.springframework.test.util.ReflectionTestUtils.getField(abuse, "buckets")).clear();
+  }
+
   private JsonNode body(MvcResult result) throws Exception {
     return json.readTree(result.getResponse().getContentAsString());
   }
@@ -151,9 +156,8 @@ class WorkflowTest {
     mvc
       .perform(get("/api/bathrooms/" + bathroomId))
       .andExpect(status().isOk())
-      .andExpect(jsonPath("$.photoIds.length()").value(0))
+      .andExpect(jsonPath("$.photoIds.length()").value(1))
       .andExpect(jsonPath("$.rating").isEmpty());
-    decide("PHOTO", photoId, "APPROVED");
     mvc.perform(get("/api/photos/" + photoId)).andExpect(status().isOk());
     UUID reviewId = UUID.fromString(
       body(
@@ -605,5 +609,268 @@ class WorkflowTest {
     } finally {
       pool.shutdownNow();
     }
+  }
+
+  @Test
+  void structuredRegistrationPreservesIndependentChargeUnknownsAndModeration() throws Exception {
+    var input = (com.fasterxml.jackson.databind.node.ObjectNode) json.readTree(bathroomInput("Cadastro estruturado"));
+    input.put("submissionId", UUID.randomUUID().toString());
+    var details = input.putObject("details");
+    details.put("audience", "CUSTOMERS").put("charge", "YES").put("feeAmount", 2.50).put("stepFreeAccess", true).put("grabBars", false).putNull("elevator").putNull("adaptedCabin").put("lastVisited", "2020-02-29");
+    details.putArray("bathroomTypes").add("FEMALE").add("MALE");
+    var result = mvc
+      .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(json.writeValueAsString(input)))
+      .andExpect(status().isCreated())
+      .andReturn();
+    String id = body(result).get("id").asText();
+    mvc.perform(get("/api/bathrooms/" + id)).andExpect(status().isNotFound());
+    mvc
+      .perform(get("/api/admin/content/BATHROOM/" + id).with(user("admin@khki.test").roles("ADMIN")))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.content.details.audience").value("CUSTOMERS"))
+      .andExpect(jsonPath("$.content.details.charge").value("YES"))
+      .andExpect(jsonPath("$.content.details.grabBars").value(false))
+      .andExpect(jsonPath("$.content.details.elevator").isEmpty());
+    mvc
+      .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(json.writeValueAsString(input)))
+      .andExpect(status().isCreated())
+      .andExpect(jsonPath("$.id").value(id));
+    details.put("charge", "NO").putNull("feeAmount");
+    mvc.perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(json.writeValueAsString(input))).andExpect(status().isConflict());
+    decide("BATHROOM", UUID.fromString(id), "APPROVED");
+    mvc
+      .perform(get("/api/bathrooms/" + id))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.access").value("CUSTOMERS"))
+      .andExpect(jsonPath("$.details.charge").value("YES"))
+      .andExpect(jsonPath("$.details.feeAmount").value(2.5))
+      .andExpect(jsonPath("$.details.bathroomTypes.length()").value(2))
+      .andExpect(jsonPath("$.details.lastVisited").value("2020-02-29"));
+  }
+
+  @Test
+  void structuredRegistrationRejectsInvalidExternalValues() throws Exception {
+    var input = (com.fasterxml.jackson.databind.node.ObjectNode) json.readTree(bathroomInput("Validação dos novos campos"));
+    String tomorrow = java.time.LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).plusDays(1).toString();
+    for (String invalid : new String[] {
+      "{\"audience\":\"ADMIN\"}",
+      "{\"charge\":\"FREE\"}",
+      "{\"charge\":\"NO\",\"feeAmount\":2}",
+      "{\"charge\":\"YES\",\"feeAmount\":-1}",
+      "{\"charge\":\"YES\",\"feeAmount\":1.001}",
+      "{\"charge\":\"YES\",\"feeAmount\":1000000}",
+      "{\"bathroomTypes\":[\"INVALID\"]}",
+      "{\"bathroomTypes\":[null]}",
+      "{\"lastVisited\":\"" + tomorrow + "\"}",
+      "{\"lastVisited\":\"2025-02-31\"}"
+    }) {
+      input.set("details", json.readTree(invalid));
+      mvc.perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(json.writeValueAsString(input))).andExpect(status().isBadRequest());
+    }
+  }
+
+  @Test
+  void legacyRegistrationDoesNotInventNoChargeOrObservedAccessibility() throws Exception {
+    var input = (com.fasterxml.jackson.databind.node.ObjectNode) json.readTree(bathroomInput("Cadastro legado compatível"));
+    input.put("access", "CUSTOMERS");
+    var result = mvc
+      .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(json.writeValueAsString(input)))
+      .andExpect(status().isCreated())
+      .andReturn();
+    String id = body(result).get("id").asText();
+    mvc
+      .perform(get("/api/me/contributions/BATHROOM/" + id).with(user("admin@khki.test").roles("ADMIN")))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.details.audience").value("CUSTOMERS"))
+      .andExpect(jsonPath("$.details.charge").value("UNKNOWN"))
+      .andExpect(jsonPath("$.details.stepFreeAccess").isEmpty())
+      .andExpect(jsonPath("$.details.bathroomTypes").isEmpty());
+    var legacy = json.readValue(json.writeValueAsString(input), br.com.khki.api.Contracts.BathroomInput.class);
+    assertThat(json.readTree(json.writeValueAsString(legacy)).has("details")).isFalse();
+  }
+
+  private UUID attachmentUpload(UUID bathroomId, UUID reviewId, boolean registration) throws Exception {
+    var image = new ByteArrayOutputStream();
+    ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB), "png", image);
+    var request = multipart("/api/bathrooms/" + bathroomId + "/photos")
+      .file(new MockMultipartFile("file", "foto.png", "image/png", image.toByteArray()))
+      .param("registrationAttachment", Boolean.toString(registration))
+      .with(user("admin@khki.test").roles("ADMIN"))
+      .with(csrf());
+    if (reviewId != null) request.param("reviewId", reviewId.toString());
+    return UUID.fromString(body(mvc.perform(request).andExpect(status().isCreated()).andReturn()).get("id").asText());
+  }
+
+  private UUID pendingReview(UUID bathroomId) throws Exception {
+    return UUID.fromString(
+      body(
+        mvc
+          .perform(
+            post("/api/bathrooms/" + bathroomId + "/reviews")
+              .with(user("admin@khki.test").roles("ADMIN"))
+              .with(csrf())
+              .contentType("application/json")
+              .content("{\"cleanliness\":3,\"structure\":4,\"comment\":\"Com foto anexada\"}")
+          )
+          .andExpect(status().isCreated())
+          .andReturn()
+      )
+        .get("id")
+        .asText()
+    );
+  }
+
+  @Test
+  void onlyStandalonePhotosEnterQueueAndParentApprovalApprovesExactlyItsPendingAttachments() throws Exception {
+    UUID bathroomId = UUID.fromString(
+      body(
+        mvc
+          .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(bathroomInput("Aprovação conjunta")))
+          .andExpect(status().isCreated())
+          .andReturn()
+      )
+        .get("id")
+        .asText()
+    );
+    UUID attached = attachmentUpload(bathroomId, null, true);
+    UUID rejected = attachmentUpload(bathroomId, null, false);
+    assertThat(photos.findById(rejected).orElseThrow().registrationAttachment).isTrue();
+    mvc
+      .perform(get("/api/admin/queue").with(user("admin@khki.test").roles("ADMIN")))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$[?(@.id == '" + attached + "')]").isEmpty());
+    mvc.perform(get("/api/photos/" + attached)).andExpect(status().isNotFound());
+    decide("PHOTO", rejected, "REJECTED");
+    decide("BATHROOM", bathroomId, "APPROVED");
+    mvc.perform(get("/api/photos/" + attached)).andExpect(status().isOk());
+    mvc.perform(get("/api/photos/" + rejected)).andExpect(status().isNotFound());
+    assertThat(photos.findById(rejected).orElseThrow().status).isEqualTo(Status.REJECTED);
+    assertThat(audits.findByTargetTypeAndTargetIdOrderByCreatedAtDesc(TargetType.PHOTO, attached))
+      .singleElement()
+      .satisfies(audit -> {
+        assertThat(audit.decision).isEqualTo(Status.APPROVED);
+        assertThat(audit.moderatorId).isEqualTo(users.findByEmail("admin@khki.test").orElseThrow().id);
+      });
+    UUID standalone = attachmentUpload(bathroomId, null, false);
+    UUID reviewId = pendingReview(bathroomId);
+    UUID reviewPhoto = attachmentUpload(bathroomId, reviewId, false);
+    UUID otherReview = pendingReview(bathroomId);
+    UUID otherPhoto = attachmentUpload(bathroomId, otherReview, false);
+    mvc
+      .perform(get("/api/admin/queue/details").with(user("admin@khki.test").roles("ADMIN")))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$[?(@.contribution.id == '" + standalone + "')]").isNotEmpty())
+      .andExpect(jsonPath("$[?(@.contribution.id == '" + reviewPhoto + "')]").isEmpty());
+    mvc
+      .perform(get("/api/admin/content/REVIEW/" + reviewId).with(user("admin@khki.test").roles("ADMIN")))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.photos.length()").value(1))
+      .andExpect(jsonPath("$.photos[0].id").value(reviewPhoto.toString()));
+    decide("REVIEW", reviewId, "APPROVED");
+    mvc.perform(get("/api/photos/" + reviewPhoto)).andExpect(status().isOk());
+    mvc.perform(get("/api/photos/" + standalone)).andExpect(status().isNotFound());
+    mvc.perform(get("/api/photos/" + otherPhoto)).andExpect(status().isNotFound());
+    assertThat(photos.findById(standalone).orElseThrow().status).isEqualTo(Status.PENDING);
+    assertThat(photos.findById(otherPhoto).orElseThrow().status).isEqualTo(Status.PENDING);
+    decide("BATHROOM", bathroomId, "HIDDEN");
+    decide("BATHROOM", bathroomId, "APPROVED");
+    assertThat(photos.findById(standalone).orElseThrow().status).isEqualTo(Status.PENDING);
+    assertThat(photos.findById(otherPhoto).orElseThrow().status).isEqualTo(Status.PENDING);
+  }
+
+  @Test
+  void newAttachmentInvalidatesParentVersionAndCannotBeAddedAfterApproval() throws Exception {
+    UUID bathroomId = UUID.fromString(
+      body(
+        mvc
+          .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(bathroomInput("Versão dos anexos")))
+          .andExpect(status().isCreated())
+          .andReturn()
+      )
+        .get("id")
+        .asText()
+    );
+    long before = bathrooms.findById(bathroomId).orElseThrow().version;
+    UUID photo = attachmentUpload(bathroomId, null, true);
+    assertThat(bathrooms.findById(bathroomId).orElseThrow().version).isGreaterThan(before);
+    mvc
+      .perform(
+        post("/api/admin/content/BATHROOM/" + bathroomId + "/decision")
+          .with(user("admin@khki.test").roles("ADMIN"))
+          .with(csrf())
+          .contentType("application/json")
+          .content("{\"status\":\"APPROVED\",\"reason\":\"Análise antiga\",\"expectedVersion\":" + before + "}")
+      )
+      .andExpect(status().isConflict());
+    assertThat(photos.findById(photo).orElseThrow().status).isEqualTo(Status.PENDING);
+    assertThat(audits.findByTargetTypeAndTargetIdOrderByCreatedAtDesc(TargetType.PHOTO, photo)).isEmpty();
+    decide("BATHROOM", bathroomId, "APPROVED");
+    var image = new ByteArrayOutputStream();
+    ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB), "png", image);
+    mvc
+      .perform(
+        multipart("/api/bathrooms/" + bathroomId + "/photos")
+          .file(new MockMultipartFile("file", "foto.png", "image/png", image.toByteArray()))
+          .param("registrationAttachment", "true")
+          .with(user("admin@khki.test").roles("ADMIN"))
+          .with(csrf())
+      )
+      .andExpect(status().isConflict());
+    UUID review = pendingReview(bathroomId);
+    long oldReviewVersion = reviews.findById(review).orElseThrow().version;
+    attachmentUpload(bathroomId, review, false);
+    assertThat(reviews.findById(review).orElseThrow().version).isGreaterThan(oldReviewVersion);
+    mvc
+      .perform(
+        multipart("/api/bathrooms/" + bathroomId + "/photos")
+          .file(new MockMultipartFile("file", "foto.png", "image/png", image.toByteArray()))
+          .param("registrationAttachment", "true")
+          .param("reviewId", review.toString())
+          .with(user("admin@khki.test").roles("ADMIN"))
+          .with(csrf())
+      )
+      .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void legacyAttachmentsOfApprovedParentsRemainActionableInTheirParentQueue() throws Exception {
+    UUID bathroomId = UUID.fromString(
+      body(
+        mvc
+          .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(bathroomInput("Anexos antigos")))
+          .andExpect(status().isCreated())
+          .andReturn()
+      )
+        .get("id")
+        .asText()
+    );
+    decide("BATHROOM", bathroomId, "APPROVED");
+    var photo = new Photo();
+    photo.authorId = users.findByEmail("admin@khki.test").orElseThrow().id;
+    photo.bathroomId = bathroomId;
+    photo.registrationAttachment = true;
+    photo.data = new byte[] { 1 };
+    photos.save(photo);
+    mvc
+      .perform(get("/api/admin/queue").with(user("admin@khki.test").roles("ADMIN")))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$[?(@.id == '" + bathroomId + "')]").isNotEmpty())
+      .andExpect(jsonPath("$[?(@.id == '" + photo.id + "')]").isEmpty());
+    decide("BATHROOM", bathroomId, "APPROVED");
+    assertThat(photos.findById(photo.id).orElseThrow().status).isEqualTo(Status.APPROVED);
+    UUID reviewId = pendingReview(bathroomId);
+    decide("REVIEW", reviewId, "APPROVED");
+    var reviewPhoto = new Photo();
+    reviewPhoto.authorId = photo.authorId;
+    reviewPhoto.bathroomId = bathroomId;
+    reviewPhoto.reviewId = reviewId;
+    reviewPhoto.data = new byte[] { 1 };
+    photos.save(reviewPhoto);
+    mvc
+      .perform(get("/api/admin/queue").with(user("admin@khki.test").roles("ADMIN")))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$[?(@.id == '" + reviewId + "')]").isNotEmpty());
+    decide("REVIEW", reviewId, "APPROVED");
+    assertThat(photos.findById(reviewPhoto.id).orElseThrow().status).isEqualTo(Status.APPROVED);
   }
 }

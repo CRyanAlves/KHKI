@@ -1,18 +1,40 @@
-import { ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, Output, ViewChild, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AddressSuggestion, MapsService } from '../../core/maps.service';
 import { Location } from '../../core/models';
 import { IconComponent } from '../../shared/icon.component';
 
 export interface OriginChoice {
+  coordinateOnly?: boolean;
   label: string;
   position: Location;
 }
 const SEARCH_DELAY_MILLIS = 350;
 
 @Component({ selector: 'app-origin-picker', imports: [FormsModule, IconComponent], templateUrl: './origin-picker.component.html', styleUrl: './origin-picker.component.scss' })
-export class OriginPickerComponent implements OnDestroy {
+export class OriginPickerComponent implements OnChanges, OnDestroy {
   @Input() value = '';
+  @Input() inputId = 'route-origin';
+  @Input() label = 'Sua origem';
+  @Input() placeholder = 'Escolha o ponto de partida';
+  @Input() mapLabel = 'Marcar início no mapa';
+  @Input() clearLabel = 'Limpar origem';
+  @Input() optionsLabel = 'Opções de origem';
+  @Input() disabled = false;
+  @Input() validationError = '';
+  @Input() preserveAddressOnLocate = false;
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['selected']?.currentValue) {
+      this.cancel();
+      this.close();
+      this.error = '';
+      this.status = '';
+    }
+    if (changes['disabled'] && this.disabled) {
+      this.cancel();
+      this.close();
+    }
+  }
   @Input() selected = false;
   @Input() bias: Location | null = null;
   @Output() edited = new EventEmitter<string>();
@@ -36,6 +58,7 @@ export class OriginPickerComponent implements OnDestroy {
     if (!this.element.nativeElement.contains(event.target as Node)) this.close();
   }
   show(): void {
+    if (this.disabled) return;
     this.open = true;
     this.activeIndex = -1;
     if (!this.selected && this.value.trim().length >= 3) this.schedule();
@@ -45,6 +68,7 @@ export class OriginPickerComponent implements OnDestroy {
     this.activeIndex = -1;
   }
   edit(value: string): void {
+    if (this.disabled) return;
     this.cancel();
     this.value = value;
     this.suggestions = [];
@@ -110,6 +134,7 @@ export class OriginPickerComponent implements OnDestroy {
     }
   }
   async choose(index: number): Promise<void> {
+    if (this.disabled) return;
     if (index === 1) {
       this.cancel();
       if (!this.maps.configured) {
@@ -137,7 +162,7 @@ export class OriginPickerComponent implements OnDestroy {
     const sequence = this.sequence;
     try {
       const position = await this.maps.location();
-      if (sequence === this.sequence) this.accept({ label: 'Minha localização', position });
+      if (sequence === this.sequence) this.accept({ label: this.preserveAddressOnLocate ? this.value : 'Minha localização', position, coordinateOnly: this.preserveAddressOnLocate });
     } catch {
       if (sequence === this.sequence) {
         this.error = 'Não foi possível acessar sua localização. Autorize o acesso ou escolha um endereço ou ponto no mapa.';
@@ -162,6 +187,7 @@ export class OriginPickerComponent implements OnDestroy {
     this.changeDetector.markForCheck();
   }
   async resolve(): Promise<void> {
+    if (this.disabled) return;
     if (this.selected) {
       this.close();
       return;
@@ -203,7 +229,7 @@ export class OriginPickerComponent implements OnDestroy {
       if (!this.open) this.show();
       const count = 2 + this.suggestions.length;
       this.activeIndex = this.activeIndex < 0 ? (event.key === 'ArrowDown' ? 0 : count - 1) : (this.activeIndex + (event.key === 'ArrowDown' ? 1 : -1) + count) % count;
-      this.element.nativeElement.querySelector('#route-origin-option-' + this.activeIndex)?.scrollIntoView({ block: 'nearest' });
+      this.element.nativeElement.querySelector('#' + this.inputId + '-option-' + this.activeIndex)?.scrollIntoView({ block: 'nearest' });
     }
     if (event.key === 'Enter') {
       event.preventDefault();

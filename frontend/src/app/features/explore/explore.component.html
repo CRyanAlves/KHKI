@@ -1,17 +1,18 @@
 <section class="search-panel">
-  <div class="search-panel-title">
-    <span class="eyebrow">ENCONTRE UM LUGAR DE CONFIANÇA</span>
-    <h1>Seu próximo alívio</h1>
-  </div>
   <form class="search-field" (ngSubmit)="state.search()">
-    <app-icon name="Search" /><input name="search" [(ngModel)]="state.query" maxlength="200" placeholder="Endereço, lugar ou estabelecimento" aria-label="Buscar por nome, endereço ou região" /><button class="icon-button" aria-label="Buscar"><app-icon name="ArrowRight" [size]="19" /></button>
+    <app-icon name="Search" /><input name="search" [(ngModel)]="state.query" maxlength="200" placeholder="Buscar banheiro ou endereço" aria-label="Buscar por nome, endereço ou região" />
+    @if (state.query) {
+      <button class="icon-button" type="button" aria-label="Limpar busca" (click)="clearSearch()"><app-icon name="X" [size]="19" /></button>
+    }
+    <button class="icon-button" type="submit" aria-label="Buscar" [disabled]="state.loading()"><app-icon name="ArrowRight" [size]="19" /></button>
   </form>
   <div class="filter-row">
-    <button class="chip" [class.selected]="state.filters" (click)="state.filters = !state.filters"><app-icon name="SlidersHorizontal" [size]="16" />Filtros</button><button class="chip" [class.selected]="state.accessible" (click)="state.accessible = !state.accessible; state.search()"><app-icon name="Accessibility" [size]="17" />Acessível</button
-    ><button class="chip" [class.selected]="state.changingTable" (click)="state.changingTable = !state.changingTable; state.search()"><app-icon name="Baby" [size]="17" />Fraldário</button>
+    <button class="chip" [class.selected]="state.filters" [attr.aria-expanded]="state.filters" aria-controls="search-filters" (click)="state.filters = !state.filters"><app-icon name="SlidersHorizontal" [size]="16" />Filtros</button
+    ><button class="chip" [class.selected]="state.accessible" [attr.aria-pressed]="state.accessible" (click)="state.accessible = !state.accessible; state.search()"><app-icon name="Accessibility" [size]="17" />Acessível</button
+    ><button class="chip" [class.selected]="state.changingTable" [attr.aria-pressed]="state.changingTable" (click)="state.changingTable = !state.changingTable; state.search()"><app-icon name="Baby" [size]="17" />Fraldário</button>
   </div>
   @if (state.filters) {
-    <div class="filter-box">
+    <div class="filter-box" id="search-filters">
       <label
         >Condição de acesso<select [(ngModel)]="state.access" (ngModelChange)="state.search()">
           <option value="">Todas as condições</option>
@@ -43,7 +44,16 @@
       </div>
     } @else {
       @for (bathroom of state.visible(); track bathroom.id) {
-        <app-bathroom-card [bathroom]="bathroom" [distance]="state.distance(bathroom)" [class.is-highlighted]="state.highlighted() === bathroom.id" (mouseenter)="state.highlighted.set(bathroom.id)" (mouseleave)="state.highlighted.set('')" (focusin)="state.highlighted.set(bathroom.id)" (focusout)="state.highlighted.set('')" />
+        <app-bathroom-card
+          [bathroom]="bathroom"
+          [selected]="(state.selected()?.id || state.lastSelected) === bathroom.id"
+          [distance]="state.distance(bathroom)"
+          [class.is-highlighted]="state.highlighted() === bathroom.id"
+          (mouseenter)="state.highlighted.set(bathroom.id)"
+          (mouseleave)="state.highlighted.set('')"
+          (focusin)="state.highlighted.set(bathroom.id)"
+          (focusout)="state.highlighted.set('')"
+        />
       } @empty {
         <div class="state-box">
           <app-icon name="MapPin" [size]="32" />
@@ -52,12 +62,12 @@
         </div>
       }
     }
-  </div>
-  <div class="community-note">
-    <span class="community-icon"><app-icon name="Heart" [size]="19" /></span>
-    <div>
-      <strong>Feito por pessoas, para pessoas.</strong>
-      <p>Cada contribuição deixa a cidade mais acolhedora.</p>
+    <div class="community-note">
+      <span class="community-icon"><app-icon name="Heart" [size]="19" /></span>
+      <div>
+        <strong>Feito por pessoas, para pessoas.</strong>
+        <p>Cada contribuição deixa a cidade mais acolhedora.</p>
+      </div>
     </div>
   </div>
 </section>

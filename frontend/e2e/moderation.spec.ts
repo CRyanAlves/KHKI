@@ -221,3 +221,63 @@ test('moderation sidebar animates, toggles only from blank space or footer and r
   await expect(page.getByRole('button', { name: 'Minimizar categorias de moderação', exact: true })).toBeInViewport();
   await page.screenshot({ path: '../test-results/moderation-mobile-sidebar-expanded.png', fullPage: true });
 });
+
+test('photos tab lists standalone uploads and parent approval publishes attachments together', async ({ page, browser }) => {
+  await administrator(page);
+  const registration = await pendingBathroom(page, 'Anexos do cadastro');
+  const reviewParent = await pendingBathroom(page, 'Contexto de avulsas');
+  const approveContext = await page.request.post('/api/admin/content/BATHROOM/' + reviewParent.id + '/decision', { headers: await headers(page), data: { status: 'APPROVED', reason: 'Contexto para fotos avulsas e avaliação.' } });
+  expect(approveContext.ok()).toBe(true);
+  const upload = async (bathroomId: string, query = '') => {
+    const result = await page.request.post('/api/bathrooms/' + bathroomId + '/photos' + query, { headers: await headers(page), multipart: { file: { name: 'foto.jpg', mimeType: 'image/jpeg', buffer: readFileSync('../data/demo-regional/images/anexo-01.jpg') } } });
+    expect(result.status()).toBe(201);
+    return (await result.json()).id as string;
+  };
+  const attachment = await upload(registration.id, '?registrationAttachment=true');
+  const unwantedAttachment = await upload(registration.id, '?registrationAttachment=true');
+  const review = await page.request.post('/api/bathrooms/' + reviewParent.id + '/reviews', { headers: await headers(page), data: { cleanliness: 3, structure: 4, comment: 'Avaliação com anexo.' } });
+  expect(review.status()).toBe(201);
+  const reviewId = (await review.json()).id;
+  const reviewPhoto = await upload(reviewParent.id, '?reviewId=' + reviewId);
+  const standalone = await upload(reviewParent.id);
+  await page.getByRole('link', { name: 'Moderação', exact: true }).click();
+  await page.getByRole('button', { name: /^Fotos \(/ }).click();
+  await expect(page.locator('.queue-table tbody tr').filter({ hasText: 'Foto: ' + registration.name })).toHaveCount(0);
+  await expect(page.locator('.queue-table tbody tr').filter({ hasText: 'Foto: ' + reviewParent.name })).toHaveCount(1);
+  const queue = await (await page.request.get('/api/admin/queue')).json();
+  expect(queue.some((row: { id: string }) => row.id === standalone)).toBe(true);
+  expect(queue.some((row: { id: string }) => [attachment, unwantedAttachment, reviewPhoto].includes(row.id))).toBe(false);
+  await page.getByRole('button', { name: /^Banheiros \(/ }).click();
+  await page.getByRole('textbox', { name: 'Buscar contribuições' }).fill(registration.name);
+  await page.getByRole('button', { name: 'Analisar ' + registration.name, exact: true }).click();
+  await expect(page.locator('.review-photos')).toContainText('Fotos enviadas (2)');
+  await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Uma foto não é adequada para publicação.');
+  await page.getByRole('button', { name: 'Rejeitar foto', exact: true }).last().click();
+  await page
+    .getByRole('dialog')
+    .filter({ has: page.getByRole('heading', { name: 'Confirmar rejeição da foto' }) })
+    .getByRole('button', { name: 'Confirmar rejeição da foto', exact: true })
+    .click();
+  await expect(page.getByRole('status')).toContainText('Decisão registrada');
+  const rejected = (await (await page.request.get('/api/me/contributions')).json()).find((row: { id: string; status: string }) => [attachment, unwantedAttachment].includes(row.id) && row.status === 'REJECTED').id;
+  const accepted = rejected === attachment ? unwantedAttachment : attachment;
+  await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Cadastro e foto restante conferidos.');
+  await page.getByRole('button', { name: 'Aprovar cadastro', exact: true }).click();
+  const confirmation = page.getByRole('dialog', { name: 'Confirmar aprovação' });
+  await expect(confirmation).toContainText('fotos pendentes anexadas');
+  await confirmation.getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
+  await expect(page.locator('.review-photo-entry').filter({ hasText: 'Aprovado' })).toHaveCount(1);
+  await page.getByRole('button', { name: 'Voltar à fila', exact: true }).click();
+  await page.getByRole('button', { name: /^Avaliações \(/ }).click();
+  await page.getByRole('textbox', { name: 'Buscar contribuições' }).fill(reviewParent.name);
+  await page.getByRole('button', { name: 'Analisar Avaliação: ' + reviewParent.name, exact: true }).click();
+  await expect(page.locator('.review-photos')).toContainText('Fotos enviadas (1)');
+  await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Avaliação e foto conferidas.');
+  await page.getByRole('button', { name: 'Aprovar', exact: true }).click();
+  await page.getByRole('dialog', { name: 'Confirmar aprovação' }).getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
+  await expect(page.locator('.review-photo-entry')).toContainText('Aprovado');
+  const visitor = await browser.newContext();
+  for (const id of [accepted, reviewPhoto]) expect((await visitor.request.get(new URL('/api/photos/' + id, page.url()).href)).status()).toBe(200);
+  for (const id of [rejected, standalone]) expect((await visitor.request.get(new URL('/api/photos/' + id, page.url()).href)).status()).toBe(404);
+  await visitor.close();
+});

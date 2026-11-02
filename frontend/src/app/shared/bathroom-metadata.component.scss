@@ -1,0 +1,18 @@
+.bathroom-metadata {
+  margin: var(--space-3) 0;
+  font-size: var(--text-sm);
+}
+.bathroom-metadata > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+}
+dt {
+  color: var(--color-text-muted);
+}
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}

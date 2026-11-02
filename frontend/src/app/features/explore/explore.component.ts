@@ -6,11 +6,14 @@ import { IconComponent } from '../../shared/icon.component';
 
 import { SkeletonComponent } from '../../shared/skeleton.component';
 
-@Component({ selector: 'app-explore', imports: [SkeletonComponent, FormsModule, BathroomCardComponent, IconComponent], templateUrl: './explore.component.html' })
+@Component({ selector: 'app-explore', imports: [SkeletonComponent, FormsModule, BathroomCardComponent, IconComponent], templateUrl: './explore.component.html', styleUrl: './explore.component.scss', host: { class: 'explore-view' } })
 export class ExploreComponent implements OnInit {
   readonly state = inject(ExplorationState);
+  clearSearch(): void {
+    this.state.query = '';
+    void this.state.search();
+  }
   ngOnInit(): void {
-    this.state.enter('search');
     this.state.panelReady.update((value) => value + 1);
   }
 }

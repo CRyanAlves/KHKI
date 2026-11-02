@@ -108,6 +108,9 @@
                   </td>
                   <td>
                     <span class="moderation-status" [class.is-approved]="row.status === 'APPROVED'" [class.is-pending]="row.status === 'PENDING' || row.status === 'NEEDS_INFORMATION'">{{ statusLabel(row.status) }}</span>
+                    @if (status === 'PENDING' && row.status === 'APPROVED' && row.type !== 'PHOTO') {
+                      <small>Anexos pendentes</small>
+                    }
                     @if (row.type === 'BATHROOM' && category !== 'REPORT') {
                       <small>{{ verificationLabel(row.targetId) }}</small>
                     }
@@ -228,6 +231,7 @@
                     </dd>
                   </div>
                 </dl>
+                <app-bathroom-metadata [details]="bathroom.details" />
                 <p class="muted review-disclaimer">As informações são declarações do autor. O mapa e as fotografias não comprovam a existência ou disponibilidade do banheiro.</p>
               } @else {
                 <p class="review-notice">
@@ -256,14 +260,19 @@
                   <h3>Fotos enviadas ({{ detail.photos.length }})</h3>
                   <div class="review-photo-grid">
                     @for (photo of detail.photos; track photo.id) {
-                      <button class="photo-expand" (click)="picture(photo.id)" [attr.aria-label]="'Ampliar foto: ' + labels[photo.status]">
-                        <img [src]="'/api/photos/' + photo.id" alt="Foto enviada para análise" loading="lazy" /><small>{{ labels[photo.status] }}</small>
-                      </button>
+                      <div class="review-photo-entry">
+                        <button class="photo-expand" (click)="picture(photo.id)" [attr.aria-label]="'Ampliar foto: ' + labels[photo.status]">
+                          <img [src]="'/api/photos/' + photo.id" alt="Foto enviada para análise" loading="lazy" /><small>{{ labels[photo.status] }}</small>
+                        </button>
+                        @if (photo.status === 'PENDING') {
+                          <button class="text-button" type="button" [disabled]="busy || conflict" (click)="rejectAttachment(photo.id)">Rejeitar foto</button>
+                        }
+                      </div>
                     } @empty {
                       <p class="muted">Nenhuma foto enviada. As fotos são opcionais.</p>
                     }
                   </div>
-                  <small class="muted">Fotos são moderadas separadamente. Aprovar o cadastro não aprova suas imagens.</small>
+                  <small class="muted">Confira todas as fotos anexadas. Ao aprovar este conteúdo, suas fotos pendentes também serão aprovadas. Fotos rejeitadas, ocultas ou removidas mantêm a decisão anterior.</small>
                 </section>
               }
               @if (detail.contribution.reason) {
@@ -414,7 +423,7 @@
                 <button class="button danger" [disabled]="busy || conflict" (click)="requestDecision('REMOVED')">Remover definitivamente</button>
               }
               @if (can('APPROVED')) {
-                <button class="button moderation-approve" [disabled]="busy || conflict" (click)="requestDecision('APPROVED')"><app-icon name="Check" />{{ detail.contribution.status === 'HIDDEN' ? 'Restaurar' : selected.type === 'BATHROOM' ? 'Aprovar cadastro' : 'Aprovar' }}</button>
+                <button class="button moderation-approve" [disabled]="busy || conflict" (click)="requestDecision('APPROVED')"><app-icon name="Check" />{{ detail.contribution.status === 'HIDDEN' ? 'Restaurar' : detail.contribution.status === 'APPROVED' ? 'Aprovar anexos' : selected.type === 'BATHROOM' ? 'Aprovar cadastro' : 'Aprovar' }}</button>
               }
             }
           </div>
@@ -423,17 +432,20 @@
     }
   </section>
 </main>
-<dialog #confirmation class="moderation-dialog" aria-labelledby="decision-title" (cancel)="busy ? $event.preventDefault() : null">
+<dialog #confirmation (close)="attachmentDecision = null" class="moderation-dialog" aria-labelledby="decision-title" (cancel)="busy ? $event.preventDefault() : null">
   <h2 id="decision-title">{{ decisionLabel }}</h2>
   <p>
-    Confirme a ação para <strong>{{ detail?.contribution?.title }}</strong
+    Confirme a ação para <strong>{{ (attachmentDecision || detail)?.contribution?.title }}</strong
     >. Ela será registrada com seu usuário, data e motivo.
   </p>
+  @if (decisionAction === 'APPROVED' && selected?.type !== 'PHOTO') {
+    <p class="review-notice">As fotos pendentes anexadas a este conteúdo serão aprovadas junto. Confira todas antes de confirmar.</p>
+  }
   @if (decisionAction === 'REMOVED') {
     <p class="error-message">A remoção é definitiva. Fotos removidas têm seus dados apagados.</p>
   }
   <blockquote>{{ reason }}</blockquote>
-  @if (decisionAction === 'REJECTED' && duplicateOfId) {
+  @if (decisionAction === 'REJECTED' && duplicateOfId && !attachmentDecision) {
     <p>Rejeição por duplicidade vinculada ao cadastro {{ duplicateOfId }}.</p>
   }
   <div class="dialog-actions">

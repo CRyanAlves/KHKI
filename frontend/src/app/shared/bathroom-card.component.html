@@ -1,0 +1,60 @@
+<a class="bathroom-card" [class.is-selected]="selected()" [attr.aria-current]="selected() ? 'true' : null" [routerLink]="['/banheiros', bathroom().id]">
+  <div class="card-body">
+    <h3 [title]="bathroom().name">{{ bathroom().name }}</h3>
+    <p class="rating">
+      @if (bathroom().rating !== null && bathroom().reviewCount > 0) {
+        <strong>{{ bathroom().rating | number: '1.1-1' }}</strong>
+        <span class="card-stars" aria-hidden="true">
+          <span class="card-stars-empty">
+            @for (star of stars; track star) {
+              <app-icon name="Star" [size]="15" />
+            }
+          </span>
+          <span class="card-stars-filled" [style.width.%]="ratingPercent">
+            @for (star of stars; track star) {
+              <app-icon name="Star" [size]="15" />
+            }
+          </span>
+        </span>
+        <span class="card-review-count" [attr.aria-label]="bathroom().reviewCount + (bathroom().reviewCount === 1 ? ' avaliação' : ' avaliações')">({{ bathroom().reviewCount }})</span>
+      } @else {
+        <span>Sem avaliações</span>
+      }
+    </p>
+    <p class="card-category">
+      {{ bathroom().category }}
+      @if (distance() !== null) {
+        <span class="card-distance"> · {{ distance()! >= 1000 ? (distance()! / 1000 | number: '1.1-1') + ' km' : distance() + ' m' }} em linha reta</span>
+      }
+    </p>
+    @if (bathroom().hours) {
+      <p class="card-hours">
+        <app-icon name="Clock" [size]="15" /><span>{{ bathroom().hours }}</span>
+      </p>
+    }
+    <p class="card-address">
+      <app-icon name="MapPin" [size]="15" /><span
+        >{{ bathroom().address }}
+        @if (bathroom().complement) {
+          · {{ bathroom().complement }}
+        }
+      </span>
+    </p>
+  </div>
+  <div class="card-photo">
+    @if (bathroom().photoIds.length && failedPhoto() !== bathroom().photoIds[0]) {
+      <img [src]="'/api/photos/' + bathroom().photoIds[0]" alt="Foto aprovada do banheiro" loading="lazy" (error)="failedPhoto.set(bathroom().photoIds[0])" />
+    } @else {
+      <app-icon name="Toilet" [size]="28" /><span>{{ bathroom().photoIds.length ? 'Foto indisponível' : 'Sem foto publicada' }}</span>
+    }
+  </div>
+  <div class="card-tags">
+    <span class="tag card-access" [class.is-paid]="bathroom().access === 'PAID'" [title]="bathroom().demo ? accessLabels[bathroom().access] : bathroom().accessDetails || accessLabels[bathroom().access]">{{ accessLabels[bathroom().access] }}</span>
+    @if (bathroom().accessible === true) {
+      <span class="card-feature" role="img" aria-label="Acessível" title="Acessível"><app-icon name="Accessibility" [size]="20" /></span>
+    }
+    @if (bathroom().items.includes('CHANGING_TABLE')) {
+      <span class="card-feature" role="img" aria-label="Fraldário" title="Fraldário"><app-icon name="Baby" [size]="20" /></span>
+    }
+  </div>
+</a>

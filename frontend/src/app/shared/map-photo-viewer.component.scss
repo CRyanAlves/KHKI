@@ -1,0 +1,102 @@
+@use '../../styles/settings';
+:host {
+  position: absolute;
+  top: 0;
+  left: var(--map-left-inset);
+  right: 0;
+  bottom: var(--map-bottom-inset);
+  z-index: settings.$layer-panel-control;
+  background: var(--color-background);
+  color: var(--color-text);
+}
+.map-photo-viewer {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+.photo-viewer-frame {
+  position: relative;
+  width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+.photo-viewer-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.photo-viewer-stage img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+.photo-viewer-stage p {
+  padding: var(--space-6);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+.photo-control,
+.photo-count {
+  position: absolute;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+}
+.photo-control.icon-button {
+  width: var(--control-size);
+  height: var(--control-size);
+  padding: 0;
+}
+.photo-control:hover:not(:disabled) {
+  background: var(--color-surface-soft);
+}
+.photo-panels {
+  top: var(--space-4);
+  left: var(--space-4);
+}
+.photo-panels .is-collapsed {
+  transform: rotate(180deg);
+}
+.photo-close {
+  top: var(--space-4);
+  right: var(--space-4);
+}
+.photo-count {
+  top: var(--space-4);
+  left: calc(var(--control-size) + var(--space-6));
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  pointer-events: none;
+  max-width: max(0%, calc(100% - var(--control-size) * 2 - var(--space-12)));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.photo-previous,
+.photo-next {
+  top: 50%;
+  transform: translateY(-50%);
+}
+.photo-previous {
+  left: var(--space-4);
+}
+.photo-next {
+  right: var(--space-4);
+}
+.photo-report {
+  bottom: var(--space-4);
+  right: var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  min-height: var(--control-size);
+}

@@ -1,0 +1,106 @@
+@use './settings';
+.map-workspace {
+  --workspace-occupied-width: var(--panel-width);
+  --workspace-split-active: 0;
+  --map-left-inset: var(--workspace-occupied-width);
+}
+.workspace-panel {
+  display: flex;
+  width: var(--workspace-occupied-width);
+  overflow: hidden;
+  background: transparent;
+  box-shadow: none;
+  border-right: 0;
+}
+.workspace-results,
+.workspace-content {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 0 0 var(--panel-width);
+  background: var(--color-surface);
+  border-right: var(--border-width) solid var(--color-border);
+}
+.workspace-content {
+  display: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--color-surface);
+}
+.has-content .workspace-results {
+  display: none;
+}
+.has-content .workspace-content {
+  display: block;
+}
+.panel-toggle {
+  transform: translateX(var(--workspace-occupied-width));
+}
+.panel-collapsed {
+  --map-left-inset: 0%;
+}
+@media (min-width: settings.$breakpoint-workspace-split) {
+  .has-content:not(.route-scene) {
+    --workspace-occupied-width: calc(var(--panel-width) + var(--details-panel-width));
+  }
+  .has-content:not(.route-scene) .workspace-results {
+    display: block;
+    border-right: var(--border-width) solid var(--color-border);
+  }
+  .has-content:not(.route-scene) .workspace-content {
+    flex-basis: var(--details-panel-width);
+  }
+}
+@media (max-width: settings.$breakpoint-mobile) {
+  .map-workspace {
+    --map-left-inset: 0%;
+  }
+  .workspace-results,
+  .workspace-content {
+    flex-basis: 100%;
+  }
+  .workspace-panel {
+    width: 100%;
+  }
+  .panel-toggle {
+    transform: none;
+  }
+}
+@media (min-width: settings.$breakpoint-workspace-split) {
+  .detail-scene {
+    --workspace-split-active: 1;
+  }
+  .workspace-results {
+    position: relative;
+    z-index: var(--layer-exploration-results);
+    background: var(--color-surface);
+  }
+  .workspace-content {
+    position: relative;
+    z-index: var(--layer-exploration-content);
+  }
+  .detail-scene .workspace-content {
+    animation: details-reveal var(--motion-panel-duration) var(--motion-panel-easing);
+  }
+}
+.workspace-content > app-details {
+  display: block;
+}
+@keyframes details-reveal {
+  from {
+    z-index: var(--layer-exploration-motion);
+    transform: translateX(-100%);
+  }
+  to {
+    z-index: var(--layer-exploration-motion);
+    transform: translateX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-scene .workspace-content {
+    animation: none;
+  }
+}
+.photo-viewing .panel-toggle {
+  visibility: hidden;
+}

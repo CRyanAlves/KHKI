@@ -6,6 +6,17 @@ export interface User {
   name: string;
   role: 'USER' | 'ADMIN';
 }
+export interface BathroomDetails {
+  audience: 'PUBLIC' | 'CUSTOMERS' | 'AUTHORIZATION' | 'OTHER' | 'UNKNOWN';
+  charge: 'YES' | 'NO' | 'UNKNOWN';
+  feeAmount: number | null;
+  bathroomTypes: string[];
+  stepFreeAccess: boolean | null;
+  elevator: boolean | null;
+  adaptedCabin: boolean | null;
+  grabBars: boolean | null;
+  lastVisited: string | null;
+}
 export interface Bathroom {
   id: string;
   name: string;
@@ -23,6 +34,7 @@ export interface Bathroom {
   reviewCount: number;
   photoIds: string[];
   demo: boolean;
+  details?: BathroomDetails;
 }
 export interface BathroomInput {
   name: string;
@@ -37,6 +49,7 @@ export interface BathroomInput {
   accessible: boolean | null;
   items: string[];
   submissionId?: string;
+  details?: BathroomDetails;
 }
 export interface Review {
   id: string;

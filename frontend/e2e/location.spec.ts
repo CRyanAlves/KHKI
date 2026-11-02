@@ -20,7 +20,7 @@ test('granted geolocation restores a current map position after reload without s
   await expect(page.locator('.map-position')).toBeVisible();
   await expect.poll(point).toEqual({ lat: -23.1, lng: -47.22 });
   await page.locator('.bathroom-card').first().click();
-  await page.getByRole('link', { name: 'Voltar aos resultados', exact: true }).click();
+  await page.getByRole('link', { name: 'Fechar detalhes', exact: true }).click();
   await expect(page.locator('.map-position')).toBeVisible();
   expect(
     await page.evaluate(() =>

@@ -4,6 +4,8 @@ import br.com.khki.api.*;
 import br.com.khki.api.Contracts.ContributionView;
 import br.com.khki.domain.*;
 import br.com.khki.repository.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.*;
@@ -22,26 +24,32 @@ public class PhotoService {
   private final ReviewRepository reviews;
   private final ContentService content;
   private final SubmissionService submissions;
+  private final EntityManager entityManager;
 
-  public PhotoService(PhotoRepository photos, BathroomRepository bathrooms, ReviewRepository reviews, ContentService content, SubmissionService submissions) {
+  public PhotoService(PhotoRepository photos, BathroomRepository bathrooms, ReviewRepository reviews, ContentService content, SubmissionService submissions, EntityManager entityManager) {
     this.photos = photos;
     this.bathrooms = bathrooms;
     this.reviews = reviews;
     this.content = content;
     this.submissions = submissions;
+    this.entityManager = entityManager;
   }
 
-  public ContributionView upload(UUID bathroomId, UUID reviewId, UUID authorId, MultipartFile file, UUID submissionId) {
+  public ContributionView upload(UUID bathroomId, UUID reviewId, UUID authorId, MultipartFile file, UUID submissionId, boolean registrationAttachment) {
+    if (registrationAttachment && reviewId != null) throw new ApiException(HttpStatus.BAD_REQUEST, "Escolha apenas um vínculo para a foto.");
     byte[] data = sanitize(file);
     String fingerprint = submissions.fingerprint(List.of(bathroomId.toString(), reviewId == null ? "" : reviewId.toString(), submissions.digest(data)));
     UUID previous = submissions.replay(submissionId, authorId, "PHOTO_UPLOAD", fingerprint);
     if (previous != null) return content.contribution(content.target(TargetType.PHOTO, previous));
     var bathroom = bathrooms.findById(bathroomId).orElseThrow(ApiException::missing);
     if (bathroom.status != Status.APPROVED && !(bathroom.status == Status.PENDING && bathroom.authorId.equals(authorId))) throw ApiException.missing();
+    boolean attachedToRegistration = reviewId == null && bathroom.status == Status.PENDING && bathroom.authorId.equals(authorId);
+    if (registrationAttachment && !attachedToRegistration) throw new ApiException(HttpStatus.CONFLICT, "O cadastro já foi analisado. Envie novas fotos pela opção Adicionar foto do banheiro.");
     if (reviewId != null) {
       var review = reviews.findById(reviewId).orElseThrow(ApiException::missing);
       if (!review.authorId.equals(authorId) || !review.bathroomId.equals(bathroomId) || review.status != Status.PENDING) throw ApiException.missing();
-    }
+      entityManager.lock(review, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
+    } else if (attachedToRegistration) entityManager.lock(bathroom, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
     if (
       photos
         .findByAuthorIdOrderByCreatedAtDesc(authorId)
@@ -52,6 +60,7 @@ public class PhotoService {
     var photo = new Photo();
     photo.bathroomId = bathroomId;
     photo.reviewId = reviewId;
+    photo.registrationAttachment = attachedToRegistration;
     photo.authorId = authorId;
     photo.data = data;
     photos.save(photo);

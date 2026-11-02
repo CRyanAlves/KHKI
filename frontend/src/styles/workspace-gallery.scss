@@ -1,0 +1,79 @@
+.details-panel .gallery {
+  margin: calc(-1 * var(--details-panel-padding)) calc(-1 * var(--details-panel-padding)) 0;
+}
+.details-panel .main-photo {
+  position: relative;
+}
+.details-panel .gallery-open {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: var(--details-photo-height);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  background: var(--color-surface-soft);
+  color: var(--color-text-muted);
+}
+.details-panel .gallery-open img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+.details-panel .photo-report {
+  position: absolute;
+  bottom: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  padding: var(--space-2);
+  font-size: var(--text-xs);
+}
+.details-panel .gallery-count {
+  position: absolute;
+  bottom: var(--space-2);
+  left: var(--space-2);
+  background: var(--color-overlay);
+  color: var(--color-on-primary);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  pointer-events: none;
+}
+.details-panel .thumbnails {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.details-panel .thumbnails button {
+  width: var(--details-thumbnail-size);
+  height: var(--details-thumbnail-size);
+  padding: var(--space-1);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-soft);
+}
+.details-panel .thumbnails button.active {
+  border-color: var(--color-accent);
+}
+.details-panel .thumbnails img {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-sm);
+}
+.details-panel .gallery-empty {
+  min-height: var(--details-photo-height);
+  padding: var(--space-5);
+  background: var(--color-surface-soft);
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}

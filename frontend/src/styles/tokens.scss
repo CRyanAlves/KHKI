@@ -41,6 +41,11 @@
   --skeleton-title-width: 78%;
   --skeleton-cover-ratio: 16 / 9;
   --motion-nav-selection: 200ms;
+  --layer-exploration-results: 1;
+  --layer-exploration-content: 2;
+  --layer-exploration-motion: 0;
+  --motion-panel-duration: #{settings.$motion-panel-duration};
+  --motion-panel-easing: #{settings.$motion-panel-easing};
   --motion-nav-easing: cubic-bezier(0.2, 0, 0, 1);
   --color-map: #ecede8;
   --color-map-block: #dce2d9;
@@ -94,6 +99,13 @@
   --focus-ring-offset: var(--space-1);
   --map-message-max-width: 320px;
   --panel-width-compact: 360px;
+  --result-thumbnail-size: 88px;
+  --details-panel-width: clamp(360px, 26vw, 400px);
+  --details-photo-height: 270px;
+  --details-thumbnail-size: 64px;
+  --result-selection-width: 4px;
+  --result-stars-gap: 1px;
+  --result-line-height: 1.4;
   --panel-mobile-height: min(64%, calc(100% - 170px));
   --motion-map-duration: 600ms;
   --navigation-simulator-width: 320px;

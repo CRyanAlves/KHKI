@@ -21,9 +21,7 @@
         <button type="button" role="radio" [attr.aria-checked]="mode === transport.value" [attr.tabindex]="mode === transport.value ? 0 : -1" [class.selected]="mode === transport.value" (click)="setMode(transport.value)" (keydown)="modeKeydown($event, index)"><app-icon [name]="transport.icon" [size]="18" />{{ transport.label }}</button>
       }
     </div>
-    @if (bathroom.demo) {
-      <p class="demo-banner">Destino fictício de demonstração.</p>
-    }
+
     @if (busy) {
       <p class="route-updating" role="status">Atualizando rota…</p>
       <app-skeleton variant="route" label="Atualizando rota…" />

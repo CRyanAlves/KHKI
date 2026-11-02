@@ -26,6 +26,27 @@ http
       send(403, { statusCode: 403, error: 'Forbidden', message: 'Invalid apiKey' });
       return;
     }
+    if (url.pathname === '/v1/geocode/reverse') {
+      const lat = Number(url.searchParams.get('lat')),
+        lon = Number(url.searchParams.get('lon'));
+      if (!url.searchParams.has('lat') || !url.searchParams.has('lon') || !Number.isFinite(lat) || Math.abs(lat) > 90 || !Number.isFinite(lon) || Math.abs(lon) > 180 || url.searchParams.get('format') !== 'json' || url.searchParams.get('lang') !== 'pt' || url.searchParams.get('limit') !== '1') {
+        send(400, { message: 'Invalid reverse geocoding contract' });
+        return;
+      }
+      const scenario = url.searchParams.get('simulationScenario');
+      if (scenario === 'unavailable') {
+        send(503, { message: 'Reverse geocoding unavailable' });
+        return;
+      }
+      if (scenario === 'empty') {
+        send(200, { results: [] });
+        return;
+      }
+      const body = { results: [{ lat, lon, formatted: 'Rua da Posição, 100 — São Paulo, SP', country_code: 'br' }] };
+      if (scenario === 'slow') setTimeout(() => send(200, body), 3000);
+      else send(200, body);
+      return;
+    }
     if (url.pathname === '/v1/geocode/search' || url.pathname === '/v1/geocode/autocomplete') {
       const autocomplete = url.pathname.endsWith('/autocomplete');
       const text = url.searchParams.get('text') || '';

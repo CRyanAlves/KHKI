@@ -1,20 +1,22 @@
-<label for="route-origin">Sua origem</label>
+<label [for]="inputId">{{ label }}</label>
 <div class="origin-field" [class.is-open]="open" [class.is-selected]="selected">
   <app-icon [name]="selected ? (value === 'Minha localização' ? 'LocateFixed' : 'MapPin') : 'Search'" [size]="18" />
   <input
     #input
-    id="route-origin"
+    [id]="inputId"
     role="combobox"
     aria-autocomplete="list"
-    aria-controls="route-origin-options"
+    [attr.aria-controls]="inputId + '-options'"
     [attr.aria-expanded]="open"
-    [attr.aria-activedescendant]="open && activeIndex >= 0 ? 'route-origin-option-' + activeIndex : null"
+    [attr.aria-activedescendant]="open && activeIndex >= 0 ? inputId + '-option-' + activeIndex : null"
     [attr.aria-busy]="busy"
-    aria-describedby="route-origin-status"
-    [attr.aria-invalid]="!!error"
+    [attr.aria-describedby]="inputId + '-status'"
+    [attr.aria-invalid]="!!error || !!validationError"
     autocomplete="off"
     maxlength="300"
-    placeholder="Escolha o ponto de partida"
+    [placeholder]="placeholder"
+    [disabled]="disabled"
+    [ngModelOptions]="{ standalone: true }"
     [ngModel]="value"
     (ngModelChange)="edit($event)"
     (focus)="show()"
@@ -22,16 +24,18 @@
     (keydown)="keydown($event)"
   />
   @if (value) {
-    <button class="icon-button" type="button" aria-label="Limpar origem" (click)="clear()"><app-icon name="X" [size]="16" /></button>
+    <button class="icon-button" type="button" [attr.aria-label]="clearLabel" [disabled]="disabled" (click)="clear()"><app-icon name="X" [size]="16" /></button>
   } @else {
     <app-icon name="ChevronDown" [size]="16" />
   }
   @if (open) {
-    <div id="route-origin-options" class="origin-options" role="listbox" aria-label="Opções de origem">
-      <button id="route-origin-option-0" type="button" role="option" tabindex="-1" [attr.aria-selected]="activeIndex === 0" (pointerdown)="$event.preventDefault()" (click)="choose(0)"><app-icon name="LocateFixed" [size]="18" /><span>Usar minha localização</span></button>
-      <button id="route-origin-option-1" type="button" role="option" tabindex="-1" [attr.aria-selected]="activeIndex === 1" (pointerdown)="$event.preventDefault()" (click)="choose(1)"><app-icon name="MapPin" [size]="18" /><span>Marcar início no mapa</span></button>
+    <div [id]="inputId + '-options'" class="origin-options" role="listbox" [attr.aria-label]="optionsLabel">
+      <button [id]="inputId + '-option-0'" type="button" role="option" tabindex="-1" [attr.aria-selected]="activeIndex === 0" (pointerdown)="$event.preventDefault()" (click)="choose(0)"><app-icon name="LocateFixed" [size]="18" /><span>Usar minha localização</span></button>
+      <button [id]="inputId + '-option-1'" type="button" role="option" tabindex="-1" [attr.aria-selected]="activeIndex === 1" (pointerdown)="$event.preventDefault()" (click)="choose(1)">
+        <app-icon name="MapPin" [size]="18" /><span>{{ mapLabel }}</span>
+      </button>
       @for (suggestion of suggestions; track $index) {
-        <button [id]="'route-origin-option-' + ($index + 2)" type="button" role="option" tabindex="-1" [attr.aria-selected]="activeIndex === $index + 2" (pointerdown)="$event.preventDefault()" (click)="choose($index + 2)">
+        <button [id]="inputId + '-option-' + ($index + 2)" type="button" role="option" tabindex="-1" [attr.aria-selected]="activeIndex === $index + 2" (pointerdown)="$event.preventDefault()" (click)="choose($index + 2)">
           <app-icon name="MapPin" [size]="18" /><span
             >{{ suggestion.label }}
             @if (suggestion.detail) {
@@ -46,4 +50,4 @@
     </div>
   }
 </div>
-<small id="route-origin-status" [class.error-message]="!!error" [attr.role]="error ? 'alert' : 'status'">{{ error || status }}</small>
+<small class="origin-status" [id]="inputId + '-status'" [class.error-message]="!!error || !!validationError" [attr.role]="error || validationError ? 'alert' : 'status'">{{ error || validationError || status }}</small>

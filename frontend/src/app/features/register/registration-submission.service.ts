@@ -20,7 +20,21 @@ export class RegistrationSubmissionService {
   uncertain = false;
   async send(form: BathroomInput, editId: string, photos: PhotoDraft[]): Promise<boolean> {
     if (!this.createdId) {
-      const input: BathroomInput = { name: form.name, address: form.address, complement: form.complement, category: form.category, latitude: form.latitude, longitude: form.longitude, access: form.access, accessDetails: form.accessDetails, hours: form.hours, accessible: form.accessible, items: [...form.items].sort(), submissionId: this.key };
+      const input: BathroomInput = {
+        name: form.name,
+        address: form.address,
+        complement: form.complement,
+        category: form.category,
+        latitude: form.latitude,
+        longitude: form.longitude,
+        access: form.access,
+        accessDetails: form.accessDetails,
+        hours: form.hours,
+        accessible: form.accessible,
+        items: [...form.items].sort(),
+        submissionId: this.key,
+        details: form.details ? { ...form.details, bathroomTypes: [...form.details.bathroomTypes].sort(), lastVisited: form.details.lastVisited || null } : undefined
+      };
       let contribution: Contribution;
       try {
         contribution = editId ? await this.api.put<Contribution>('/bathrooms/' + editId, input) : await this.api.post<Contribution>('/bathrooms', input);
@@ -44,7 +58,7 @@ export class RegistrationSubmissionService {
       body.append('file', photo.file);
       photo.error = '';
       try {
-        await this.api.post('/bathrooms/' + this.createdId + '/photos?submissionId=' + photo.key, body);
+        await this.api.post('/bathrooms/' + this.createdId + '/photos?registrationAttachment=true&submissionId=' + photo.key, body);
         photo.uploaded = true;
         photo.uncertain = false;
       } catch (error) {
