@@ -13,12 +13,44 @@
     <button class="button primary login-button" aria-label="Entrar" (click)="auth.opened.set(true); menu = false"><app-icon name="User" [size]="17" /><span>Entrar</span></button> }<button class="icon-button mobile-menu" aria-label="Abrir navegação" aria-controls="main-navigation" [attr.aria-expanded]="menu" (click)="menu = !menu"><app-icon name="Menu" /></button>
   </div>
 </header>
-@if (error) {
+@if (mobileUi.accountShortcut()) { <button class="icon-button mobile-account-avatar mobile-account-shortcut" type="button" aria-label="Abrir sua conta" (click)="mobileUi.accountOpen.set(true)"><app-icon name="User" [size]="22" /></button> } @if (error) {
 <p role="alert" class="error-message">{{ error }}</p>
 }
 <div id="main-content" [attr.aria-busy]="navigationLoading()">
   @if (navigationLoading()) {
   <div class="navigation-loading" [class.is-wide]="navigationTarget.startsWith('/admin') || navigationTarget.startsWith('/contribuicoes')" [class.is-registration]="navigationTarget.startsWith('/cadastrar')"><app-skeleton [variant]="pageSkeleton" label="Carregando página…" /></div>
-  }<router-outlet />
+  } @if (mobileUi.mobile() && mobileUi.url().startsWith('/admin')) {
+  <section class="mobile-admin-guidance state-box">
+    <app-icon name="ShieldCheck" [size]="32" />
+    <h1>Moderação no desktop</h1>
+    <p>Utilize um computador para analisar cadastros, fotos, avaliações e denúncias.</p>
+    <a class="button primary" routerLink="/">Voltar à exploração</a>
+  </section>
+  }
+  <router-outlet />
 </div>
-@if (auth.opened()) { <app-login /> }
+@if (mobileUi.navbar()) {
+<nav class="mobile-bottom-nav" aria-label="Navegação mobile">
+  <a routerLink="/" [class.active]="mobileUi.url() === '/'" [attr.aria-current]="mobileUi.url() === '/' ? 'page' : null"><app-icon name="Navigation" [size]="22" /><span>Explorar</span></a>
+  <a routerLink="/contribuicoes" [class.active]="mobileUi.url().startsWith('/contribuicoes')" [attr.aria-current]="mobileUi.url().startsWith('/contribuicoes') ? 'page' : null"><app-icon name="Upload" [size]="22" /><span>Contribuições</span></a>
+  <a routerLink="/cadastrar"><app-icon name="Plus" [size]="22" /><span>Cadastrar</span></a>
+</nav>
+} @if (mobileUi.mobile() && mobileUi.accountOpen()) {
+<div class="modal-backdrop mobile-account-backdrop" (click)="mobileUi.accountOpen.set(false)">
+  <section class="mobile-account-panel surface" role="dialog" aria-modal="true" aria-labelledby="mobile-account-title" appDialogFocus (dialogEscape)="mobileUi.accountOpen.set(false)" (click)="$event.stopPropagation()">
+    <button class="icon-button modal-close" type="button" aria-label="Fechar conta" (click)="mobileUi.accountOpen.set(false)"><app-icon name="X" /></button>
+    <h2 id="mobile-account-title">Sua conta</h2>
+    <div class="mobile-account-identity"><app-icon name="User" [size]="32" /><strong>{{ auth.user()?.name || 'Bem-vindo ao KHKI' }}</strong></div>
+    @if (!auth.user()) { <button class="button primary full" type="button" (click)="mobileUi.accountOpen.set(false); auth.opened.set(true)">Entrar ou criar conta</button> }
+    <a routerLink="/contribuicoes" (click)="mobileUi.accountOpen.set(false)"><app-icon name="Upload" />Minhas contribuições<app-icon name="ChevronRight" /></a>
+    <a routerLink="/cadastrar" (click)="mobileUi.accountOpen.set(false)"><app-icon name="Plus" />Cadastrar banheiro<app-icon name="ChevronRight" /></a>
+    <h3>Aparência</h3>
+    <div class="mobile-theme-options" role="group" aria-label="Aparência">
+      <button type="button" [attr.aria-pressed]="theme.selection() === 'light'" (click)="theme.select('light')"><app-icon name="Sun" [size]="18" />Claro</button>
+      <button type="button" [attr.aria-pressed]="theme.selection() === 'dark'" (click)="theme.select('dark')"><app-icon name="Moon" [size]="18" />Escuro</button>
+      <button type="button" [attr.aria-pressed]="theme.selection() === 'system'" (click)="theme.select('system')">Sistema</button>
+    </div>
+    @if (auth.user()) { <button class="text-button mobile-signout" type="button" (click)="mobileUi.accountOpen.set(false); logout()"><app-icon name="LogOut" />Sair</button> }
+  </section>
+</div>
+} @if (auth.opened()) { <app-login /> }

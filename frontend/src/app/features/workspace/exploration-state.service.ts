@@ -60,8 +60,10 @@ export class ExplorationState {
   readonly panelReady = signal(0);
   readonly panelScrolls = new Map<string, number>();
   readonly photoView = signal<PhotoView | null>(null);
-  openPhoto(bathroom: Bathroom, index: number): void {
+  photoOpener: HTMLElement | null = null;
+  openPhoto(bathroom: Bathroom, index: number, opener?: HTMLElement): void {
     if (!Number.isSafeInteger(index) || index < 0 || index >= bathroom.photoIds.length) return;
+    this.photoOpener = opener || (document.activeElement instanceof HTMLElement ? document.activeElement : null);
     this.photoView.set({ bathroomId: bathroom.id, name: bathroom.name, photoIds: [...bathroom.photoIds], index });
   }
   movePhoto(delta: number): void {
@@ -73,6 +75,7 @@ export class ExplorationState {
     const view = this.photoView();
     if (view) this.photoIndexes.set(view.bathroomId, view.index);
     this.photoView.set(null);
+    this.photoOpener = null;
   }
   readonly photoIndexes = new Map<string, number>();
   readonly routeDrafts = new Map<string, RouteDraft>();

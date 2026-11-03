@@ -9,27 +9,29 @@
   } @else if (!bathroom) {
     <app-skeleton variant="detail" label="Carregando detalhes…" />
   } @else {
-    <section class="gallery" aria-label="Fotos aprovadas">
-      @if (bathroom.photoIds.length) {
-        <div class="main-photo">
-          <button class="gallery-open" aria-label="Ampliar foto do banheiro" (click)="openViewer(0)">
-            @if (!failedPhotos.has(bathroom.photoIds[0])) {
-              <img [src]="'/api/photos/' + bathroom.photoIds[0]" alt="Foto aprovada do banheiro" (error)="failedPhotos.add(bathroom.photoIds[0])" />
-            } @else {
-              <span>Foto indisponível</span>
-            }
-          </button>
-          <span class="gallery-count">1 / {{ bathroom.photoIds.length }}</span>
+    @if (!mobileUi.mobile()) {
+      <section class="gallery" aria-label="Fotos aprovadas">
+        @if (bathroom.photoIds.length) {
+          <div class="main-photo">
+            <button class="gallery-open" aria-label="Ampliar foto do banheiro" (click)="openViewer(0, $event)">
+              @if (!failedPhotos.has(bathroom.photoIds[0])) {
+                <img [src]="'/api/photos/' + bathroom.photoIds[0]" alt="Foto aprovada do banheiro" (error)="failedPhotos.add(bathroom.photoIds[0])" />
+              } @else {
+                <span>Foto indisponível</span>
+              }
+            </button>
+            <span class="gallery-count">1 / {{ bathroom.photoIds.length }}</span>
 
-          <button class="photo-report" (click)="report = { type: 'PHOTO', id: bathroom.photoIds[0] }"><app-icon name="Flag" [size]="15" />Denunciar foto</button>
-        </div>
-      } @else {
-        <div class="gallery-empty">
-          <app-icon name="Toilet" [size]="28" />
-          <p>Este local ainda não tem fotos aprovadas.</p>
-        </div>
-      }
-    </section>
+            <button class="photo-report" (click)="report = { type: 'PHOTO', id: bathroom.photoIds[0] }"><app-icon name="Flag" [size]="15" />Denunciar foto</button>
+          </div>
+        } @else {
+          <div class="gallery-empty">
+            <app-icon name="Toilet" [size]="28" />
+            <p>Este local ainda não tem fotos aprovadas.</p>
+          </div>
+        }
+      </section>
+    }
     <div class="title-row">
       <h1>{{ bathroom.name }}</h1>
     </div>
@@ -45,9 +47,32 @@
       </p>
       <span class="tag success" title="Cadastro aprovado pela moderação; não é garantia de limpeza, segurança ou acessibilidade."><app-icon name="CheckCircle" [size]="14" />Aprovado</span>
     </div>
+    @if (mobileUi.mobile()) {
+      <div class="mobile-details-summary">
+        <p><app-icon name="Coffee" [size]="16" />{{ bathroom.category }} · {{ accessLabels[bathroom.access] }}</p>
+        @if (bathroom.hours) {
+          <p><app-icon name="Clock" [size]="16" />{{ bathroom.hours }}</p>
+        }
+      </div>
+    }
     <div class="detail-actions" [attr.aria-busy]="routeOpening">
       <a class="button primary" [href]="'/banheiros/' + bathroom.id + '/rota'" [attr.aria-disabled]="routeOpening" (click)="openRoute($event)"><app-icon name="Navigation" [size]="18" />Como chegar</a><a class="button secondary" [routerLink]="['/banheiros', bathroom.id, 'avaliar']"><app-icon name="Star" [size]="18" />Avaliar</a>
     </div>
+    @if (mobileUi.mobile()) {
+      @if (bathroom.photoIds.length) {
+        <div class="mobile-detail-photos" role="region" aria-label="Fotos do local">
+          @for (id of bathroom.photoIds; track id; let index = $index) {
+            <button type="button" [attr.aria-label]="'Abrir foto ' + (index + 1)" (click)="openViewer(index, $event)">
+              @if (!failedPhotos.has(id)) {
+                <img [src]="'/api/photos/' + id" alt="Foto aprovada do banheiro" loading="lazy" (error)="failedPhotos.add(id)" />
+              } @else {
+                <app-icon name="Camera" /><span>Foto indisponível</span>
+              }
+            </button>
+          }
+        </div>
+      }
+    }
 
     @if (routeError) {
       <p class="error-message" role="alert">{{ routeError }}</p>
@@ -64,7 +89,7 @@
           <app-bathroom-metadata [details]="bathroom.details" />
         </details>
         <div class="detail-facts">
-          <p>
+          <p class="detail-category-fact">
             <app-icon name="Coffee" [size]="18" /><span>{{ bathroom.category }}</span>
           </p>
           <p>
@@ -75,10 +100,10 @@
               }
             </span>
           </p>
-          <p>
+          <p class="detail-hours-fact">
             <app-icon name="Clock" [size]="18" /><span>{{ bathroom.hours || 'Horário não informado' }}</span>
           </p>
-          <p>
+          <p class="detail-access-fact">
             <app-icon name="Info" [size]="18" /><span>{{ accessLabels[bathroom.access] }}</span>
           </p>
           @if (bathroom.accessDetails && !bathroom.demo) {
@@ -102,7 +127,7 @@
           <h2>Fotos aprovadas ({{ bathroom.photoIds.length }})</h2>
           <div class="thumbnails">
             @for (id of bathroom.photoIds; track id; let index = $index) {
-              <button [class.active]="photo === index" (click)="openViewer(index)" [attr.aria-label]="'Ver foto ' + (index + 1)" [attr.aria-pressed]="photo === index">
+              <button [class.active]="photo === index" (click)="openViewer(index, $event)" [attr.aria-label]="'Ver foto ' + (index + 1)" [attr.aria-pressed]="photo === index">
                 @if (!failedPhotos.has(id)) {
                   <img [src]="'/api/photos/' + id" alt="" loading="lazy" (error)="failedPhotos.add(id)" />
                 } @else {

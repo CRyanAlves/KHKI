@@ -1,6 +1,6 @@
 @if (state.photoView(); as view) {
   <section class="map-photo-viewer" role="region" aria-label="Fotos do banheiro">
-    <div class="photo-viewer-frame" [style.aspect-ratio]="imageRatio()" [style.max-width.px]="availableHeight() * imageRatio()">
+    <div class="photo-viewer-frame" [style.aspect-ratio]="mobileUi.mobile() ? null : imageRatio()" [style.max-width.px]="mobileUi.mobile() ? null : availableHeight() * imageRatio()" (touchstart)="swipeStart($event)" (touchend)="swipeEnd($event)">
       <div class="photo-viewer-stage">
         @if (failed() !== view.photoIds[view.index]) {
           <img [src]="'/api/photos/' + view.photoIds[view.index]" [alt]="'Foto ' + (view.index + 1) + ' do banheiro ' + view.name" (load)="imageLoaded($event)" (error)="failed.set(view.photoIds[view.index])" />
@@ -8,13 +8,20 @@
           <p role="status">Foto indisponível. Escolha outra imagem ou volte ao mapa.</p>
         }
       </div>
-      <button class="icon-button photo-control photo-close" type="button" aria-label="Voltar ao mapa" title="Fechar foto e voltar ao mapa" (click)="state.closePhoto()"><app-icon name="X" /></button>
+      <button class="icon-button photo-control photo-close" type="button" aria-label="Voltar ao mapa" title="Fechar foto e voltar ao mapa" (click)="close()"><app-icon name="X" /></button>
       <button class="icon-button photo-control photo-panels" type="button" [attr.aria-label]="state.collapsed() ? 'Reabrir painel' : 'Recolher painel'" [title]="state.collapsed() ? 'Reabrir painel' : 'Recolher painel'" (click)="state.collapsed.set(!state.collapsed())"><app-icon name="ArrowLeft" [class.is-collapsed]="state.collapsed()" /></button>
       <strong class="photo-count" aria-live="polite" aria-atomic="true">Foto {{ view.index + 1 }} de {{ view.photoIds.length }}</strong>
       <button class="icon-button photo-control photo-previous" type="button" aria-label="Anterior" title="Foto anterior" [disabled]="view.photoIds.length < 2" (click)="state.movePhoto(-1)"><app-icon name="ArrowLeft" /></button>
       <button class="icon-button photo-control photo-next" type="button" aria-label="Próxima" title="Próxima foto" [disabled]="view.photoIds.length < 2" (click)="state.movePhoto(1)"><app-icon name="ArrowRight" /></button>
       <button class="photo-control photo-report" type="button" aria-label="Denunciar foto exibida" (click)="report = view.photoIds[view.index]"><app-icon name="Flag" [size]="17" />Denunciar foto</button>
     </div>
+    @if (mobileUi.mobile()) {
+      <div class="mobile-photo-thumbnails" aria-label="Miniaturas das fotos">
+        @for (photo of view.photoIds; track photo; let index = $index) {
+          <button type="button" [attr.aria-label]="'Exibir foto ' + (index + 1)" [attr.aria-pressed]="view.index === index" (click)="choosePhoto(index)"><img [src]="'/api/photos/' + photo" alt="" /></button>
+        }
+      </div>
+    }
   </section>
   @if (report) {
     <app-report [target]="{ type: 'PHOTO', id: report }" (closed)="report = ''" />
