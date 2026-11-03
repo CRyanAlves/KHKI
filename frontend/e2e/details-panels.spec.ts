@@ -19,6 +19,7 @@ test('desktop keeps results mounted and restores independent scroll and focus wh
   await page.getByRole('button', { name: 'Café do Centro', exact: true }).click();
   await expect(page.locator('.details-panel h1')).toHaveText('Café do Centro');
   await expect(page.locator('.workspace-results')).toBeVisible();
+  await expect.poll(async () => (await page.locator('.workspace-content').boundingBox())!.x).toBeCloseTo(listWidth, 0);
   const content = await page.locator('.workspace-content').boundingBox();
   expect(content!.x).toBeCloseTo(listWidth, 0);
   expect(content!.width).toBeGreaterThanOrEqual(360);
@@ -156,11 +157,17 @@ test('compact layout uses one panel, both themes and reduced motion without hori
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
   await page.locator('.bathroom-card').first().click();
   await expect(page.locator('.details-panel h1')).toBeVisible();
   await expect(page.locator('.workspace-results')).toBeHidden();
   for (const theme of ['escuro', 'claro']) {
-    await page.getByRole('button', { name: 'Ativar modo ' + theme, exact: true }).click();
+    await page.getByRole('button', { name: 'Abrir sua conta', exact: true }).click();
+    await page
+      .getByRole('dialog', { name: 'Sua conta', exact: true })
+      .getByRole('button', { name: theme === 'escuro' ? 'Escuro' : 'Claro', exact: true })
+      .click();
+    await page.getByRole('button', { name: 'Fechar conta', exact: true }).click();
     await expect(page.locator('.map-loading')).toHaveCount(0);
     expect(await page.locator('.workspace-content').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -183,9 +190,10 @@ test('compact layout uses one panel, both themes and reduced motion without hori
       return !!pin && !!panel && pin.y + pin.height < panel.y;
     })
     .toBe(true);
+  await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
   await page.getByRole('button', { name: 'Recolher painel', exact: true }).click();
-  await expect(page.locator('.workspace-panel')).toBeHidden();
-  await page.getByRole('button', { name: 'Reabrir painel', exact: true }).click();
+  await expect(page.locator('.map-workspace')).toHaveClass(/mobile-sheet-peek/);
+  await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
   await page.getByRole('link', { name: 'Fechar detalhes', exact: true }).click();
   await expect(page.locator('.workspace-results')).toBeVisible();
 });
@@ -263,19 +271,21 @@ test('mobile photo area handles unavailable images, preserves the cover and rest
   });
   await page.route('**/api/photos/mobile-cover', (route) => route.fulfill({ contentType: 'image/png', body: image }));
   await page.route('**/api/photos/mobile-unavailable', (route) => route.fulfill({ status: 404 }));
+  await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
   await page.locator('.bathroom-card').filter({ hasText: row.name }).click();
-  await expect(page.locator('.gallery-open img')).toBeVisible();
+  await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
+  await expect(page.locator('.mobile-detail-photos img').first()).toBeVisible();
   const canvas = await page.locator('.maplibregl-canvas').elementHandle();
-  const cover = await page.locator('.gallery-open img').getAttribute('src');
+  const cover = await page.locator('.mobile-detail-photos img').first().getAttribute('src');
   await page.getByRole('tab', { name: 'Fotos (2)', exact: true }).click();
   await page.getByRole('button', { name: 'Ver foto 2', exact: true }).click();
   const viewer = page.getByRole('region', { name: 'Fotos do banheiro', exact: true });
   await expect(viewer).toBeVisible();
   await expect(page.locator('.workspace-panel')).toBeHidden();
   await expect(viewer.getByRole('status')).toContainText('Foto indisponível');
-  await expect(page.locator('.gallery-open img')).toHaveAttribute('src', cover!);
-  await viewer.getByRole('button', { name: 'Anterior', exact: true }).click();
-  await expect(viewer.getByRole('img')).toBeVisible();
+  await expect(page.locator('.mobile-detail-photos img').first()).toHaveAttribute('src', cover!);
+  await viewer.getByRole('button', { name: 'Exibir foto 1', exact: true }).click();
+  await expect(viewer.locator('.photo-viewer-stage img')).toBeVisible();
   await viewer.getByRole('button', { name: 'Denunciar foto exibida', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Cadastre-se', exact: true })).toBeVisible();
   await expect(page.getByRole('dialog', { name: 'Denunciar conteúdo', exact: true })).toHaveCount(0);

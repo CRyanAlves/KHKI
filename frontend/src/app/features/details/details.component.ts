@@ -10,6 +10,7 @@ import { Bathroom, Review, ACCESS_LABELS, ITEM_LABELS, TargetType } from '../../
 import { motionDurationMilliseconds } from '../../shared/motion-duration';
 import { IconComponent } from '../../shared/icon.component';
 import { ReportComponent } from '../../shared/report.component';
+import { MobileUiService } from '../../core/mobile-ui.service';
 
 import { SkeletonComponent } from '../../shared/skeleton.component';
 
@@ -27,6 +28,7 @@ export class DetailsComponent implements OnInit, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private request = 0;
   readonly auth = inject(AuthService);
+  readonly mobileUi = inject(MobileUiService);
   bathroom: Bathroom | null = null;
   reviews: Review[] = [];
   error = '';
@@ -100,8 +102,8 @@ export class DetailsComponent implements OnInit, OnDestroy {
   get displayedReviews(): Review[] {
     return this.tab === 'overview' ? this.reviews.slice(0, 2) : this.reviews;
   }
-  openViewer(index: number): void {
-    if (this.bathroom) this.state.openPhoto(this.bathroom, index);
+  openViewer(index: number, event?: MouseEvent): void {
+    if (this.bathroom) this.state.openPhoto(this.bathroom, index, event?.currentTarget instanceof HTMLElement ? event.currentTarget : undefined);
   }
   async openRoute(event: MouseEvent): Promise<void> {
     if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;

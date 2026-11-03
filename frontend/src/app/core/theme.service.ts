@@ -7,19 +7,28 @@ export class ThemeService {
   private readonly preference = window.matchMedia('(prefers-color-scheme: dark)');
   private readonly current = signal<Theme>(document.documentElement.dataset['theme'] === 'dark' ? 'dark' : 'light');
   readonly mode = this.current.asReadonly();
+  readonly selection = signal<'light' | 'dark' | 'system'>(this.saved() || 'system');
   constructor() {
     this.preference.addEventListener('change', () => {
       if (!this.saved()) this.apply(this.preference.matches ? 'dark' : 'light');
     });
     window.addEventListener('storage', (event) => {
-      if (event.key === 'khki-theme' || event.key === null) this.apply(this.saved() || (this.preference.matches ? 'dark' : 'light'));
+      if (event.key === 'khki-theme' || event.key === null) {
+        this.selection.set(this.saved() || 'system');
+        this.apply(this.saved() || (this.preference.matches ? 'dark' : 'light'));
+      }
     });
   }
   toggle(): void {
     const next = this.mode() === 'dark' ? 'light' : 'dark';
-    this.apply(next);
+    this.select(next);
+  }
+  select(value: 'light' | 'dark' | 'system'): void {
+    this.selection.set(value);
+    this.apply(value === 'system' ? (this.preference.matches ? 'dark' : 'light') : value);
     try {
-      localStorage.setItem('khki-theme', next);
+      if (value === 'system') localStorage.removeItem('khki-theme');
+      else localStorage.setItem('khki-theme', value);
     } catch {}
   }
   private saved(): Theme | null {

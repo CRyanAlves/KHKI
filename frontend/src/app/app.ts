@@ -7,8 +7,10 @@ import { IconComponent } from './shared/icon.component';
 import { LoginComponent } from './shared/login.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SkeletonComponent, SkeletonVariant } from './shared/skeleton.component';
+import { MobileUiService } from './core/mobile-ui.service';
+import { DialogFocusDirective } from './shared/dialog-focus.directive';
 
-@Component({ selector: 'app-root', imports: [SkeletonComponent, RouterOutlet, RouterLink, RouterLinkActive, IconComponent, LoginComponent], templateUrl: './app.html', styleUrl: './app.scss' })
+@Component({ selector: 'app-root', imports: [DialogFocusDirective, SkeletonComponent, RouterOutlet, RouterLink, RouterLinkActive, IconComponent, LoginComponent], templateUrl: './app.html', styleUrl: './app.scss' })
 export class App {
   readonly navigation = [
     { path: '/', label: 'Explorar', icon: 'Search' },
@@ -17,6 +19,7 @@ export class App {
   readonly router = inject(Router);
   readonly theme = inject(ThemeService);
   readonly auth = inject(AuthService);
+  readonly mobileUi = inject(MobileUiService);
   private readonly api = inject(ApiService);
   menu = false;
   error = '';

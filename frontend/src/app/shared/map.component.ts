@@ -34,6 +34,8 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() pointAsPin = false;
   @Input() navigation: NavigationFrame | null = null;
   @Input() navigationBottomInset = 0;
+  @Input() mobileSheetFraction = 0;
+  @Output() viewportMoved = new EventEmitter<void>();
   @Output() followPaused = new EventEmitter<void>();
   @Output() hovered = new EventEmitter<string>();
   @Output() boundsChanged = new EventEmitter<MapArea>();
@@ -52,6 +54,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
   private searchCamera?: { center: [number, number]; zoom: number };
   private restoreCamera = false;
   private timer?: number;
+  private sheetTimer?: ReturnType<typeof setTimeout>;
   error = '';
   loading = false;
 
@@ -104,7 +107,10 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
       });
       for (const event of ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart'] as const)
         this.map.on(event, (change) => {
-          if (change.originalEvent && this.navigation) this.followPaused.emit();
+          if (change.originalEvent) {
+            this.viewportMoved.emit();
+            if (this.navigation) this.followPaused.emit();
+          }
         });
       this.observer = new ResizeObserver(() => {
         this.map?.resize();
@@ -170,6 +176,15 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.changeDetector.markForCheck();
   }
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['mobileSheetFraction'] && this.mobileSheetFraction > 0) {
+      clearTimeout(this.sheetTimer);
+      this.sheetTimer = setTimeout(
+        () => {
+          if (!this.navigation && !this.destroyed) this.render(!!this.selectedId || !!this.route);
+        },
+        motionDurationMilliseconds(getComputedStyle(document.documentElement).getPropertyValue('--motion-panel-duration'))
+      );
+    }
     if (changes['pointAsPin']) {
       this.markers.get('origin')?.remove();
       this.markers.delete('origin');
@@ -327,13 +342,20 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (!this.overlayPanel || this.panelCollapsed) return padding;
     const panel = this.canvas.nativeElement.closest('.map-workspace')?.querySelector('.workspace-panel')?.getBoundingClientRect();
     if (!panel) return padding;
-    if (window.matchMedia('(max-width: 640px)').matches) padding.bottom += panel.height;
-    else padding.left += panel.width;
+    if (window.matchMedia('(max-width: 640px)').matches) {
+      padding.bottom += panel.height;
+      padding.bottom += document.querySelector('.mobile-bottom-nav')?.getBoundingClientRect().height || 0;
+      const workspace = this.canvas.nativeElement.closest('.map-workspace');
+      const searchElement = workspace?.querySelector('.mobile-search');
+      const search = searchElement && getComputedStyle(searchElement).visibility !== 'hidden' ? searchElement.getBoundingClientRect() : null;
+      if (search) padding.top += Math.max(0, search.bottom - this.canvas.nativeElement.getBoundingClientRect().top);
+      else if (workspace) padding.top += Number.parseFloat(getComputedStyle(workspace).getPropertyValue('--mobile-map-top-inset')) || 0;
+    } else padding.left += panel.width;
     return padding;
   }
   private cameraOffset(): [number, number] {
     const padding = this.cameraPadding();
-    return [(padding.left - 50) / 2, -(padding.bottom - 50) / 2];
+    return [(padding.left - 50) / 2, (padding.top - padding.bottom) / 2];
   }
 
   private orientUserMarker(marker: Marker): void {
@@ -441,6 +463,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
   ngOnDestroy(): void {
     this.destroyed = true;
+    clearTimeout(this.sheetTimer);
     window.clearTimeout(this.timer);
     this.routeAnimation?.destroy();
     this.observer?.disconnect();

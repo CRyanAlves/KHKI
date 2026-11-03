@@ -118,6 +118,7 @@ test('direct links, map area, marker highlight and mobile sheet remain usable', 
   await expect(map).toBeInViewport();
   await expect(panel).toBeInViewport();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
   await page.getByRole('link', { name: /Café do Centro/ }).click();
   await expect(map).toBeInViewport();
   await expect(page.getByRole('heading', { name: 'Café do Centro', exact: true, level: 1 })).toBeVisible();

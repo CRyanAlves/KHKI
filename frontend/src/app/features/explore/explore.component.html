@@ -25,6 +25,11 @@
     </div>
   }
   <div class="results-heading">
+    @if (mobileUi.mobile() && mobileUi.sheet() === 0) {
+      <div class="mobile-results-summary">
+        <strong>Banheiros por perto</strong><small>{{ state.loading() ? 'Buscando locais…' : state.visible().length + ' resultados' }}</small>
+      </div>
+    }
     <strong>{{ state.loading() ? 'Buscando banheiros…' : state.visible().length + (state.visible().length === 1 ? ' banheiro encontrado' : ' banheiros encontrados') }}</strong
     ><select [(ngModel)]="state.sort" (ngModelChange)="state.order()" aria-label="Ordenação">
       <option value="name">Nome A–Z</option>

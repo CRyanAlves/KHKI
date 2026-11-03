@@ -2,6 +2,7 @@ import { expect, Page, test } from '@playwright/test';
 
 async function openRoute(page: Page): Promise<void> {
   await page.goto('/');
+  if ((page.viewportSize()?.width || 0) <= 640) await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
   await page.locator('.bathroom-card').first().click();
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Sua origem' })).toBeVisible();
@@ -222,7 +223,12 @@ test('origin popup overlays the panel in both themes and mobile map selection su
   await page.setViewportSize({ width: 390, height: 844 });
   await openRoute(page);
   for (const dark of [false, true]) {
-    if (dark) await page.getByRole('button', { name: 'Ativar modo escuro', exact: true }).click();
+    if (dark) {
+      await page.getByRole('button', { name: 'Recolher painel', exact: true }).click();
+      await page.getByRole('button', { name: 'Abrir sua conta', exact: true }).click();
+      await page.getByRole('dialog', { name: 'Sua conta', exact: true }).getByRole('button', { name: 'Escuro', exact: true }).click();
+      await page.getByRole('button', { name: 'Fechar conta', exact: true }).click();
+    }
     const map = await page.locator('.workspace-map').boundingBox();
     await origin(page).focus();
     await origin(page).fill('Rua de teste');

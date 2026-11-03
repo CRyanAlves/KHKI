@@ -3,7 +3,7 @@ import { DecimalPipe } from '@angular/common';
 import { Bathroom, Location } from '../../core/models';
 import { ApiService } from '../../core/api.service';
 import { distanceMeters, validPoint } from '../../core/navigation-geometry';
-import { Component, DestroyRef, ElementRef, OnInit, ViewChild, ViewEncapsulation, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnInit, ViewChild, ViewEncapsulation, computed, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ExplorationState } from './exploration-state.service';
@@ -14,10 +14,13 @@ import { NavigationToolsComponent } from '../../shared/navigation-tools.componen
 import { ExploreComponent } from '../explore/explore.component';
 import { MapPhotoViewerComponent } from '../../shared/map-photo-viewer.component';
 import { MapsService } from '../../core/maps.service';
+import { MobileUiService } from '../../core/mobile-ui.service';
+import { MobileSheetDirective } from '../../shared/mobile-sheet.directive';
+import { MobileSearchComponent } from '../../shared/mobile-search.component';
 
 @Component({
   selector: 'app-workspace',
-  imports: [DecimalPipe, MapPhotoViewerComponent, ExploreComponent, RouterOutlet, MapComponent, IconComponent, NavigationToolsComponent],
+  imports: [MobileSearchComponent, MobileSheetDirective, DecimalPipe, MapPhotoViewerComponent, ExploreComponent, RouterOutlet, MapComponent, IconComponent, NavigationToolsComponent],
   templateUrl: './workspace.component.html',
   styleUrls: ['./workspace.component.scss', '../../../styles/workspace.scss', '../../../styles/workspace-split.scss', '../../../styles/workspace-registration.scss', '../../../styles/workspace-picking.scss'],
   encapsulation: ViewEncapsulation.None
@@ -26,6 +29,12 @@ export class WorkspaceComponent implements OnInit {
   readonly state = inject(ExplorationState);
   readonly maps = inject(MapsService);
   readonly navigation = inject(NavigationService);
+  readonly mobileUi = inject(MobileUiService);
+  readonly areaMoved = signal(false);
+  readonly visibleMapBathrooms = computed(() => {
+    const bathrooms = this.registration()?.bathrooms ?? this.state.mapBathrooms();
+    return this.mobileUi.mobile() && this.navigation.active() ? bathrooms.filter((bathroom) => bathroom.id === this.state.selected()?.id) : bathrooms;
+  });
   readonly urgentBusy = signal(false);
   readonly urgentError = signal('');
   private readonly api = inject(ApiService);
@@ -99,7 +108,7 @@ export class WorkspaceComponent implements OnInit {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
       if (event instanceof NavigationStart && this.panel) {
         const list = this.panel.nativeElement.querySelector<HTMLElement>('.result-list');
-        if (list && this.state.scene() !== 'registration') this.state.panelScrolls.set('/', list.scrollTop);
+        if (list && this.state.scene() !== 'registration' && (!this.mobileUi.mobile() || this.state.scene() === 'search')) this.state.panelScrolls.set('/', list.scrollTop);
         if (this.currentUrl !== '/') this.state.panelScrolls.set(this.currentUrl, this.scrollContainer().scrollTop);
         if (event.navigationTrigger === 'imperative' && /^\/banheiros\/[^/]+$/.test(event.url) && event.url !== this.currentUrl) this.state.panelScrolls.delete(event.url);
       }
@@ -137,6 +146,11 @@ export class WorkspaceComponent implements OnInit {
     const registration = this.registration();
     if (registration) registration.selectExisting(id);
     else void this.router.navigate(['/banheiros', id]);
+  }
+  async searchArea(): Promise<void> {
+    await this.state.search(true);
+    this.areaMoved.set(false);
+    this.mobileUi.sheet.set(1);
   }
   async urgent(): Promise<void> {
     if (this.urgentBusy()) return;

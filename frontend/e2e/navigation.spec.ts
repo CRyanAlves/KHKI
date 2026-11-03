@@ -40,6 +40,7 @@ async function prepare(page: Page, enabled = true): Promise<void> {
   await configure(page, enabled);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
   await page.locator('.bathroom-card').first().click();
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
   await page.getByRole('combobox', { name: 'Sua origem', exact: true }).fill('Rua Augusta, São Paulo');
@@ -80,7 +81,7 @@ async function camera(page: Page): Promise<{ pitch: number; bearing: number; y: 
     const component = (window as unknown as { ng: { getComponent(element: Element): MapRuntime & { navigation: { position: { lat: number; lng: number } } | null } } }).ng.getComponent(element);
     const point = component.navigation?.position;
     const height = component.map.getCanvas().clientHeight;
-    const obstruction = document.querySelector('.navigation-map-stack')?.getBoundingClientRect().height || 0;
+    const obstruction = document.querySelector('.navigation-hud')?.getBoundingClientRect().height || 0;
     return { pitch: component.map.getPitch(), bearing: component.map.getBearing(), y: point ? component.map.project([point.lng, point.lat]).y : 0, height, availableHeight: height - obstruction };
   });
 }
@@ -206,9 +207,19 @@ test('denied compass uses GPS and denied geolocation cleans up the watcher', asy
 test('the environment-gated simulator supports pause, progress, restart and arrival without touching GPS', async ({ page }) => {
   await prepare(page);
   const originalPosition = (await state(page)).explorationPosition;
+  await expect(page.getByRole('button', { name: 'Simular percurso', exact: true })).toBeHidden();
+  await page.locator('.navigation-simulator-toggle').click();
   await page.getByRole('button', { name: 'Simular percurso', exact: true }).click();
   await expect(page.locator('.map-position.is-navigating')).toBeVisible();
   await page.getByRole('button', { name: 'Pausar simulação', exact: true }).click();
+  const simulatorBounds = (await page.locator('.navigation-simulator').boundingBox())!;
+  const hudBounds = (await page.locator('.navigation-hud').boundingBox())!;
+  expect(simulatorBounds.y + simulatorBounds.height).toBeLessThan(hudBounds.y);
+  expect(simulatorBounds.y + simulatorBounds.height).toBeGreaterThan(844 / 2);
+  await page.locator('.navigation-simulator-toggle').click();
+  await expect(page.getByRole('button', { name: 'Continuar simulação', exact: true })).toBeHidden();
+  await page.locator('.navigation-simulator-toggle').press('Enter');
+  await expect(page.getByRole('button', { name: 'Continuar simulação', exact: true })).toBeVisible();
   const summary = page.locator('.navigation-summary');
   await expect(summary.locator('small')).toHaveText(['Restantes', 'Tempo estimado', 'Chegada']);
   const initialDistance = await summary.locator('strong').nth(0).innerText();
@@ -260,7 +271,7 @@ test('leaving navigation removes the GPS watch and ignores late fixes', async ({
   await page.getByRole('button', { name: 'Iniciar navegação', exact: true }).click();
   await fix(page);
   await expect(page.locator('.map-position.is-navigating')).toBeVisible();
-  await page.getByRole('button', { name: 'Reabrir painel', exact: true }).click();
+  await page.getByRole('button', { name: 'Editar rota', exact: true }).click();
   await page.getByRole('link', { name: 'Voltar aos detalhes', exact: true }).click();
   await expect(page.locator('app-details')).toBeVisible();
   expect(await page.evaluate(() => window.navigationHarness.clears)).toEqual([1]);
@@ -287,6 +298,7 @@ test('switching from live navigation to simulation stops GPS and discards its la
   await page.getByRole('button', { name: 'Iniciar navegação', exact: true }).click();
   await fix(page);
   await expect(page.locator('.map-position.is-navigating')).toBeVisible();
+  await page.locator('.navigation-simulator-toggle').click();
   await page.getByRole('button', { name: 'Simular percurso', exact: true }).click();
   await page.getByRole('button', { name: 'Pausar simulação', exact: true }).click();
   const simulated = (await state(page)).position;

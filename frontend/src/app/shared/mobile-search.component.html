@@ -1,0 +1,74 @@
+<div class="mobile-search" [class.search-open]="ui.searchOpen()">
+  <form class="mobile-search-field" (ngSubmit)="submit()">
+    @if (ui.searchOpen()) {
+      <button class="icon-button" type="button" aria-label="Fechar busca" (click)="close()"><app-icon name="ArrowLeft" /></button>
+    } @else {
+      <img class="mobile-search-pin" src="assets/brand/khki-pin.png" alt="KHKI" width="32" height="40" />
+    }
+    <input
+      name="mobile-search"
+      [(ngModel)]="state.query"
+      (ngModelChange)="edit()"
+      (focus)="focus()"
+      (keydown)="key($event)"
+      role="combobox"
+      aria-label="Buscar banheiro ou endereço"
+      aria-autocomplete="list"
+      [attr.aria-expanded]="ui.searchOpen()"
+      aria-controls="mobile-search-options"
+      [attr.aria-activedescendant]="activeIndex >= 0 ? 'mobile-suggestion-' + activeIndex : null"
+      placeholder="Buscar banheiro ou endereço"
+      maxlength="200"
+      autocomplete="off"
+      enterkeyhint="search"
+    />
+    @if (state.query) {
+      <button class="icon-button" type="button" aria-label="Limpar busca" (click)="clear()"><app-icon name="X" [size]="18" /></button>
+    }
+    <button class="icon-button mobile-search-account" type="button" aria-label="Abrir sua conta" (click)="close(); ui.accountOpen.set(true)"><app-icon name="User" [size]="22" /></button>
+  </form>
+  @if (ui.searchOpen()) {
+    <section class="mobile-search-options" aria-label="Sugestões de busca">
+      <div id="mobile-search-options" role="listbox" aria-label="Endereços e banheiros">
+        @for (suggestion of suggestions; track $index; let index = $index) {
+          <button type="button" role="option" [id]="'mobile-suggestion-' + index" [attr.aria-selected]="activeIndex === index" (pointerdown)="$event.preventDefault()" (click)="choose(index)">
+            <app-icon name="MapPin" [size]="20" /><span
+              ><strong>{{ suggestion.label }}</strong
+              ><small>{{ suggestion.detail }}</small></span
+            >
+          </button>
+        }
+      </div>
+      @if (busy) {
+        <p role="status">Buscando sugestões…</p>
+      } @else if (state.query.trim().length < 3) {
+        <p>Digite pelo menos três caracteres para buscar.</p>
+      } @else if (!suggestions.length && !error) {
+        <p role="status">Nenhum endereço ou banheiro encontrado.</p>
+      }
+      @if (error) {
+        <p role="alert">{{ error }}</p>
+      }
+      <button class="button secondary full" type="button" (click)="submit()">Buscar locais cadastrados</button>
+    </section>
+  } @else {
+    <div class="mobile-filter-row" aria-label="Filtros da busca">
+      <button class="chip" type="button" [class.selected]="state.filters" [attr.aria-expanded]="state.filters" (click)="state.filters = !state.filters"><app-icon name="SlidersHorizontal" [size]="16" />Filtros</button>
+      <button class="chip" type="button" [class.selected]="state.accessible" [attr.aria-pressed]="state.accessible" (click)="state.accessible = !state.accessible; state.search()"><app-icon name="Accessibility" [size]="17" />Acessível</button>
+      <button class="chip" type="button" [class.selected]="state.changingTable" [attr.aria-pressed]="state.changingTable" (click)="state.changingTable = !state.changingTable; state.search()"><app-icon name="Baby" [size]="17" />Fraldário</button>
+    </div>
+    @if (state.filters) {
+      <div class="mobile-filter-options surface">
+        <label
+          >Condição de acesso<select [(ngModel)]="state.access" (ngModelChange)="state.search()">
+            <option value="">Todas as condições</option>
+            <option value="FREE">Acesso livre</option>
+            <option value="CUSTOMERS">Apenas clientes</option>
+            <option value="PAID">Com taxa</option>
+            <option value="OTHER">Outra condição</option>
+          </select></label
+        ><small>Confirme a disponibilidade com o local.</small>
+      </div>
+    }
+  }
+</div>
