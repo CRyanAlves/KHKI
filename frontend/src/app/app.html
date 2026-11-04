@@ -13,7 +13,7 @@
     <button class="button primary login-button" aria-label="Entrar" (click)="auth.opened.set(true); menu = false"><app-icon name="User" [size]="17" /><span>Entrar</span></button> }<button class="icon-button mobile-menu" aria-label="Abrir navegação" aria-controls="main-navigation" [attr.aria-expanded]="menu" (click)="menu = !menu"><app-icon name="Menu" /></button>
   </div>
 </header>
-@if (mobileUi.accountShortcut()) { <button class="icon-button mobile-account-avatar mobile-account-shortcut" type="button" aria-label="Abrir sua conta" (click)="mobileUi.accountOpen.set(true)"><app-icon name="User" [size]="22" /></button> } @if (error) {
+@if (mobileUi.accountShortcut()) { <button class="icon-button mobile-account-avatar mobile-account-shortcut" #accountShortcut type="button" aria-label="Abrir sua conta" aria-haspopup="dialog" aria-controls="mobile-account-popover" [attr.aria-expanded]="mobileUi.accountOpen()" (click)="mobileUi.toggleAccount(accountShortcut)"><app-account-avatar /></button> } @if (error) {
 <p role="alert" class="error-message">{{ error }}</p>
 }
 <div id="main-content" [attr.aria-busy]="navigationLoading()">
@@ -36,21 +36,6 @@
   <a routerLink="/cadastrar"><app-icon name="Plus" [size]="22" /><span>Cadastrar</span></a>
 </nav>
 } @if (mobileUi.mobile() && mobileUi.accountOpen()) {
-<div class="modal-backdrop mobile-account-backdrop" (click)="mobileUi.accountOpen.set(false)">
-  <section class="mobile-account-panel surface" role="dialog" aria-modal="true" aria-labelledby="mobile-account-title" appDialogFocus (dialogEscape)="mobileUi.accountOpen.set(false)" (click)="$event.stopPropagation()">
-    <button class="icon-button modal-close" type="button" aria-label="Fechar conta" (click)="mobileUi.accountOpen.set(false)"><app-icon name="X" /></button>
-    <h2 id="mobile-account-title">Sua conta</h2>
-    <div class="mobile-account-identity"><app-icon name="User" [size]="32" /><strong>{{ auth.user()?.name || 'Bem-vindo ao KHKI' }}</strong></div>
-    @if (!auth.user()) { <button class="button primary full" type="button" (click)="mobileUi.accountOpen.set(false); auth.opened.set(true)">Entrar ou criar conta</button> }
-    <a routerLink="/contribuicoes" (click)="mobileUi.accountOpen.set(false)"><app-icon name="Upload" />Minhas contribuições<app-icon name="ChevronRight" /></a>
-    <a routerLink="/cadastrar" (click)="mobileUi.accountOpen.set(false)"><app-icon name="Plus" />Cadastrar banheiro<app-icon name="ChevronRight" /></a>
-    <h3>Aparência</h3>
-    <div class="mobile-theme-options" role="group" aria-label="Aparência">
-      <button type="button" [attr.aria-pressed]="theme.selection() === 'light'" (click)="theme.select('light')"><app-icon name="Sun" [size]="18" />Claro</button>
-      <button type="button" [attr.aria-pressed]="theme.selection() === 'dark'" (click)="theme.select('dark')"><app-icon name="Moon" [size]="18" />Escuro</button>
-      <button type="button" [attr.aria-pressed]="theme.selection() === 'system'" (click)="theme.select('system')">Sistema</button>
-    </div>
-    @if (auth.user()) { <button class="text-button mobile-signout" type="button" (click)="mobileUi.accountOpen.set(false); logout()"><app-icon name="LogOut" />Sair</button> }
-  </section>
-</div>
+<app-mobile-account (logoutRequested)="logout()" />
 } @if (auth.opened()) { <app-login /> }
+<app-confirmation />

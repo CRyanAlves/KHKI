@@ -8,9 +8,11 @@ import { LoginComponent } from './shared/login.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SkeletonComponent, SkeletonVariant } from './shared/skeleton.component';
 import { MobileUiService } from './core/mobile-ui.service';
-import { DialogFocusDirective } from './shared/dialog-focus.directive';
+import { MobileAccountComponent } from './shared/mobile-account.component';
+import { AccountAvatarComponent } from './shared/account-avatar.component';
+import { ConfirmationComponent } from './shared/confirmation.component';
 
-@Component({ selector: 'app-root', imports: [DialogFocusDirective, SkeletonComponent, RouterOutlet, RouterLink, RouterLinkActive, IconComponent, LoginComponent], templateUrl: './app.html', styleUrl: './app.scss' })
+@Component({ selector: 'app-root', imports: [ConfirmationComponent, MobileAccountComponent, AccountAvatarComponent, SkeletonComponent, RouterOutlet, RouterLink, RouterLinkActive, IconComponent, LoginComponent], templateUrl: './app.html', styleUrl: './app.scss' })
 export class App {
   readonly navigation = [
     { path: '/', label: 'Explorar', icon: 'Search' },

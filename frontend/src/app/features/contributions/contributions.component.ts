@@ -5,12 +5,14 @@ import { ApiService } from '../../core/api.service';
 import { Contribution, STATUS_LABELS } from '../../core/models';
 import { IconComponent } from '../../shared/icon.component';
 
+import { MobileUiService } from '../../core/mobile-ui.service';
+import { MobileContributionsComponent } from './mobile-contributions.component';
 import { SkeletonComponent } from '../../shared/skeleton.component';
 
 @Component({
   selector: 'app-contributions',
-  imports: [SkeletonComponent, RouterLink, DatePipe, IconComponent],
-  template: `<main class="page-container">
+  imports: [MobileContributionsComponent, SkeletonComponent, RouterLink, DatePipe, IconComponent],
+  template: `@if (mobileUi.mobile()) { <app-mobile-contributions [items]="items" [loading]="loading" [error]="error" (retry)="load()" /> } @else { <main class="page-container">
     <div class="page-title">
       <div>
         <span class="eyebrow">CADA CONTRIBUIÇÃO IMPORTA</span>
@@ -54,23 +56,33 @@ import { SkeletonComponent } from '../../shared/skeleton.component';
         </div>
       }
     }
-  </main>`
+  </main> }`
 })
 export class ContributionsComponent implements OnInit {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly api = inject(ApiService);
+  readonly mobileUi = inject(MobileUiService);
   readonly labels = STATUS_LABELS;
   items: Contribution[] = [];
   loading = true;
   error = '';
+  private requestPending = false;
   async ngOnInit(): Promise<void> {
+    await this.load();
+  }
+  async load(): Promise<void> {
+    if (this.requestPending) return;
+    this.loading = true;
+    this.requestPending = true;
+    this.error = '';
     try {
       this.items = await this.api.get<Contribution[]>('/me/contributions');
     } catch (error) {
       this.error = this.api.error(error);
     } finally {
-      this.changeDetector.markForCheck();
       this.loading = false;
+      this.requestPending = false;
+      this.changeDetector.markForCheck();
     }
   }
 }

@@ -4,6 +4,7 @@ import { ChangeDetectorRef, Component, ElementRef, HostListener, OnDestroy, OnIn
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api.service';
+import { ConfirmationService } from '../../core/confirmation.service';
 import { MapsService } from '../../core/maps.service';
 import { Bathroom, BathroomDetails, BathroomInput, ITEM_LABELS, Location, NearbyResult, ACCESS_LABELS } from '../../core/models';
 import { IconComponent } from '../../shared/icon.component';
@@ -18,6 +19,7 @@ import { SkeletonComponent } from '../../shared/skeleton.component';
 export class RegisterComponent implements OnInit, OnDestroy {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly api = inject(ApiService);
+  private readonly confirmation = inject(ConfirmationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly maps = inject(MapsService);
@@ -374,8 +376,10 @@ export class RegisterComponent implements OnInit, OnDestroy {
       this.changeDetector.markForCheck();
     }
   }
-  canLeave(): boolean {
-    return !this.busy && (!this.dirty || window.confirm('Há alterações ou fotos não enviadas. Deseja sair do cadastro e descartar o rascunho?'));
+  canLeave(): boolean | Promise<boolean> {
+    if (this.busy) return false;
+    if (!this.dirty) return true;
+    return this.confirmation.confirm({ title: 'Descartar cadastro?', message: 'Há alterações ou fotos não enviadas. Ao sair, o rascunho será descartado.', confirmLabel: 'Descartar e sair', cancelLabel: 'Continuar preenchendo' });
   }
   cancel(): void {
     if (!this.busy) void this.router.navigateByUrl('/');

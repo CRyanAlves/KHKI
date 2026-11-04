@@ -14,6 +14,7 @@ export class MobileUiService {
   readonly url = signal(this.router.url);
   readonly searchOpen = signal(false);
   readonly accountOpen = signal(false);
+  readonly accountTrigger = signal<HTMLElement | null>(null);
   readonly sheet = signal(0);
   readonly drag = signal<number | null>(null);
   readonly viewportHeight = signal(window.visualViewport?.height || window.innerHeight);
@@ -69,6 +70,10 @@ export class MobileUiService {
       root.classList.toggle('mobile-route-active', this.mobile() && this.navigation.active());
       root.style.setProperty('--mobile-viewport-height', this.viewportHeight() + 'px');
     });
+  }
+  toggleAccount(trigger: HTMLElement): void {
+    this.accountTrigger.set(trigger);
+    this.accountOpen.update(open => !open);
   }
   cycle(): void {
     if (Date.now() < this.suppressClickUntil) return;
