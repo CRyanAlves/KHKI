@@ -21,6 +21,20 @@
   overflow: hidden;
   box-shadow: var(--shadow-lg);
 }
+.login-header {
+  display: contents;
+}
+.login-brand,
+.login-mobile-support,
+.login-continue {
+  display: none;
+}
+.login-field-error {
+  display: block;
+  color: var(--color-error);
+  margin-top: var(--space-2);
+  font-weight: var(--weight-normal);
+}
 .modal-close {
   position: absolute;
   top: var(--space-4);

@@ -1,0 +1,178 @@
+:host {
+  position: fixed;
+  inset: 0;
+  z-index: var(--mobile-layer-account);
+  pointer-events: none;
+}
+.mobile-account-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--mobile-account-overlay);
+  pointer-events: auto;
+}
+.mobile-account-panel {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(var(--account-available-height) - env(safe-area-inset-bottom, 0px));
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-md);
+  pointer-events: auto;
+  transform-origin: calc(var(--account-arrow-left) + var(--mobile-account-arrow-size) / 2) top;
+  animation: account-appear var(--motion-nav-selection) var(--motion-panel-easing) both;
+  &::before {
+    content: '';
+    position: absolute;
+    top: calc(var(--mobile-account-arrow-size) / -2 - var(--border-width));
+    left: var(--account-arrow-left);
+    width: var(--mobile-account-arrow-size);
+    height: var(--mobile-account-arrow-size);
+    border-top: var(--border-width) solid var(--color-border);
+    border-left: var(--border-width) solid var(--color-border);
+    background: var(--color-surface);
+    transform: rotate(45deg);
+  }
+}
+.account-panel-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding: var(--space-4) var(--space-4) var(--space-2) var(--space-6);
+  h2 {
+    min-width: 0;
+    margin: 0;
+    font-size: var(--text-xl);
+  }
+  .icon-button {
+    min-width: var(--control-size);
+    min-height: var(--control-size);
+    flex-shrink: 0;
+  }
+}
+.account-close {
+  margin-left: auto;
+}
+.account-panel-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--space-6) var(--space-4);
+}
+.mobile-account-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) 0 var(--space-5);
+  strong {
+    display: block;
+    font-size: var(--text-base);
+    overflow-wrap: anywhere;
+  }
+  p {
+    margin: var(--space-1) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+}
+.account-identity-avatar {
+  display: block;
+  flex-shrink: 0;
+  width: var(--mobile-account-identity-size);
+  height: var(--mobile-account-identity-size);
+  border-radius: var(--radius-pill);
+}
+.account-login {
+  min-height: var(--control-size);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-5);
+}
+.account-preferences {
+  border-top: var(--border-width) solid var(--color-border);
+  padding-top: var(--space-4);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  letter-spacing: var(--mobile-account-label-spacing);
+  text-transform: uppercase;
+}
+.account-panel-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--control-size);
+  padding: var(--space-4) 0;
+  border: 0;
+  border-top: var(--border-width) solid var(--color-border);
+  background: transparent;
+  color: var(--color-text);
+  text-align: left;
+  font-size: var(--text-base);
+  span {
+    flex: 1;
+    min-width: 0;
+  }
+  small {
+    color: var(--color-text-muted);
+  }
+  app-icon {
+    flex-shrink: 0;
+  }
+}
+.account-preferences + .account-panel-row {
+  border-top: 0;
+}
+.mobile-signout {
+  color: var(--color-accent);
+}
+.account-theme-option {
+  display: flex;
+  position: relative;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-size);
+  padding: var(--space-4) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  cursor: pointer;
+  &:has(input:focus-visible) {
+    outline: var(--border-width) solid var(--color-focus);
+    outline-offset: var(--space-1);
+  }
+  &:has(input:checked) {
+    background: var(--color-surface-soft);
+  }
+  input {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+}
+.theme-selected {
+  margin-left: auto;
+  color: var(--color-accent);
+}
+@keyframes account-appear {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-1 * var(--space-2)));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-account-panel {
+    animation: none;
+  }
+}
