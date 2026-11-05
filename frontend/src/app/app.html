@@ -31,10 +31,10 @@
   <router-outlet />
 </div>
 @if (mobileUi.navbar()) {
-<nav class="mobile-bottom-nav" aria-label="Navegação mobile">
-  <a routerLink="/" [class.active]="mobileUi.url() === '/'" [attr.aria-current]="mobileUi.url() === '/' ? 'page' : null"><app-icon name="Navigation" [size]="22" /><span>Explorar</span></a>
-  <a routerLink="/contribuicoes" [class.active]="mobileUi.url().startsWith('/contribuicoes')" [attr.aria-current]="mobileUi.url().startsWith('/contribuicoes') ? 'page' : null"><app-icon name="Upload" [size]="22" /><span>Contribuições</span></a>
-  <a routerLink="/cadastrar"><app-icon name="Plus" [size]="22" /><span>Cadastrar</span></a>
+<nav class="mobile-bottom-nav" aria-label="Navegação mobile" appMobileNavMotion>
+  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page"><app-icon name="Navigation" [size]="24" /><span>Explorar</span></a>
+  <a routerLink="/contribuicoes" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page"><app-icon name="ListChecks" [size]="24" /><span>Contribuições</span></a>
+  <a routerLink="/cadastrar" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page"><app-icon name="Plus" [size]="24" /><span>Cadastrar</span></a>
 </nav>
 } @if (mobileUi.mobile() && mobileUi.accountOpen()) {
 <app-mobile-account (logoutRequested)="logout()" />
