@@ -5,6 +5,7 @@ export class DialogFocusDirective implements OnDestroy {
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly previous = document.activeElement as HTMLElement | null;
   @Input() dialogInitialFocus = '';
+  @Input() dialogTrapFocus = true;
   @Input() dialogReturnFocus: HTMLElement | null = null;
   @Output() dialogEscape = new EventEmitter<void>();
   constructor() {
@@ -18,7 +19,7 @@ export class DialogFocusDirective implements OnDestroy {
       event.stopPropagation();
       this.dialogEscape.emit();
     }
-    if (event.key !== 'Tab') return;
+    if (event.key !== 'Tab' || !this.dialogTrapFocus) return;
     const controls = this.controls(),
       first = controls[0],
       last = controls[controls.length - 1];

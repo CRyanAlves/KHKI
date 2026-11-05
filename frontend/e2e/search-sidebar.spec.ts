@@ -66,7 +66,8 @@ test('search Enter, clearing and empty/error recovery preserve filters and sorti
   await expect(page.locator('.bathroom-card')).toHaveCount(3);
   await page.getByRole('combobox', { name: 'Ordenação' }).selectOption('rating');
   await page.getByRole('button', { name: 'Filtros', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Condição de acesso', exact: true }).selectOption('FREE');
+  await page.getByRole('radio', { name: 'Livre para todos', exact: true }).check();
+  await page.getByRole('button', { name: /^Mostrar \d+ banheiros?$/ }).click();
   const input = page.getByPlaceholder('Buscar banheiro ou endereço');
   await input.fill('lugar inexistente xyz');
   await input.press('Enter');
@@ -75,7 +76,7 @@ test('search Enter, clearing and empty/error recovery preserve filters and sorti
   await expect(input).toHaveValue('');
   await expect(page.locator('.bathroom-card')).toHaveCount(2);
   await expect(page.getByRole('combobox', { name: 'Ordenação' })).toHaveValue('rating');
-  await expect(page.getByRole('combobox', { name: 'Condição de acesso', exact: true })).toHaveValue('FREE');
+  await expect(page.locator('.applied-filter-tags').getByRole('button', { name: 'Remover filtro: Livre para todos', exact: true })).toBeVisible();
   await page.route('**/api/bathrooms?**', (route) => route.fulfill({ status: 503, json: { message: 'Serviço indisponível' } }));
   await input.press('Enter');
   await expect(page.getByText('Não conseguimos carregar os locais')).toBeVisible();
@@ -90,10 +91,8 @@ test('mobile and both themes keep the same map and avoid horizontal scrolling', 
   const canvas = await page.locator('.maplibregl-canvas').elementHandle();
   for (const mode of ['escuro', 'claro']) {
     await page.getByRole('button', { name: 'Abrir sua conta', exact: true }).click();
-    await page
-      .getByRole('dialog', { name: 'Sua conta', exact: true })
-      .getByRole('button', { name: mode === 'escuro' ? 'Escuro' : 'Claro', exact: true })
-      .click();
+    await page.getByRole('button', { name: 'Aparência', exact: true }).click();
+    await page.getByRole('radio', { name: mode === 'escuro' ? 'Escuro' : 'Claro', exact: true }).check();
     await page.getByRole('button', { name: 'Fechar conta', exact: true }).click();
     await expect(page.locator('.map-loading')).toHaveCount(0);
     expect(await page.locator('.result-list').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);

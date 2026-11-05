@@ -10,9 +10,10 @@ import { SkeletonComponent, SkeletonVariant } from './shared/skeleton.component'
 import { MobileUiService } from './core/mobile-ui.service';
 import { MobileAccountComponent } from './shared/mobile-account.component';
 import { AccountAvatarComponent } from './shared/account-avatar.component';
+import { ExploreFilterPanelComponent } from './features/explore/explore-filter-panel.component';
 import { ConfirmationComponent } from './shared/confirmation.component';
 
-@Component({ selector: 'app-root', imports: [ConfirmationComponent, MobileAccountComponent, AccountAvatarComponent, SkeletonComponent, RouterOutlet, RouterLink, RouterLinkActive, IconComponent, LoginComponent], templateUrl: './app.html', styleUrl: './app.scss' })
+@Component({ selector: 'app-root', imports: [ExploreFilterPanelComponent, ConfirmationComponent, MobileAccountComponent, AccountAvatarComponent, SkeletonComponent, RouterOutlet, RouterLink, RouterLinkActive, IconComponent, LoginComponent], templateUrl: './app.html', styleUrl: './app.scss' })
 export class App {
   readonly navigation = [
     { path: '/', label: 'Explorar', icon: 'Search' },

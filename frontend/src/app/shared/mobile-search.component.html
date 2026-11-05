@@ -52,24 +52,6 @@
       <button class="button secondary full" type="button" (click)="submit()">Buscar locais cadastrados</button>
     </section>
   } @else {
-    <div class="mobile-filter-row" aria-label="Filtros da busca">
-      <button class="chip" type="button" [class.selected]="state.filters" [attr.aria-expanded]="state.filters" (click)="state.filters = !state.filters"><app-icon name="SlidersHorizontal" [size]="16" />Filtros</button>
-      <button class="chip" type="button" [class.selected]="state.accessible" [attr.aria-pressed]="state.accessible" (click)="state.accessible = !state.accessible; state.search()"><app-icon name="Accessibility" [size]="17" />Acessível</button>
-      <button class="chip" type="button" [class.selected]="state.changingTable" [attr.aria-pressed]="state.changingTable" (click)="state.changingTable = !state.changingTable; state.search()"><app-icon name="Baby" [size]="17" />Fraldário</button>
-      @if (areaSearchAvailable()) { <button class="chip mobile-search-area" type="button" [disabled]="state.loading()" (click)="areaSearchRequested.emit()"><app-icon name="Search" [size]="17" />Buscar nesta área</button> }
-    </div>
-    @if (state.filters) {
-      <div class="mobile-filter-options surface">
-        <label
-          >Condição de acesso<select [(ngModel)]="state.access" (ngModelChange)="state.search()">
-            <option value="">Todas as condições</option>
-            <option value="FREE">Acesso livre</option>
-            <option value="CUSTOMERS">Apenas clientes</option>
-            <option value="PAID">Com taxa</option>
-            <option value="OTHER">Outra condição</option>
-          </select></label
-        ><small>Confirme a disponibilidade com o local.</small>
-      </div>
-    }
+    <app-explore-filter-bar [mobile]="true" [areaSearchAvailable]="areaSearchAvailable()" (areaSearchRequested)="areaSearchRequested.emit()" />
   }
 </div>

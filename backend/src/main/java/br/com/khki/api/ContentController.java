@@ -36,9 +36,10 @@ public class ContentController {
     this.duplicates = duplicates;
   }
 
+  /** Busca pública em páginas de até 200 registros; offset opcional preserva o contrato anterior. */
   @GetMapping("/bathrooms")
-  public List<BathroomView> list(@RequestParam(defaultValue = "") @Size(max = 200) String q, @RequestParam(required = false) Access access, @RequestParam(required = false) Boolean accessible) {
-    return content.search(q, access, accessible);
+  public List<BathroomView> list(@RequestParam(defaultValue = "") @Size(max = 200) String q, @RequestParam(required = false) Access access, @RequestParam(required = false) Boolean accessible, @RequestParam(defaultValue = "0") @Min(0) @Max(100000) int offset) {
+    return content.search(q, access, accessible, offset);
   }
 
   @GetMapping("/bathrooms/duplicates")

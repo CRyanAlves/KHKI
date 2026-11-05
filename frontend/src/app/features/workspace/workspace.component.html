@@ -14,6 +14,7 @@
   [class.mobile-searching]="mobileUi.searchOpen()"
   [class.mobile-navigating]="mobileUi.mobile() && navigation.active()"
   [style.--mobile-sheet-fraction]="mobileUi.fraction()"
+  [style.--mobile-details-sheet-height.px]="mobileUi.detailsSheetHeight()"
 >
   <div #panel id="exploration-panel" class="workspace-panel" appMobileSheet [inert]="state.collapsed()">
     @if (mobileUi.mobile()) {
@@ -44,7 +45,7 @@
       (followPaused)="navigation.pauseFollow()"
       [selectedId]="registration() ? '' : state.selected()?.id || ''"
       [highlightedId]="registration() ? registration()!.preview?.id || '' : state.highlighted() || (state.scene() === 'search' ? state.lastSelected : '')"
-      [preserveViewport]="!!registration() || !!state.area()"
+      [preserveViewport]="!!registration() || !!state.area() || state.filterViewport()"
       (selected)="open($event)"
       (hovered)="state.highlighted.set($event)"
       (boundsChanged)="state.bounds.set($event)"

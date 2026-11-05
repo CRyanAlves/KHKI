@@ -18,12 +18,25 @@ export class MobileUiService {
   readonly sheet = signal(0);
   readonly drag = signal<number | null>(null);
   readonly viewportHeight = signal(window.visualViewport?.height || window.innerHeight);
+  readonly detailsMinimumHeight = signal(0);
+  readonly detailsExpandedHeight = signal(0);
   get stops(): number[] {
-    return ['--mobile-sheet-peek', '--mobile-sheet-half', '--mobile-sheet-full'].map((token) => Number(getComputedStyle(document.documentElement).getPropertyValue(token)));
+    const stops = ['--mobile-sheet-peek', '--mobile-sheet-half', '--mobile-sheet-full'].map((token) => Number(getComputedStyle(document.documentElement).getPropertyValue(token)));
+    if (this.mobile() && this.state.scene() === 'details') {
+      if (this.detailsMinimumHeight() > 0) stops[0] = this.detailsMinimumHeight() / this.viewportHeight();
+      stops[1] = Math.max(stops[1], stops[0]);
+    }
+    return stops;
   }
   readonly fraction = computed(() => {
     this.mobile();
     return this.drag() ?? this.stops[this.sheet()];
+  });
+  readonly detailsSheetHeight = computed(() => Math.max(this.detailsMinimumHeight(), this.fraction() * this.viewportHeight()));
+  readonly detailsCompact = computed(() => {
+    if (!this.mobile() || this.state.scene() !== 'details') return false;
+    if (this.drag() === null && this.sheet() === 2) return false;
+    return (this.drag() === null && this.sheet() === 0) || this.detailsSheetHeight() < this.detailsExpandedHeight();
   });
   readonly navbar = computed(() => this.mobile() && !this.searchOpen() && !this.state.photoView() && !this.navigation.active() && (this.url().split('?')[0] === '/' || this.url().startsWith('/contribuicoes')));
   readonly immersive = computed(() => this.mobile() && (!!this.state.photoView() || this.navigation.active()));
