@@ -1,4 +1,7 @@
 spring:
+  session:
+    jdbc:
+      table-name: khki.SPRING_SESSION
   datasource:
     hikari:
       maximum-pool-size: 5

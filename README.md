@@ -81,6 +81,16 @@ Fotos ficam como bytes privados no banco, adequados ao MVP de pequeno volume. O 
 
 O perfil ADMIN é exigido na cadeia Spring Security e no serviço de moderação. Ocultar um banheiro também impede consulta pública a suas avaliações e fotos. Avaliações negativas podem ser aprovadas e contam na média. O usuário pode corrigir e reenviar banheiros/avaliações rejeitados. As decisões mantêm responsável, data, motivo e alvo. Motivos e nomes são renderizados como texto pelo Angular, sem `innerHTML`.
 
+## Sessão e autenticação
+
+O login usa Spring Security com Spring Session JDBC. As sessões ficam no banco, em tabelas criadas pelo Flyway, e podem ser recuperadas após a reinicialização da API enquanto estiverem válidas. O navegador recebe somente o identificador opaco em cookie `KHKI_SESSION`, com `HttpOnly`, `SameSite=Lax`, caminho `/` e `Secure` no perfil de produção. Senhas e identificadores de sessão não são gravados em `localStorage`.
+
+`POST /api/auth/login` preserva os campos `email` e `password` e aceita `rememberMe` booleano opcional, com padrão `false`. Sem essa opção, o cookie dura a sessão do navegador, a inatividade máxima continua em 30 minutos e o limite absoluto é de 12 horas. Ao marcar “Manter conectado neste dispositivo”, cookie e sessão podem durar até 14 dias, sem renovação indefinida. `SESSION_REMEMBER_DURATION` e `SESSION_MAXIMUM_DURATION` permitem ajustar esses limites entre 1 segundo e 90 dias. O login troca o identificador da sessão; `POST /api/auth/logout`, protegido por CSRF, remove a sessão no banco, invalidando também uma cópia do cookie antigo.
+
+O Angular trata `401` como ausência ou expiração da autenticação, mantém a conta diante de erros de conexão/servidor e não interpreta `403` como logout. Se a verificação inicial estiver indisponível, mostra uma ação de nova tentativa, sem exigir a senha novamente. A recuperação da sessão retoma o destino protegido que motivou a ação. As regras de autorização continuam sendo aplicadas no backend.
+
+As tabelas de sessão usam o schema `khki` no perfil de produção. A migração desse perfil remove o acesso de `PUBLIC` e habilita RLS, seguindo o isolamento das demais tabelas; o usuário de banco da API precisa manter acesso ao schema e às tabelas. A primeira atualização para este modelo exige um novo login, pois as sessões antigas em memória não são migradas.
+
 ## Testes
 
 ```powershell
