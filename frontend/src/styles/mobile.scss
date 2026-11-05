@@ -7,6 +7,16 @@
     --mobile-sheet-half: 0.45;
     --mobile-sheet-full: 0.9;
     --mobile-nav-height: calc(64px + env(safe-area-inset-bottom, 0px));
+    --mobile-nav-icon-width: 64px;
+    --mobile-nav-icon-height: 32px;
+    --mobile-nav-label-size: 0.78rem;
+    --mobile-nav-motion-duration: 220ms;
+    --mobile-nav-press-scale: 0.94;
+    --color-mobile-nav-background: var(--color-primary);
+    --color-mobile-nav-text: color-mix(in srgb, var(--color-on-primary) 75%, var(--color-primary));
+    --color-mobile-nav-active: color-mix(in srgb, var(--color-accent) 70%, var(--color-on-primary));
+    --color-mobile-nav-pill: color-mix(in srgb, var(--color-mobile-nav-active) 16%, transparent);
+    --color-mobile-nav-border: color-mix(in srgb, var(--color-on-primary) 18%, transparent);
     --mobile-search-height: 116px;
     --mobile-sheet-handle-height: 32px;
     --mobile-sheet-thumb-width: 42px;
@@ -94,29 +104,85 @@
   html.mobile-ui .mobile-admin-guidance {
     margin: var(--space-6);
   }
+  :root[data-theme='dark'] {
+    --color-mobile-nav-background: var(--color-surface);
+    --color-mobile-nav-text: var(--color-text-muted);
+    --color-mobile-nav-active: var(--color-accent);
+  }
   html.mobile-ui .mobile-bottom-nav {
     position: fixed;
+    isolation: isolate;
     z-index: var(--mobile-layer-nav);
     inset: auto 0 0;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     height: var(--mobile-nav-height);
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: var(--color-surface);
-    border-top: var(--border-width) solid var(--color-border);
-    box-shadow: var(--shadow-md);
+    background: var(--color-mobile-nav-background);
+    border-top: var(--border-width) solid var(--color-mobile-nav-border);
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: var(--mobile-nav-active-y, 0px);
+      width: var(--mobile-nav-icon-width);
+      height: var(--mobile-nav-icon-height);
+      border-radius: var(--radius-pill);
+      background: var(--color-mobile-nav-pill);
+      transform: translateX(var(--mobile-nav-active-x, 0px));
+      opacity: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    &.mobile-nav-positioned::before {
+      opacity: 1;
+    }
+    &.mobile-nav-motion-ready {
+      &::before {
+        transition: transform var(--mobile-nav-motion-duration) var(--motion-nav-easing);
+      }
+      a {
+        transition: color var(--mobile-nav-motion-duration) var(--motion-nav-easing);
+      }
+    }
     a {
+      position: relative;
+      z-index: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: var(--space-1);
       min-height: var(--control-size);
-      font-size: var(--text-xs);
-      color: var(--color-text-muted);
+      min-width: 0;
+      font-size: var(--mobile-nav-label-size);
+      color: var(--color-mobile-nav-text);
+      background: transparent;
+      text-decoration: none;
+      app-icon {
+        display: grid;
+        place-items: center;
+        flex-shrink: 0;
+        width: var(--mobile-nav-icon-width);
+        height: var(--mobile-nav-icon-height);
+        border-radius: var(--radius-pill);
+        svg {
+          transform: scale(1);
+          transition: transform var(--motion-nav-feedback) var(--motion-nav-easing);
+        }
+      }
+      span {
+        white-space: nowrap;
+        line-height: var(--line-height);
+      }
+      &:focus-visible {
+        outline-offset: calc(-1 * var(--space-1));
+      }
+      &:active app-icon svg {
+        transform: scale(var(--mobile-nav-press-scale));
+      }
       &.active {
-        color: var(--color-accent);
-        background: var(--color-accent-soft);
+        color: var(--color-mobile-nav-active);
       }
     }
   }
@@ -919,10 +985,16 @@
 @media (max-width: settings.$breakpoint-mobile) and (prefers-reduced-motion: reduce) {
   html.mobile-ui .map-workspace .workspace-panel,
   html.mobile-ui .mobile-search,
+  html.mobile-ui .mobile-bottom-nav.mobile-nav-motion-ready::before,
+  html.mobile-ui .mobile-bottom-nav.mobile-nav-motion-ready a,
+  html.mobile-ui .mobile-bottom-nav app-icon svg,
   html.mobile-ui .search-scene .result-list,
   html.mobile-ui .detail-scene .detail-secondary,
   html.mobile-ui .detail-scene .workspace-locate,
   html.mobile-ui .detail-scene .maplibregl-ctrl-bottom-right {
     transition: none;
+  }
+  html.mobile-ui .mobile-bottom-nav a:active app-icon svg {
+    transform: none;
   }
 }
