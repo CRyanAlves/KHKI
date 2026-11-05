@@ -192,8 +192,16 @@
       clip-path: inset(50%);
     }
   }
+  html.mobile-ui .search-scene .result-list {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity var(--mobile-motion-duration) var(--motion-panel-easing), transform var(--mobile-motion-duration) var(--motion-panel-easing);
+  }
   html.mobile-ui .mobile-sheet-peek.search-scene .result-list {
     visibility: hidden;
+    opacity: 0;
+    transform: translateY(var(--space-3));
+    pointer-events: none;
   }
   html.mobile-ui .map-workspace .search-panel {
     padding: 0;
@@ -911,6 +919,7 @@
 @media (max-width: settings.$breakpoint-mobile) and (prefers-reduced-motion: reduce) {
   html.mobile-ui .map-workspace .workspace-panel,
   html.mobile-ui .mobile-search,
+  html.mobile-ui .search-scene .result-list,
   html.mobile-ui .detail-scene .detail-secondary,
   html.mobile-ui .detail-scene .workspace-locate,
   html.mobile-ui .detail-scene .maplibregl-ctrl-bottom-right {
