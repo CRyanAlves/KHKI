@@ -23,15 +23,17 @@ export class MobileNavMotionDirective {
         readyFrame = requestAnimationFrame(() => element.classList.add('mobile-nav-motion-ready'));
       });
     };
-    const update = () => { if (!frame) frame = requestAnimationFrame(measure); };
-    const selection = new MutationObserver(records => {
-      if (records.some(record => record.type === 'childList' || (record.target instanceof Element && record.target.matches('a')))) update();
+    const update = () => {
+      if (!frame) frame = requestAnimationFrame(measure);
+    };
+    const selection = new MutationObserver((records) => {
+      if (records.some((record) => record.type === 'childList' || (record.target instanceof Element && record.target.matches('a')))) update();
     });
     const resize = new ResizeObserver(update);
     afterNextRender(() => {
       selection.observe(element, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'aria-current'] });
       resize.observe(element);
-      element.querySelectorAll('a > span').forEach(label => resize.observe(label));
+      element.querySelectorAll('a > span').forEach((label) => resize.observe(label));
       measure();
     });
     destroy.onDestroy(() => {

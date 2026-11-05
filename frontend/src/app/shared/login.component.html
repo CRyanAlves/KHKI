@@ -7,7 +7,10 @@
     <div class="login-story">
       <div class="city-illustration" aria-hidden="true"><img [src]="theme.mode() === 'dark' ? 'assets/brand/khki-login-dark.png' : 'assets/brand/khki-login.png'" alt="" width="1577" height="997" /></div>
       <span class="eyebrow">UMA CIDADE MAIS ACOLHEDORA</span>
-      <h2 id="login-title">Entre para<br /> contribuir<span class="accent">.</span></h2>
+      <h2 id="login-title">
+        Entre para<br />
+        contribuir<span class="accent">.</span>
+      </h2>
       <p class="login-desktop-support">Um lugar de confiança começa com a ajuda de cada pessoa.</p>
       <p class="login-mobile-support">Cadastre banheiros, avalie e ajude quem vem depois.</p>
       <div class="story-note"><app-icon name="Heart" [size]="17" /> Pequenas contribuições. Grandes alívios.</div>
@@ -16,14 +19,64 @@
       <h3>{{ register ? 'Crie sua conta' : 'Que bom ter você aqui' }}</h3>
       <p class="muted">{{ register ? 'Faça parte dessa rede de cuidado.' : 'Entre para cadastrar, avaliar e ajudar.' }}</p>
       @if (register) {
-        <label for="login-name"><span id="login-name-label">Nome</span><input aria-labelledby="login-name-label" id="login-name" name="name" [(ngModel)]="name" #nameControl="ngModel" autocomplete="name" maxlength="80" required [attr.aria-invalid]="nameControl.invalid && (nameControl.touched || attempted) ? 'true' : null" [attr.aria-describedby]="nameControl.invalid && (nameControl.touched || attempted) ? 'login-name-error' : null" />@if (nameControl.invalid && (nameControl.touched || attempted)) { <small id="login-name-error" class="login-field-error">Informe seu nome.</small> }</label>
+        <label for="login-name"
+          ><span id="login-name-label">Nome</span
+          ><input aria-labelledby="login-name-label" id="login-name" name="name" [(ngModel)]="name" #nameControl="ngModel" autocomplete="name" maxlength="80" required [attr.aria-invalid]="nameControl.invalid && (nameControl.touched || attempted) ? 'true' : null" [attr.aria-describedby]="nameControl.invalid && (nameControl.touched || attempted) ? 'login-name-error' : null" />
+          @if (nameControl.invalid && (nameControl.touched || attempted)) {
+            <small id="login-name-error" class="login-field-error">Informe seu nome.</small>
+          }
+        </label>
       }
-      <label for="login-email"><span id="login-email-label">E-mail</span><input aria-labelledby="login-email-label" id="login-email" name="email" [(ngModel)]="email" #emailControl="ngModel" type="email" email inputmode="email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" (keydown.enter)="advanceToPassword($event)" maxlength="254" placeholder="voce@exemplo.com" required [attr.aria-invalid]="emailControl.invalid && (emailControl.touched || attempted) ? 'true' : null" [attr.aria-describedby]="emailControl.invalid && (emailControl.touched || attempted) ? 'login-email-error' : null" />@if (emailControl.invalid && (emailControl.touched || attempted)) { <small id="login-email-error" class="login-field-error">{{ emailControl.errors?.['required'] ? 'Informe seu e-mail.' : 'Informe um e-mail válido.' }}</small> }</label
-      ><label
-        for="login-password"><span id="login-password-label">Senha</span>
+      <label for="login-email"
+        ><span id="login-email-label">E-mail</span
+        ><input
+          aria-labelledby="login-email-label"
+          id="login-email"
+          name="email"
+          [(ngModel)]="email"
+          #emailControl="ngModel"
+          type="email"
+          email
+          inputmode="email"
+          autocomplete="email"
+          autocapitalize="none"
+          autocorrect="off"
+          spellcheck="false"
+          enterkeyhint="next"
+          (keydown.enter)="advanceToPassword($event)"
+          maxlength="254"
+          placeholder="voce@exemplo.com"
+          required
+          [attr.aria-invalid]="emailControl.invalid && (emailControl.touched || attempted) ? 'true' : null"
+          [attr.aria-describedby]="emailControl.invalid && (emailControl.touched || attempted) ? 'login-email-error' : null"
+        />
+        @if (emailControl.invalid && (emailControl.touched || attempted)) {
+          <small id="login-email-error" class="login-field-error">{{ emailControl.errors?.['required'] ? 'Informe seu e-mail.' : 'Informe um e-mail válido.' }}</small>
+        }</label
+      ><label for="login-password"
+        ><span id="login-password-label">Senha</span>
         <div class="password-field">
-          <input aria-labelledby="login-password-label" id="login-password" name="password" [(ngModel)]="password" #passwordControl="ngModel" [type]="visible ? 'text' : 'password'" [attr.autocomplete]="register ? 'new-password' : 'current-password'" enterkeyhint="go" [minlength]="register ? 10 : 1" maxlength="72" placeholder="Sua senha" required [attr.aria-invalid]="passwordControl.invalid && (passwordControl.touched || attempted) ? 'true' : null" [attr.aria-describedby]="passwordControl.invalid && (passwordControl.touched || attempted) ? 'login-password-error' : null" /><button type="button" class="icon-button" aria-label="Mostrar ou ocultar senha" aria-controls="login-password" [attr.aria-pressed]="visible" (click)="visible = !visible"><app-icon name="Eye" /></button></div
-      >@if (passwordControl.invalid && (passwordControl.touched || attempted)) { <small id="login-password-error" class="login-field-error">{{ passwordControl.errors?.['required'] ? 'Informe sua senha.' : 'Use pelo menos 10 caracteres.' }}</small> }</label>
+          <input
+            aria-labelledby="login-password-label"
+            id="login-password"
+            name="password"
+            [(ngModel)]="password"
+            #passwordControl="ngModel"
+            [type]="visible ? 'text' : 'password'"
+            [attr.autocomplete]="register ? 'new-password' : 'current-password'"
+            enterkeyhint="go"
+            [minlength]="register ? 10 : 1"
+            maxlength="72"
+            placeholder="Sua senha"
+            required
+            [attr.aria-invalid]="passwordControl.invalid && (passwordControl.touched || attempted) ? 'true' : null"
+            [attr.aria-describedby]="passwordControl.invalid && (passwordControl.touched || attempted) ? 'login-password-error' : null"
+          /><button type="button" class="icon-button" aria-label="Mostrar ou ocultar senha" aria-controls="login-password" [attr.aria-pressed]="visible" (click)="visible = !visible"><app-icon name="Eye" /></button>
+        </div>
+        @if (passwordControl.invalid && (passwordControl.touched || attempted)) {
+          <small id="login-password-error" class="login-field-error">{{ passwordControl.errors?.['required'] ? 'Informe sua senha.' : 'Use pelo menos 10 caracteres.' }}</small>
+        }
+      </label>
       @if (register) {
         <small class="muted">Use pelo menos 10 caracteres.</small>
       } @else {

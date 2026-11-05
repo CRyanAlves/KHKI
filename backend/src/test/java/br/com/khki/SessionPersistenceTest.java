@@ -19,22 +19,34 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.session.Session;
 import org.springframework.session.SessionRepository;
-import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @SpringBootTest(properties = { "spring.datasource.url=${TEST_DATABASE_URL:jdbc:h2:mem:workflow;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE}", "spring.datasource.username=${TEST_DATABASE_USER:sa}", "spring.datasource.password=${TEST_DATABASE_PASSWORD:}", "khki.admin-email=admin@khki.test", "khki.admin-password=Test-admin-password-123", "khki.demo=false" })
 @AutoConfigureMockMvc
 class SessionPersistenceTest {
-  @Autowired MockMvc mvc;
-  @Autowired DataSource database;
-  @Autowired JdbcIndexedSessionRepository sessions;
-  @Autowired br.com.khki.security.AbuseGuard abuse;
-  @Autowired br.com.khki.repository.AppUserRepository users;
-  @Autowired org.springframework.security.crypto.password.PasswordEncoder passwords;
+
+  @Autowired
+  MockMvc mvc;
+
+  @Autowired
+  DataSource database;
+
+  @Autowired
+  JdbcIndexedSessionRepository sessions;
+
+  @Autowired
+  br.com.khki.security.AbuseGuard abuse;
+
+  @Autowired
+  br.com.khki.repository.AppUserRepository users;
+
+  @Autowired
+  org.springframework.security.crypto.password.PasswordEncoder passwords;
 
   @BeforeEach
   void resetLimits() {
@@ -42,7 +54,10 @@ class SessionPersistenceTest {
   }
 
   private MvcResult login(boolean remembered, Cookie... cookies) throws Exception {
-    var request = post("/api/auth/login").with(csrf()).contentType("application/json").content("{\"email\":\"admin@khki.test\",\"password\":\"Test-admin-password-123\",\"rememberMe\":" + remembered + "}");
+    var request = post("/api/auth/login")
+      .with(csrf())
+      .contentType("application/json")
+      .content("{\"email\":\"admin@khki.test\",\"password\":\"Test-admin-password-123\",\"rememberMe\":" + remembered + "}");
     if (cookies.length > 0) request.cookie(cookies);
     return mvc.perform(request).andExpect(status().isOk()).andReturn();
   }
@@ -120,7 +135,15 @@ class SessionPersistenceTest {
     account.role = "USER";
     users.save(account);
     try {
-      var result = mvc.perform(post("/api/auth/login").with(csrf()).contentType("application/json").content("{\"email\":\"" + account.email + "\",\"password\":\"Test-user-password-123\"}")).andExpect(status().isOk()).andReturn();
+      var result = mvc
+        .perform(
+          post("/api/auth/login")
+            .with(csrf())
+            .contentType("application/json")
+            .content("{\"email\":\"" + account.email + "\",\"password\":\"Test-user-password-123\"}")
+        )
+        .andExpect(status().isOk())
+        .andReturn();
       mvc.perform(get("/api/auth/me").cookie(result.getResponse().getCookie("KHKI_SESSION"))).andExpect(status().isOk());
     } finally {
       users.delete(account);
@@ -132,7 +155,14 @@ class SessionPersistenceTest {
     mvc.perform(post("/api/auth/login").contentType("application/json").content("{}")).andExpect(status().isForbidden());
     mvc.perform(post("/api/auth/login").with(csrf()).contentType("application/json").content("{\"email\":\"admin@khki.test\",\"password\":\"wrong\",\"rememberMe\":true}")).andExpect(status().isUnauthorized());
     mvc.perform(post("/api/auth/login").with(csrf()).contentType("application/json").content("{\"email\":\"invalid\",\"password\":\"wrong\"}")).andExpect(status().isBadRequest());
-    mvc.perform(post("/api/auth/login").with(csrf()).contentType("application/json").content("{\"email\":\"admin@khki.test\",\"password\":\"" + "á".repeat(50) + "\"}")).andExpect(status().isUnauthorized());
+    mvc
+      .perform(
+        post("/api/auth/login")
+          .with(csrf())
+          .contentType("application/json")
+          .content("{\"email\":\"admin@khki.test\",\"password\":\"" + "á".repeat(50) + "\"}")
+      )
+      .andExpect(status().isUnauthorized());
     var cookie = login(true).getResponse().getCookie("KHKI_SESSION");
     mvc.perform(post("/api/auth/logout").cookie(cookie)).andExpect(status().isForbidden());
   }

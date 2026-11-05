@@ -2,8 +2,8 @@ package br.com.khki.api;
 
 import br.com.khki.api.Contracts.*;
 import br.com.khki.repository.AppUserRepository;
-import br.com.khki.service.AccountService;
 import br.com.khki.security.SessionPolicy;
+import br.com.khki.service.AccountService;
 import jakarta.servlet.http.*;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;

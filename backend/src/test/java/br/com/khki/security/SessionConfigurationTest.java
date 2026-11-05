@@ -9,6 +9,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.session.web.http.CookieSerializer.CookieValue;
 
 class SessionConfigurationTest {
+
   @Test
   void productionCookiesAreSecureHttpOnlySameSiteAndDoNotSetASharedDomain() {
     var policy = new SessionPolicy("30m", "14d", "12h");

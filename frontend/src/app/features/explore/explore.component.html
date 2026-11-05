@@ -6,7 +6,9 @@
     }
     <button class="icon-button" type="submit" aria-label="Buscar" [disabled]="state.loading()"><app-icon name="ArrowRight" [size]="19" /></button>
   </form>
-  @if (!mobileUi.mobile()) { <app-explore-filter-bar /> }
+  @if (!mobileUi.mobile()) {
+    <app-explore-filter-bar />
+  }
   <div class="results-heading">
     @if (mobileUi.mobile() && mobileUi.sheet() === 0) {
       <div class="mobile-results-summary">
@@ -47,7 +49,14 @@
           <app-icon name="MapPin" [size]="32" />
           <h3>Ainda não encontramos um lugar aqui</h3>
           <p>Tente outro endereço ou remova um filtro. Novos locais aparecem após a aprovação.</p>
-          @if (state.filterCount()) { <div class="empty-filter-actions">@for (filter of state.activeFilters(); track filter.key) { <button class="text-button" type="button" [attr.aria-label]="'Remover filtro: ' + filter.label" (click)="state.removeFilter(filter.key)">{{ filter.label }}<app-icon name="X" [size]="16" /></button> }<button class="button secondary" type="button" (click)="state.clearFilters()">Limpar filtros</button></div> }
+          @if (state.filterCount()) {
+            <div class="empty-filter-actions">
+              @for (filter of state.activeFilters(); track filter.key) {
+                <button class="text-button" type="button" [attr.aria-label]="'Remover filtro: ' + filter.label" (click)="state.removeFilter(filter.key)">{{ filter.label }}<app-icon name="X" [size]="16" /></button>
+              }
+              <button class="button secondary" type="button" (click)="state.clearFilters()">Limpar filtros</button>
+            </div>
+          }
         </div>
       }
     }

@@ -42,7 +42,8 @@
             <p class="rating detail-rating">
               <app-icon name="Star" [size]="20" />
               @if (bathroom.rating !== null && bathroom.reviewCount > 0) {
-                <strong>{{ bathroom.rating | number: '1.1-1' }}</strong><span>({{ bathroom.reviewCount }} {{ bathroom.reviewCount === 1 ? 'avaliação' : 'avaliações' }})</span>
+                <strong>{{ bathroom.rating | number: '1.1-1' }}</strong
+                ><span>({{ bathroom.reviewCount }} {{ bathroom.reviewCount === 1 ? 'avaliação' : 'avaliações' }})</span>
               } @else {
                 <span>Ainda sem avaliações</span>
               }

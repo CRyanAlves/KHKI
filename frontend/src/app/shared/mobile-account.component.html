@@ -1,7 +1,24 @@
 <div class="mobile-account-backdrop" [style.clip-path]="backdropClip()" (click)="close()" aria-hidden="true"></div>
-<section id="mobile-account-popover" class="mobile-account-panel" role="dialog" aria-modal="true" aria-labelledby="mobile-account-title" appDialogFocus dialogInitialFocus="#mobile-account-title" [dialogReturnFocus]="ui.accountTrigger()" (dialogEscape)="close()" [style.top.px]="position().top" [style.left.px]="position().left" [style.width.px]="position().width" [style.--account-available-height]="position().availableHeight + 'px'" [style.--account-arrow-left]="position().arrowLeft + 'px'">
+<section
+  id="mobile-account-popover"
+  class="mobile-account-panel"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="mobile-account-title"
+  appDialogFocus
+  dialogInitialFocus="#mobile-account-title"
+  [dialogReturnFocus]="ui.accountTrigger()"
+  (dialogEscape)="close()"
+  [style.top.px]="position().top"
+  [style.left.px]="position().left"
+  [style.width.px]="position().width"
+  [style.--account-available-height]="position().availableHeight + 'px'"
+  [style.--account-arrow-left]="position().arrowLeft + 'px'"
+>
   <header class="account-panel-header">
-    @if (appearance()) { <button class="icon-button" type="button" aria-label="Voltar para sua conta" (click)="showAppearance(false)"><app-icon name="ArrowLeft" /></button> }
+    @if (appearance()) {
+      <button class="icon-button" type="button" aria-label="Voltar para sua conta" (click)="showAppearance(false)"><app-icon name="ArrowLeft" /></button>
+    }
     <h2 id="mobile-account-title" tabindex="-1">{{ appearance() ? 'Aparência' : 'Sua conta' }}</h2>
     <button class="icon-button account-close" type="button" aria-label="Fechar conta" (click)="close()"><app-icon name="X" /></button>
   </header>
@@ -9,13 +26,26 @@
     @if (appearance()) {
       <div class="account-theme-options" role="radiogroup" aria-label="Aparência">
         @for (option of themes; track option.value) {
-          <label class="account-theme-option"><input type="radio" name="account-theme" [value]="option.value" [checked]="theme.selection() === option.value" (change)="theme.select(option.value)" /><app-icon [name]="option.icon" /><span>{{ option.label }}</span>@if (theme.selection() === option.value) { <app-icon class="theme-selected" name="Check" /> }</label>
+          <label class="account-theme-option"
+            ><input type="radio" name="account-theme" [value]="option.value" [checked]="theme.selection() === option.value" (change)="theme.select(option.value)" /><app-icon [name]="option.icon" /><span>{{ option.label }}</span>
+            @if (theme.selection() === option.value) {
+              <app-icon class="theme-selected" name="Check" />
+            }
+          </label>
         }
       </div>
     } @else {
       <div class="mobile-account-identity">
         <span class="account-identity-avatar"><app-account-avatar /></span>
-        <div>@if (auth.user(); as user) { <strong>{{ user.name }}</strong><p>Conta conectada</p> } @else { <strong>Faça parte do KHKI</strong><p>Entre para cadastrar banheiros e acompanhar suas contribuições.</p> }</div>
+        <div>
+          @if (auth.user(); as user) {
+            <strong>{{ user.name }}</strong>
+            <p>Conta conectada</p>
+          } @else {
+            <strong>Faça parte do KHKI</strong>
+            <p>Entre para cadastrar banheiros e acompanhar suas contribuições.</p>
+          }
+        </div>
       </div>
       @if (auth.user()) {
         <a class="account-panel-row" routerLink="/contribuicoes" (click)="close()"><app-icon name="Upload" /><span>Minhas contribuições</span><app-icon name="ChevronRight" /></a>
@@ -23,8 +53,13 @@
         <button class="button primary full account-login" type="button" (click)="login()">Entrar ou criar conta<app-icon name="ArrowRight" /></button>
         <p class="account-preferences">Preferências</p>
       }
-      <button class="account-panel-row" type="button" aria-label="Aparência" (click)="showAppearance(true)"><app-icon [name]="themeIcon" /><span>Aparência</span><small>{{ themeLabel }}</small><app-icon name="ChevronRight" /></button>
-      @if (auth.user()) { <button class="account-panel-row mobile-signout" type="button" (click)="logout()"><app-icon name="LogOut" /><span>Sair</span></button> }
+      <button class="account-panel-row" type="button" aria-label="Aparência" (click)="showAppearance(true)">
+        <app-icon [name]="themeIcon" /><span>Aparência</span><small>{{ themeLabel }}</small
+        ><app-icon name="ChevronRight" />
+      </button>
+      @if (auth.user()) {
+        <button class="account-panel-row mobile-signout" type="button" (click)="logout()"><app-icon name="LogOut" /><span>Sair</span></button>
+      }
     }
   </div>
 </section>

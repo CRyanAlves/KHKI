@@ -13,9 +13,24 @@ export class ExploreFilterPanelComponent {
   readonly ui = inject(MobileUiService);
   readonly mobile = input(false);
   readonly referenceAvailable = computed(() => !!this.state.position() && validPoint(this.state.position()!));
-  readonly audiences = [{ value: '', label: 'Sem preferência' }, { value: 'PUBLIC', label: 'Livre para todos' }, { value: 'CUSTOMERS', label: 'Apenas clientes' }, { value: 'AUTHORIZATION', label: 'Exige autorização' }, { value: 'OTHER', label: 'Outra condição' }] as const;
-  readonly charges = [{ value: '', label: 'Sem preferência' }, { value: 'NO', label: 'Gratuito' }, { value: 'YES', label: 'Pago' }] as const;
+  readonly audiences = [
+    { value: '', label: 'Sem preferência' },
+    { value: 'PUBLIC', label: 'Livre para todos' },
+    { value: 'CUSTOMERS', label: 'Apenas clientes' },
+    { value: 'AUTHORIZATION', label: 'Exige autorização' },
+    { value: 'OTHER', label: 'Outra condição' }
+  ] as const;
+  readonly charges = [
+    { value: '', label: 'Sem preferência' },
+    { value: 'NO', label: 'Gratuito' },
+    { value: 'YES', label: 'Pago' }
+  ] as const;
   readonly resources = OBSERVED_ACCESSIBILITY;
   readonly items = Object.entries(ITEM_LABELS);
-  readonly distances = [{ value: 0, label: 'Sem limite' }, { value: 500, label: '500 m' }, { value: 1000, label: '1 km' }, { value: 3000, label: '3 km' }] as const;
+  readonly distances = [
+    { value: 0, label: 'Sem limite' },
+    { value: 500, label: '500 m' },
+    { value: 1000, label: '1 km' },
+    { value: 3000, label: '3 km' }
+  ] as const;
 }
