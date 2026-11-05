@@ -40,7 +40,7 @@ export class DetailsComponent implements OnInit, OnDestroy {
   private readonly detailsTitle = viewChild<ElementRef<HTMLElement>>('detailsTitle');
   private readonly detailsActions = viewChild<ElementRef<HTMLElement>>('detailsActions');
   constructor() {
-    afterRenderEffect(onCleanup => {
+    afterRenderEffect((onCleanup) => {
       const title = this.detailsTitle()?.nativeElement;
       const actions = this.detailsActions()?.nativeElement;
       if (!this.mobileUi.mobile() || !title || !actions) {
@@ -60,7 +60,16 @@ export class DetailsComponent implements OnInit, OnDestroy {
         const lineHeight = Number.parseFloat(heading.lineHeight) || Number.parseFloat(heading.fontSize);
         const close = panel.querySelector<HTMLElement>('.details-close')!;
         const border = getComputedStyle(panel.closest<HTMLElement>('.workspace-panel')!);
-        const minimum = handle.getBoundingClientRect().height + Math.max(close.getBoundingClientRect().height, lineHeight) + actions.getBoundingClientRect().height + Number.parseFloat(padding.paddingTop) + Number.parseFloat(padding.paddingBottom) + Number.parseFloat(spacing.marginTop) + Number.parseFloat(spacing.marginBottom) + Number.parseFloat(border.borderTopWidth) + Number.parseFloat(border.borderBottomWidth);
+        const minimum =
+          handle.getBoundingClientRect().height +
+          Math.max(close.getBoundingClientRect().height, lineHeight) +
+          actions.getBoundingClientRect().height +
+          Number.parseFloat(padding.paddingTop) +
+          Number.parseFloat(padding.paddingBottom) +
+          Number.parseFloat(spacing.marginTop) +
+          Number.parseFloat(spacing.marginBottom) +
+          Number.parseFloat(border.borderTopWidth) +
+          Number.parseFloat(border.borderBottomWidth);
         const headingElement = title.querySelector<HTMLElement>('h1')!;
         const titleMeasure = headingElement.cloneNode(true) as HTMLElement;
         titleMeasure.classList.add('details-title-measure');
@@ -75,7 +84,7 @@ export class DetailsComponent implements OnInit, OnDestroy {
         this.mobileUi.detailsExpandedHeight.set(Math.ceil(minimum + Math.max(0, titleHeight - Math.max(close.getBoundingClientRect().height, lineHeight)) + secondary.scrollHeight));
       };
       const observer = new ResizeObserver(measure);
-      [title, actions, handle].forEach(element => observer.observe(element));
+      [title, actions, handle].forEach((element) => observer.observe(element));
       measure();
       onCleanup(() => observer.disconnect());
     });

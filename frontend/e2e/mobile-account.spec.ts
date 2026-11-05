@@ -3,8 +3,8 @@ import { expect, Page, test } from '@playwright/test';
 test.use({ viewport: { width: 393, height: 852 }, hasTouch: true });
 
 async function prepare(page: Page, authenticated = false): Promise<void> {
-  await page.route('**/api/auth/csrf', route => route.fulfill({ json: {} }));
-  await page.route('**/api/auth/me', route => route.fulfill({ status: authenticated ? 200 : 401, json: authenticated ? { id: 'account-test', name: 'Pessoa de Teste', role: 'USER' } : {} }));
+  await page.route('**/api/auth/csrf', (route) => route.fulfill({ json: {} }));
+  await page.route('**/api/auth/me', (route) => route.fulfill({ status: authenticated ? 200 : 401, json: authenticated ? { id: 'account-test', name: 'Pessoa de Teste', role: 'USER' } : {} }));
   await page.goto('/');
 }
 
@@ -34,14 +34,13 @@ test('visitor popover anchors to avatar and all closing controls preserve explor
     if (closing === 'avatar') {
       await page.screenshot({ path: '../test-results/account-popover-dark.png' });
       await trigger.click();
-    }
-    else if (closing === 'escape') await page.keyboard.press('Escape');
+    } else if (closing === 'escape') await page.keyboard.press('Escape');
     else if (closing === 'outside') await page.mouse.click(10, 700);
     else await panel.getByRole('button', { name: 'Fechar conta' }).click();
     await expect(panel).toHaveCount(0);
     await expect(trigger).toBeFocused();
     await expect(page.locator('.map-workspace')).toHaveAttribute('class', sheet!);
-    expect(await canvas!.evaluate(element => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
+    expect(await canvas!.evaluate((element) => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
   }
 });
 
@@ -49,7 +48,11 @@ test('appearance stays inside the popover, persists and follows system preferenc
   await prepare(page);
   await page.locator('.mobile-search-account').click();
   await page.getByRole('button', { name: 'Aparência', exact: true }).click();
-  for (const [label, value] of [['Claro', 'light'], ['Escuro', 'dark'], ['Sistema', 'system']]) {
+  for (const [label, value] of [
+    ['Claro', 'light'],
+    ['Escuro', 'dark'],
+    ['Sistema', 'system']
+  ]) {
     await page.getByRole('radio', { name: label, exact: true }).check();
     await expect(page.getByRole('radio', { name: label, exact: true })).toBeChecked();
     expect(await page.evaluate(() => localStorage.getItem('khki-theme'))).toBe(value === 'system' ? null : value);
@@ -74,12 +77,12 @@ test('authenticated identity, contributions and logout use existing services', a
   await expect(panel.locator('.account-initials')).toHaveText('PT');
   await expect(panel.getByText('Conta conectada')).toBeVisible();
   await expect(panel.getByRole('link', { name: 'Minhas contribuições' })).toHaveAttribute('href', '/contribuicoes');
-  await page.route('**/api/me/contributions', route => route.fulfill({ json: [] }));
+  await page.route('**/api/me/contributions', (route) => route.fulfill({ json: [] }));
   await panel.getByRole('link', { name: 'Minhas contribuições' }).click();
   await expect(page).toHaveURL(/\/contribuicoes$/);
   await page.locator('.mobile-account-shortcut').click();
   await expect(page.getByRole('dialog', { name: 'Sua conta' })).toBeVisible();
-  await page.route('**/api/auth/logout', route => route.fulfill({ json: {} }));
+  await page.route('**/api/auth/logout', (route) => route.fulfill({ json: {} }));
   const logout = page.waitForRequest('**/api/auth/logout');
   await panel.getByRole('button', { name: 'Sair', exact: true }).click();
   await logout;
@@ -112,7 +115,7 @@ test('desktop keeps the existing header and has no mobile account', async ({ pag
 
 test('registration and contributions keep initials circular and the account anchored', async ({ page }) => {
   await prepare(page, true);
-  await page.route('**/api/me/contributions', route => route.fulfill({ json: [] }));
+  await page.route('**/api/me/contributions', (route) => route.fulfill({ json: [] }));
   for (const path of ['/cadastrar', '/contribuicoes']) {
     await page.goto(path);
     if (path === '/cadastrar') {

@@ -11,12 +11,12 @@ const rows = [
   { id: '7', type: 'REVIEW', title: 'Avaliação: Praça', status: 'REMOVED', reason: null, createdAt: '2026-10-27T12:00:00Z', bathroomId: 'bathroom' }
 ];
 async function auth(page: Page): Promise<void> {
-  await page.route('**/api/auth/csrf', route => route.fulfill({ json: {} }));
-  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'test', name: 'Pessoa Teste', role: 'USER' } }));
+  await page.route('**/api/auth/csrf', (route) => route.fulfill({ json: {} }));
+  await page.route('**/api/auth/me', (route) => route.fulfill({ json: { id: 'test', name: 'Pessoa Teste', role: 'USER' } }));
 }
 async function open(page: Page, data = rows): Promise<void> {
   await auth(page);
-  await page.route('**/api/me/contributions', route => route.fulfill({ json: data }));
+  await page.route('**/api/me/contributions', (route) => route.fulfill({ json: data }));
   await page.goto('/contribuicoes');
   await expect(page.locator('.contributions-count')).toBeVisible();
 }
@@ -56,11 +56,15 @@ test('all real statuses, safe reasons, long text and existing correction action'
 test('loading, request failure with retry and genuine empty state', async ({ page }) => {
   await auth(page);
   let release!: () => void;
-  const gate = new Promise<void>(resolve => { release = resolve; });
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
   let calls = 0;
-  await page.route('**/api/me/contributions', async route => {
-    if (++calls === 1) { await gate; await route.fulfill({ status: 503, json: { detail: 'Serviço indisponível.' } }); }
-    else await route.fulfill({ json: [] });
+  await page.route('**/api/me/contributions', async (route) => {
+    if (++calls === 1) {
+      await gate;
+      await route.fulfill({ status: 503, json: { detail: 'Serviço indisponível.' } });
+    } else await route.fulfill({ json: [] });
   });
   await page.goto('/contribuicoes');
   await expect(page.locator('app-skeleton')).toBeVisible();
@@ -76,13 +80,13 @@ test('small viewport, large fonts, both themes and navbar clearance', async ({ p
   await open(page);
   await page.addStyleTag({ content: 'html { font-size: 22px; }' });
   for (const theme of ['dark', 'light']) {
-    await page.evaluate(value => document.documentElement.dataset['theme'] = value, theme);
+    await page.evaluate((value) => (document.documentElement.dataset['theme'] = value), theme);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
     await expect(page.locator('.contributions-top img')).toHaveAttribute('src', /assets\/brand\/khki-logo/);
     const last = page.locator('.contributions-item').last();
     await last.scrollIntoViewIfNeeded();
     const host = page.locator('app-contributions');
-    await host.evaluate(element => element.scrollTop = element.scrollHeight);
+    await host.evaluate((element) => (element.scrollTop = element.scrollHeight));
     const nav = await page.locator('.mobile-bottom-nav').boundingBox();
     expect((await last.boundingBox())!.y + (await last.boundingBox())!.height).toBeLessThanOrEqual(nav!.y);
   }
@@ -91,7 +95,7 @@ test('small viewport, large fonts, both themes and navbar clearance', async ({ p
 test('desktop keeps its original presentation', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 950 });
   await auth(page);
-  await page.route('**/api/me/contributions', route => route.fulfill({ json: rows }));
+  await page.route('**/api/me/contributions', (route) => route.fulfill({ json: rows }));
   await page.goto('/contribuicoes');
   await expect(page.locator('.contribution-row')).toHaveCount(7);
   await expect(page.locator('app-mobile-contributions')).toHaveCount(0);
@@ -99,10 +103,13 @@ test('desktop keeps its original presentation', async ({ page }) => {
 });
 
 test('visitor must authenticate before seeing contributions', async ({ page }) => {
-  await page.route('**/api/auth/csrf', route => route.fulfill({ json: {} }));
-  await page.route('**/api/auth/me', route => route.fulfill({ status: 401, json: {} }));
+  await page.route('**/api/auth/csrf', (route) => route.fulfill({ json: {} }));
+  await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: {} }));
   let requests = 0;
-  await page.route('**/api/me/contributions', route => { requests++; return route.fulfill({ json: rows }); });
+  await page.route('**/api/me/contributions', (route) => {
+    requests++;
+    return route.fulfill({ json: rows });
+  });
   await page.goto('/contribuicoes');
   await expect(page.locator('.login-backdrop')).toBeVisible();
   await expect(page.locator('.contributions-item')).toHaveCount(0);

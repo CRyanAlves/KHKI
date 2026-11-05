@@ -17,10 +17,22 @@ import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
 
 class SessionRestartTest {
-  @TempDir Path directory;
+
+  @TempDir
+  Path directory;
 
   private ServletWebServerApplicationContext start() {
-    return (ServletWebServerApplicationContext) new SpringApplicationBuilder(KhkiApplication.class).run("--server.address=127.0.0.1", "--server.port=0", "--spring.datasource.url=jdbc:h2:file:" + directory.resolve("sessions").toString().replace('\\', '/') + ";MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE", "--spring.datasource.username=sa", "--spring.datasource.password=", "--khki.admin-email=restart@khki.test", "--khki.admin-password=Restart-test-password-123", "--khki.demo=false", "--server.servlet.session.cookie.secure=false");
+    return (ServletWebServerApplicationContext) new SpringApplicationBuilder(KhkiApplication.class).run(
+      "--server.address=127.0.0.1",
+      "--server.port=0",
+      "--spring.datasource.url=jdbc:h2:file:" + directory.resolve("sessions").toString().replace('\\', '/') + ";MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE",
+      "--spring.datasource.username=sa",
+      "--spring.datasource.password=",
+      "--khki.admin-email=restart@khki.test",
+      "--khki.admin-password=Restart-test-password-123",
+      "--khki.demo=false",
+      "--server.servlet.session.cookie.secure=false"
+    );
   }
 
   private URI address(ServletWebServerApplicationContext context, String path) {

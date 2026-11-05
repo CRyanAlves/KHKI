@@ -24,7 +24,9 @@ export class AuthService {
       this.status.set('guest');
       this.sessionError.set('Sua sessão expirou. Entre novamente para continuar.');
     });
-    const online = () => { if (this.status() === 'unavailable') void this.retrySession(); };
+    const online = () => {
+      if (this.status() === 'unavailable') void this.retrySession();
+    };
     window.addEventListener('online', online);
     inject(DestroyRef).onDestroy(() => window.removeEventListener('online', online));
     this.ready = this.restoreSession().then(() => {});
@@ -32,7 +34,9 @@ export class AuthService {
   restoreSession(): Promise<boolean> {
     if (this.restoring) return this.restoring;
     this.status.set('checking');
-    this.restoring = this.initialize().finally(() => { this.restoring = undefined; });
+    this.restoring = this.initialize().finally(() => {
+      this.restoring = undefined;
+    });
     return this.restoring;
   }
   private async initialize(): Promise<boolean> {
@@ -96,7 +100,11 @@ export class AuthService {
     this.user.set(user);
     this.status.set('authenticated');
     this.sessionError.set('');
-    try { await this.api.get('/auth/csrf'); } catch { this.sessionError.set('Você entrou, mas a conexão foi interrompida. Tente verificar a sessão novamente.'); }
+    try {
+      await this.api.get('/auth/csrf');
+    } catch {
+      this.sessionError.set('Você entrou, mas a conexão foi interrompida. Tente verificar a sessão novamente.');
+    }
     this.opened.set(false);
     await this.resumeAction();
   }

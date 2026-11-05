@@ -9,6 +9,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 public class SessionExpiryFilter extends OncePerRequestFilter {
+
   private final SessionPolicy policy;
 
   public SessionExpiryFilter(SessionPolicy policy) {

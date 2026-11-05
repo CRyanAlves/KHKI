@@ -17,9 +17,19 @@ export class MobileContributionsComponent {
   readonly status = signal<Status | ''>('');
   readonly order = signal('newest');
   readonly expanded = signal<ReadonlySet<string>>(new Set());
-  readonly types = [{ value: '', label: 'Tudo' }, { value: 'BATHROOM', label: 'Banheiros' }, { value: 'REVIEW', label: 'Avaliações' }, { value: 'PHOTO', label: 'Fotos' }] as const;
+  readonly types = [
+    { value: '', label: 'Tudo' },
+    { value: 'BATHROOM', label: 'Banheiros' },
+    { value: 'REVIEW', label: 'Avaliações' },
+    { value: 'PHOTO', label: 'Fotos' }
+  ] as const;
   readonly statuses = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label: value === 'REJECTED' ? 'Não aprovado' : label }));
-  readonly rows = computed(() => this.items().filter(item => (!this.type() || item.type === this.type()) && (!this.status() || item.status === this.status())).sort((first, second) => (Date.parse(first.createdAt) - Date.parse(second.createdAt)) * (this.order() === 'oldest' ? 1 : -1)).map(item => ({ ...item, name: this.name(item), decision: this.reason(item), label: item.status === 'REJECTED' ? 'Não aprovado' : STATUS_LABELS[item.status] })));
+  readonly rows = computed(() =>
+    this.items()
+      .filter((item) => (!this.type() || item.type === this.type()) && (!this.status() || item.status === this.status()))
+      .sort((first, second) => (Date.parse(first.createdAt) - Date.parse(second.createdAt)) * (this.order() === 'oldest' ? 1 : -1))
+      .map((item) => ({ ...item, name: this.name(item), decision: this.reason(item), label: item.status === 'REJECTED' ? 'Não aprovado' : STATUS_LABELS[item.status] }))
+  );
   private readonly identifier = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/giu;
   setStatus(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
@@ -40,11 +50,18 @@ export class MobileContributionsComponent {
     this.expanded.set(next);
   }
   private name(item: Contribution): string {
-    const name = item.title.replace(/^(?:(?:foto|avaliação|cadastro|banheiro)\s*:\s*)+/iu, '').replace(this.identifier, '').trim();
+    const name = item.title
+      .replace(/^(?:(?:foto|avaliação|cadastro|banheiro)\s*:\s*)+/iu, '')
+      .replace(this.identifier, '')
+      .trim();
     return name || 'Local relacionado ao envio';
   }
   private reason(item: Contribution): string {
-    const reason = (item.reason || '').replace(this.identifier, '').replace(/\s+([.,;:])/gu, '$1').replace(/\s+/gu, ' ').trim();
+    const reason = (item.reason || '')
+      .replace(this.identifier, '')
+      .replace(/\s+([.,;:])/gu, '$1')
+      .replace(/\s+/gu, ' ')
+      .trim();
     if (item.status === 'APPROVED' && /^(?:cadastro|foto|avaliação)?\s*aprova(?:do|da)\.?$/iu.test(reason)) return '';
     return reason;
   }

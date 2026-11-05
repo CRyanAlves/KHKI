@@ -1,12 +1,18 @@
 import { expect, test } from '@playwright/test';
 
-for (const viewport of [{ width: 393, height: 852 }, { width: 1440, height: 950 }]) {
+for (const viewport of [
+  { width: 393, height: 852 },
+  { width: 1440, height: 950 }
+]) {
   test(`registration confirms discard inside the application at ${viewport.width}px`, async ({ page }) => {
     await page.setViewportSize(viewport);
-    await page.route('**/api/auth/csrf', route => route.fulfill({ json: {} }));
-    await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'test', name: 'Pessoa Teste', role: 'USER' } }));
+    await page.route('**/api/auth/csrf', (route) => route.fulfill({ json: {} }));
+    await page.route('**/api/auth/me', (route) => route.fulfill({ json: { id: 'test', name: 'Pessoa Teste', role: 'USER' } }));
     let nativeDialogs = 0;
-    page.on('dialog', async dialog => { nativeDialogs++; await dialog.dismiss(); });
+    page.on('dialog', async (dialog) => {
+      nativeDialogs++;
+      await dialog.dismiss();
+    });
     await page.goto('/cadastrar');
     const name = page.getByLabel('Nome do estabelecimento ou espaço', { exact: false });
     await name.fill('Rascunho preservado');

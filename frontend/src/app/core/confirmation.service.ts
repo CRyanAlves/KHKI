@@ -15,7 +15,9 @@ export class ConfirmationService {
   private resolve?: (confirmed: boolean) => void;
   confirm(request: ConfirmationRequest): Promise<boolean> {
     if (this.pending) return this.pending;
-    this.pending = new Promise<boolean>(resolve => { this.resolve = resolve; });
+    this.pending = new Promise<boolean>((resolve) => {
+      this.resolve = resolve;
+    });
     this.current.set(request);
     return this.pending;
   }

@@ -261,7 +261,9 @@
   html.mobile-ui .search-scene .result-list {
     opacity: 1;
     transform: translateY(0);
-    transition: opacity var(--mobile-motion-duration) var(--motion-panel-easing), transform var(--mobile-motion-duration) var(--motion-panel-easing);
+    transition:
+      opacity var(--mobile-motion-duration) var(--motion-panel-easing),
+      transform var(--mobile-motion-duration) var(--motion-panel-easing);
   }
   html.mobile-ui .mobile-sheet-peek.search-scene .result-list {
     visibility: hidden;
@@ -531,7 +533,9 @@
       min-height: 0;
       overflow: hidden;
       opacity: 1;
-      transition: grid-template-rows var(--mobile-motion-duration) var(--motion-panel-easing), opacity var(--mobile-motion-duration) var(--motion-panel-easing);
+      transition:
+        grid-template-rows var(--mobile-motion-duration) var(--motion-panel-easing),
+        opacity var(--mobile-motion-duration) var(--motion-panel-easing);
     }
     .detail-secondary-content {
       display: block;

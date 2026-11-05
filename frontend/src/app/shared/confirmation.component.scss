@@ -9,14 +9,31 @@
   background: var(--color-surface);
   color: var(--color-text);
   box-shadow: var(--shadow-lg);
-  header { display: flex; align-items: center; gap: var(--space-3); }
-  h2 { flex: 1; margin: 0; font-size: var(--text-xl); }
-  p { margin: var(--space-4) 0 var(--space-6); color: var(--color-text-muted); }
-  .icon-button { flex-shrink: 0; min-width: var(--control-size); min-height: var(--control-size); }
+  header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+  }
+  h2 {
+    flex: 1;
+    margin: 0;
+    font-size: var(--text-xl);
+  }
+  p {
+    margin: var(--space-4) 0 var(--space-6);
+    color: var(--color-text-muted);
+  }
+  .icon-button {
+    flex-shrink: 0;
+    min-width: var(--control-size);
+    min-height: var(--control-size);
+  }
 }
 .confirmation-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
-  .button { flex: 1 1 var(--origin-auto-label-width); }
+  .button {
+    flex: 1 1 var(--origin-auto-label-width);
+  }
 }

@@ -16,13 +16,17 @@ export class MobileAccountComponent {
   readonly appearance = signal(false);
   readonly position = signal({ top: 0, left: 0, width: 0, availableHeight: 0, arrowLeft: 0 });
   readonly backdropClip = signal('');
-  readonly themes = [{ value: 'light', label: 'Claro', icon: 'Sun' }, { value: 'dark', label: 'Escuro', icon: 'Moon' }, { value: 'system', label: 'Sistema', icon: 'Monitor' }] as const;
+  readonly themes = [
+    { value: 'light', label: 'Claro', icon: 'Sun' },
+    { value: 'dark', label: 'Escuro', icon: 'Moon' },
+    { value: 'system', label: 'Sistema', icon: 'Monitor' }
+  ] as const;
   @Output() logoutRequested = new EventEmitter<void>();
   get themeLabel(): string {
-    return this.themes.find(option => option.value === this.theme.selection())!.label;
+    return this.themes.find((option) => option.value === this.theme.selection())!.label;
   }
   get themeIcon(): string {
-    return this.themes.find(option => option.value === this.theme.selection())!.icon;
+    return this.themes.find((option) => option.value === this.theme.selection())!.icon;
   }
   constructor() {
     let frame = 0;
@@ -73,7 +77,7 @@ export class MobileAccountComponent {
     const centerX = anchor.left + anchor.width / 2;
     const centerY = anchor.top + anchor.height / 2;
     const opening = Array.from({ length: 33 }, (_, index) => {
-      const angle = index * Math.PI / 16;
+      const angle = (index * Math.PI) / 16;
       return `${centerX + Math.cos(angle) * radius}px ${centerY + Math.sin(angle) * radius}px`;
     }).join(', ');
     this.backdropClip.set(`polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, ${opening})`);
