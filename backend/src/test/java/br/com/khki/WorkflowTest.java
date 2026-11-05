@@ -95,8 +95,8 @@ class WorkflowTest {
     return "{\"name\":\"" + name + "\",\"address\":\"Rua de teste, 100, São Paulo\",\"category\":\"Café\",\"latitude\":-23.55,\"longitude\":-46.65,\"access\":\"FREE\",\"accessible\":true,\"items\":[\"SOAP\",\"SINK\"]}";
   }
 
-  private MockHttpSession login(String email, String password) throws Exception {
-    return (MockHttpSession) mvc
+  private jakarta.servlet.http.Cookie login(String email, String password) throws Exception {
+    return mvc
       .perform(
         post("/api/auth/login")
           .with(csrf())
@@ -105,8 +105,8 @@ class WorkflowTest {
       )
       .andExpect(status().isOk())
       .andReturn()
-      .getRequest()
-      .getSession();
+      .getResponse()
+      .getCookie("KHKI_SESSION");
   }
 
   private void decide(String type, UUID id, String status) throws Exception {
@@ -138,7 +138,7 @@ class WorkflowTest {
     UUID bathroomId = UUID.fromString(
       body(
         mvc
-          .perform(post("/api/bathrooms").session(session).with(csrf()).contentType("application/json").content(bathroomInput("Banheiro de teste")))
+          .perform(post("/api/bathrooms").cookie(session).with(csrf()).contentType("application/json").content(bathroomInput("Banheiro de teste")))
           .andExpect(status().isCreated())
           .andExpect(jsonPath("$.status").value("PENDING"))
           .andReturn()
@@ -149,11 +149,11 @@ class WorkflowTest {
     mvc.perform(get("/api/bathrooms/" + bathroomId)).andExpect(status().isNotFound());
     mvc.perform(get("/api/bathrooms").param("q", "Banheiro de teste")).andExpect(content().json("[]"));
     mvc.perform(get("/api/admin/queue")).andExpect(status().isUnauthorized());
-    mvc.perform(get("/api/admin/queue").session(session)).andExpect(status().isForbidden());
+    mvc.perform(get("/api/admin/queue").cookie(session)).andExpect(status().isForbidden());
     mvc
       .perform(
         post("/api/admin/content/BATHROOM/" + bathroomId + "/decision")
-          .session(session)
+          .cookie(session)
           .with(csrf())
           .contentType("application/json")
           .content("{\"status\":\"APPROVED\",\"reason\":\"Tentativa indevida\"}")
@@ -168,7 +168,7 @@ class WorkflowTest {
           .perform(
             multipart("/api/bathrooms/" + bathroomId + "/photos")
               .file(upload)
-              .session(session)
+              .cookie(session)
               .with(csrf())
           )
           .andExpect(status().isCreated())
@@ -179,7 +179,7 @@ class WorkflowTest {
     );
     mvc.perform(get("/api/photos/" + photoId)).andExpect(status().isNotFound());
     mvc
-      .perform(get("/api/photos/" + photoId).session(session))
+      .perform(get("/api/photos/" + photoId).cookie(session))
       .andExpect(status().isOk())
       .andExpect(content().contentType("image/jpeg"));
     mvc.perform(get("/api/photos/" + photoId).with(user("other@khki.test"))).andExpect(status().isNotFound());
@@ -195,7 +195,7 @@ class WorkflowTest {
         mvc
           .perform(
             post("/api/bathrooms/" + bathroomId + "/reviews")
-              .session(session)
+              .cookie(session)
               .with(csrf())
               .contentType("application/json")
               .content("{\"cleanliness\":1,\"structure\":2,\"comment\":\"Experiência negativa, precisa melhorar.\"}")
@@ -256,8 +256,8 @@ class WorkflowTest {
     decide("PHOTO", photoId, "REMOVED");
     assertThat(photos.findById(photoId).orElseThrow().data).isEmpty();
     assertThat(audits.count()).isGreaterThanOrEqualTo(6);
-    mvc.perform(get("/api/me/contributions").session(session)).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(3));
-    mvc.perform(post("/api/auth/logout").session(session).with(csrf())).andExpect(status().isNoContent());
+    mvc.perform(get("/api/me/contributions").cookie(session)).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(3));
+    mvc.perform(post("/api/auth/logout").cookie(session).with(csrf())).andExpect(status().isNoContent());
   }
 
   @Test

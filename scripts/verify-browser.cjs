@@ -4,10 +4,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const net = require('node:net');
 const root = path.resolve(__dirname, '..');
+const apiPort = Number(process.env.KHKI_TEST_API_PORT || 8082);
+if (!Number.isInteger(apiPort) || apiPort < 1024 || apiPort > 65535) throw new Error('Porta da API de testes inválida.');
 fs.mkdirSync(path.join(root, 'test-results'), { recursive: true });
+const proxy = path.join(root, 'test-results', 'browser-proxy.json');
+fs.writeFileSync(proxy, JSON.stringify({ '/api': { target: 'http://127.0.0.1:' + apiPort, secure: false, changeOrigin: true } }));
 const environment = {
   ...process.env,
-  PORT: '8082',
+  PORT: String(apiPort),
   DATABASE_URL: 'jdbc:h2:mem:browser;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1',
   DATABASE_USER: 'sa',
   DATABASE_PASSWORD: '',
@@ -41,7 +45,8 @@ async function wait(url, child) {
   for (let attempt = 0; attempt < 120; attempt++) {
     if (child.exitCode !== null) throw new Error('Um serviço de teste encerrou antes de iniciar. Consulte test-results/browser-*.log.');
     try {
-      if ((await fetch(url)).ok) return;
+      const response = await fetch(url);
+      if (response.ok && (!url.endsWith('/api/health') || (response.headers.get('content-type')?.includes('application/json') && (await response.json()).status === 'UP'))) return;
     } catch {}
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
@@ -56,16 +61,17 @@ async function stop(child) {
 }
 (async () => {
   try {
-    await free(8082);
+    await free(apiPort);
     await free(4202);
     await free(4900);
     const maps = launch('node scripts/fixtures/geoapify.cjs', '.', 'browser-maps.log');
     const api = launch('mvn.cmd spring-boot:run -q', 'backend', 'browser-api.log');
-    const frontend = launch('node node_modules/@angular/cli/bin/ng.js serve --host 127.0.0.1 --port 4202 --proxy-config proxy.e2e.json', 'frontend', 'browser-frontend.log');
-    console.log('Iniciando API e frontend isolados nas portas 8082 e 4202, com banco em memória.');
-    await wait('http://127.0.0.1:8082/api/health', api);
+    const frontend = launch('node node_modules/@angular/cli/bin/ng.js serve --host 127.0.0.1 --port 4202 --proxy-config ../test-results/browser-proxy.json', 'frontend', 'browser-frontend.log');
+    console.log('Iniciando API e frontend isolados nas portas ' + apiPort + ' e 4202, com banco em memória.');
+    await wait('http://127.0.0.1:' + apiPort + '/api/health', api);
     await wait('http://127.0.0.1:4202', frontend);
     await wait('http://127.0.0.1:4900/geoapify/health', maps);
+    if (api.exitCode !== null) throw new Error('A API de testes encerrou antes da execução.');
     const result = await new Promise((resolve) => {
       const tests = spawn(process.execPath, [path.join(root, 'frontend/node_modules/@playwright/test/cli.js'), 'test', ...process.argv.slice(2)], { cwd: path.join(root, 'frontend'), env: environment, stdio: 'inherit', windowsHide: true });
       tests.once('exit', (code) => resolve(code));

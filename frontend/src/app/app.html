@@ -1,4 +1,5 @@
 <a class="skip-link" href="#main-content">Pular para o conteúdo</a>
+@if (auth.sessionError()) { <aside class="session-notice" role="status" aria-live="polite"><span>{{ auth.sessionError() }}</span><button type="button" class="button secondary" [disabled]="auth.status() === 'checking'" (click)="auth.sessionAction()">{{ auth.status() === 'checking' ? 'Verificando…' : auth.status() === 'guest' ? 'Entrar novamente' : 'Tentar novamente' }}</button></aside> }
 <header class="site-header">
   <a class="brand" routerLink="/" aria-label="KHKI — página inicial"><img class="brand-logo" [src]="theme.mode() === 'dark' ? 'assets/brand/khki-logo-dark.png' : 'assets/brand/khki-logo.png'" alt="KHKI" width="1983" height="793" fetchpriority="high" /></a>
   <nav id="main-navigation" class="main-nav" [class.open]="menu" aria-label="Navegação principal">

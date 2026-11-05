@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.*;
 import org.springframework.web.cors.*;
 
@@ -33,7 +34,7 @@ public class SecurityConfig {
   }
 
   @Bean
-  SecurityFilterChain filterChain(HttpSecurity http, @Value("${khki.frontend-origin}") String origin) throws Exception {
+  SecurityFilterChain filterChain(HttpSecurity http, SessionPolicy sessionPolicy, @Value("${khki.frontend-origin}") String origin) throws Exception {
     var cors = new CorsConfiguration();
     cors.setAllowedOrigins(List.of(origin));
     cors.setAllowedMethods(List.of("GET", "POST", "PUT", "OPTIONS"));
@@ -42,6 +43,7 @@ public class SecurityConfig {
     var source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/api/**", cors);
     return http
+      .addFilterAfter(new SessionExpiryFilter(sessionPolicy), SecurityContextHolderFilter.class)
       .cors(config -> config.configurationSource(source))
       .csrf(config -> config.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()).csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
       .authorizeHttpRequests(config ->

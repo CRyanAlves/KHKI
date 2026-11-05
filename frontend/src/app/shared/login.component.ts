@@ -26,6 +26,7 @@ export class LoginComponent {
   name = '';
   email = '';
   password = '';
+  rememberMe = false;
   error = '';
   busy = false;
   attempted = false;
@@ -96,7 +97,7 @@ export class LoginComponent {
     this.error = '';
     try {
       if (this.register) await this.auth.register(this.name, this.email, this.password);
-      else await this.auth.login(this.email, this.password);
+      else await this.auth.login(this.email, this.password, this.rememberMe);
     } catch (error) {
       this.error = this.api.error(error);
     } finally {
