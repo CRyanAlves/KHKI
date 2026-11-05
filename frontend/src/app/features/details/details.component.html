@@ -7,7 +7,7 @@
       <button class="button secondary" (click)="load()">Tentar novamente</button>
     </div>
   } @else if (!bathroom) {
-    <app-skeleton variant="detail" label="Carregando detalhes…" />
+    <app-skeleton variant="detail" label="Carregando detalhes…" [class.details-loading-desktop]="!mobileUi.mobile()" />
   } @else {
     @if (!mobileUi.mobile()) {
       <section class="gallery" aria-label="Fotos aprovadas">
