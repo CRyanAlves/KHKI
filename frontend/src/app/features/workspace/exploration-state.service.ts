@@ -1,8 +1,10 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { ApiService } from '../../core/api.service';
 import { MapsService, TravelMode, TravelRoute } from '../../core/maps.service';
-import { Access, Bathroom, Location, MapArea } from '../../core/models';
+import { Bathroom, ITEM_LABELS, Location, MapArea } from '../../core/models';
 import { validPoint } from '../../core/navigation-geometry';
+import { OBSERVED_ACCESSIBILITY } from '../../core/bathroom-details';
+import { ExplorationFilters, activeFilters, copyFilters, emptyFilters, filterBathrooms, FILTER_DISTANCES } from '../explore/exploration-filters';
 
 export interface RouteDraft {
   origin: string;
@@ -19,6 +21,8 @@ export interface PhotoView {
 }
 export type ExplorationScene = 'search' | 'details' | 'route' | 'review' | 'photos' | 'registration';
 const MAP_MESSAGE_DURATION_MS = 6000;
+const SEARCH_PAGE_SIZE = 200;
+const SEARCH_MAX_OFFSET = 100000;
 
 @Injectable({ providedIn: 'root' })
 export class ExplorationState {
@@ -31,10 +35,12 @@ export class ExplorationState {
   loaded = false;
   lastSelected = '';
   query = '';
-  access: Access | '' = '';
-  accessible = false;
-  changingTable = false;
-  filters = false;
+  readonly appliedFilters = signal<ExplorationFilters>(emptyFilters());
+  readonly filterDraft = signal<ExplorationFilters | null>(null);
+  readonly activeFilters = computed(() => activeFilters(this.appliedFilters()));
+  readonly filterCount = computed(() => this.activeFilters().length);
+  readonly referenceLabel = signal('Minha localização');
+  readonly filterViewport = signal(false);
   sort = 'name';
   readonly results = signal<Bathroom[]>([]);
   readonly selected = signal<Bathroom | null>(null);
@@ -80,9 +86,51 @@ export class ExplorationState {
   readonly photoIndexes = new Map<string, number>();
   readonly routeDrafts = new Map<string, RouteDraft>();
   readonly visible = computed(() => {
-    const area = this.area();
-    return this.results().filter((bathroom) => !area || (bathroom.latitude <= area.north && bathroom.latitude >= area.south && (area.west <= area.east ? bathroom.longitude >= area.west && bathroom.longitude <= area.east : bathroom.longitude >= area.west || bathroom.longitude <= area.east)));
+    return filterBathrooms(this.results(), this.appliedFilters(), this.position(), this.area());
   });
+  readonly previewCount = computed(() => filterBathrooms(this.results(), this.filterDraft() || this.appliedFilters(), this.position(), this.area()).length);
+  readonly filterCategories = computed(() => [...new Set([...this.results().map(bathroom => bathroom.category), ...(this.filterDraft()?.categories || [])])].filter(Boolean).sort((left, right) => left.localeCompare(right, 'pt-BR')));
+  openFilters(): void { this.filterDraft.set(copyFilters(this.appliedFilters())); }
+  closeFilters(): void { this.filterDraft.set(null); }
+  updateFilterDraft(value: Partial<ExplorationFilters>): void {
+    this.filterDraft.update(draft => draft ? { ...draft, ...value } : null);
+  }
+  clearFilterDraft(): void { this.filterDraft.set(emptyFilters()); }
+  applyFilterDraft(): void {
+    const draft = this.filterDraft();
+    if (!draft || this.loading() || this.error() || !this.loaded) return;
+    this.filterViewport.set(true);
+    this.appliedFilters.set({ ...copyFilters(draft), radius: this.position() && validPoint(this.position()!) && FILTER_DISTANCES.includes(draft.radius as typeof FILTER_DISTANCES[number]) ? draft.radius : 0 });
+    this.closeFilters();
+  }
+  clearFilters(): void { this.closeFilters(); this.filterViewport.set(true); this.appliedFilters.set(emptyFilters()); }
+  toggleShortcut(shortcut: 'accessible' | 'changingTable'): void {
+    this.filterViewport.set(true);
+    this.closeFilters();
+    this.appliedFilters.update(filters => shortcut === 'accessible' ? { ...filters, accessible: !filters.accessible } : { ...filters, items: filters.items.includes('CHANGING_TABLE') ? filters.items.filter(item => item !== 'CHANGING_TABLE') : [...filters.items, 'CHANGING_TABLE'] });
+  }
+  removeFilter(key: string): void {
+    if (!this.activeFilters().some(filter => filter.key === key)) return;
+    this.closeFilters();
+    this.filterViewport.set(true);
+    this.appliedFilters.update(filters => {
+      if (key === 'audience' || key === 'charge') return { ...filters, [key]: '' };
+      if (key === 'accessible') return { ...filters, accessible: false };
+      if (key === 'radius') return { ...filters, radius: 0 };
+      const separator = key.indexOf(':');
+      const group = key.slice(0, separator) as 'resources' | 'categories' | 'items';
+      return { ...filters, [group]: filters[group].filter(value => value !== key.slice(separator + 1)) };
+    });
+  }
+  toggleDraftOption(group: 'resources' | 'categories' | 'items', value: string): void {
+    const allowed = group === 'resources' ? OBSERVED_ACCESSIBILITY.some(option => option.key === value) : group === 'items' ? Object.hasOwn(ITEM_LABELS, value) : this.filterCategories().includes(value);
+    if (!allowed) return;
+    this.filterDraft.update(draft => {
+      if (!draft) return null;
+      const selected: readonly string[] = draft[group];
+      return { ...draft, [group]: selected.includes(value) ? selected.filter(item => item !== value) : [...selected, value] };
+    });
+  }
   readonly mapBathrooms = computed(() => {
     const results = this.visible();
     const selected = this.selected();
@@ -108,11 +156,19 @@ export class ExplorationState {
     this.error.set('');
     try {
       const parameters: Record<string, string> = { q: this.query };
-      if (this.access) parameters['access'] = this.access;
-      if (this.accessible) parameters['accessible'] = 'true';
-      const bathrooms = await this.api.get<Bathroom[]>('/bathrooms', parameters);
-      if (sequence !== this.sequence) return;
-      this.results.set(this.changingTable ? bathrooms.filter((bathroom) => bathroom.items.includes('CHANGING_TABLE')) : bathrooms);
+      const bathrooms: Bathroom[] = [];
+      const received = new Set<string>();
+      for (let offset = 0; ; offset += SEARCH_PAGE_SIZE) {
+        if (offset > SEARCH_MAX_OFFSET) throw new Error('A busca está muito ampla. Informe um nome ou região para continuar.');
+        const page = await this.api.get<Bathroom[]>('/bathrooms', offset ? { ...parameters, offset: String(offset) } : parameters);
+        if (sequence !== this.sequence) return;
+        if (page.some(bathroom => received.has(bathroom.id))) throw new Error('Não foi possível carregar a busca completa. Tente novamente.');
+        page.forEach(bathroom => received.add(bathroom.id));
+        bathrooms.push(...page);
+        if (page.length < SEARCH_PAGE_SIZE) break;
+      }
+      this.results.set(bathrooms);
+      this.filterViewport.set(false);
       this.area.set(area);
       this.order();
       this.loaded = true;
@@ -143,6 +199,7 @@ export class ExplorationState {
     return sequence === this.selectedSequence ? bathroom : null;
   }
   enter(scene: ExplorationScene): void {
+    this.closeFilters();
     if (scene !== 'details') this.closePhoto();
     this.scene.set(scene);
     this.collapsed.set(false);
@@ -164,6 +221,7 @@ export class ExplorationState {
     try {
       const point = await this.maps.locationIfGranted();
       if (point && sequence === this.locationSequence && !this.position()) {
+        this.referenceLabel.set('Minha localização');
         this.position.set(point);
         this.order();
       }
@@ -175,6 +233,7 @@ export class ExplorationState {
     try {
       const point = await this.maps.location();
       if (sequence !== this.locationSequence) return;
+      this.referenceLabel.set('Minha localização');
       this.position.set(point);
       this.order();
       this.showMessage('Localização obtida. As distâncias da lista são em linha reta.');
@@ -183,11 +242,13 @@ export class ExplorationState {
     }
   }
   async locateAddress(): Promise<void> {
-    if (!this.query.trim()) return;
+    const query = this.query.trim();
+    if (!query) return;
     const sequence = ++this.locationSequence;
     try {
-      const point = await this.maps.geocode(this.query);
+      const point = await this.maps.geocode(query);
       if (sequence !== this.locationSequence) return;
+      this.referenceLabel.set(query);
       this.position.set(point);
       this.order();
       this.showMessage('Mapa centralizado no endereço buscado. Distâncias em linha reta.');

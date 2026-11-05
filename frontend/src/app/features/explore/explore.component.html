@@ -6,31 +6,14 @@
     }
     <button class="icon-button" type="submit" aria-label="Buscar" [disabled]="state.loading()"><app-icon name="ArrowRight" [size]="19" /></button>
   </form>
-  <div class="filter-row">
-    <button class="chip" [class.selected]="state.filters" [attr.aria-expanded]="state.filters" aria-controls="search-filters" (click)="state.filters = !state.filters"><app-icon name="SlidersHorizontal" [size]="16" />Filtros</button
-    ><button class="chip" [class.selected]="state.accessible" [attr.aria-pressed]="state.accessible" (click)="state.accessible = !state.accessible; state.search()"><app-icon name="Accessibility" [size]="17" />Acessível</button
-    ><button class="chip" [class.selected]="state.changingTable" [attr.aria-pressed]="state.changingTable" (click)="state.changingTable = !state.changingTable; state.search()"><app-icon name="Baby" [size]="17" />Fraldário</button>
-  </div>
-  @if (state.filters) {
-    <div class="filter-box" id="search-filters">
-      <label
-        >Condição de acesso<select [(ngModel)]="state.access" (ngModelChange)="state.search()">
-          <option value="">Todas as condições</option>
-          <option value="FREE">Acesso livre</option>
-          <option value="CUSTOMERS">Apenas clientes</option>
-          <option value="PAID">Com taxa</option>
-          <option value="OTHER">Outra condição</option>
-        </select></label
-      ><small>Horários são informativos. Confirme a disponibilidade com o local.</small>
-    </div>
-  }
+  @if (!mobileUi.mobile()) { <app-explore-filter-bar /> }
   <div class="results-heading">
     @if (mobileUi.mobile() && mobileUi.sheet() === 0) {
       <div class="mobile-results-summary">
-        <strong>Banheiros por perto</strong><small>{{ state.loading() ? 'Buscando locais…' : state.visible().length + ' resultados' }}</small>
+        <strong>Banheiros por perto</strong><small>{{ state.loading() ? 'Buscando locais…' : state.error() ? 'Busca indisponível' : state.visible().length + ' resultados' }}</small>
       </div>
     }
-    <strong>{{ state.loading() ? 'Buscando banheiros…' : state.visible().length + (state.visible().length === 1 ? ' banheiro encontrado' : ' banheiros encontrados') }}</strong
+    <strong>{{ state.loading() ? 'Buscando banheiros…' : state.error() ? 'Busca indisponível' : state.visible().length + (state.visible().length === 1 ? ' banheiro encontrado' : ' banheiros encontrados') }}</strong
     ><select [(ngModel)]="state.sort" (ngModelChange)="state.order()" aria-label="Ordenação">
       <option value="name">Nome A–Z</option>
       <option value="rating">Melhor avaliados</option>
@@ -64,6 +47,7 @@
           <app-icon name="MapPin" [size]="32" />
           <h3>Ainda não encontramos um lugar aqui</h3>
           <p>Tente outro endereço ou remova um filtro. Novos locais aparecem após a aprovação.</p>
+          @if (state.filterCount()) { <div class="empty-filter-actions">@for (filter of state.activeFilters(); track filter.key) { <button class="text-button" type="button" [attr.aria-label]="'Remover filtro: ' + filter.label" (click)="state.removeFilter(filter.key)">{{ filter.label }}<app-icon name="X" [size]="16" /></button> }<button class="button secondary" type="button" (click)="state.clearFilters()">Limpar filtros</button></div> }
         </div>
       }
     }

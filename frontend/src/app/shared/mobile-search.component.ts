@@ -7,9 +7,10 @@ import { ApiService } from '../core/api.service';
 import { AddressSuggestion, MapsService } from '../core/maps.service';
 import { Bathroom } from '../core/models';
 import { AccountAvatarComponent } from './account-avatar.component';
+import { ExploreFilterBarComponent } from '../features/explore/explore-filter-bar.component';
 import { IconComponent } from './icon.component';
 
-@Component({ selector: 'app-mobile-search', imports: [FormsModule, IconComponent, AccountAvatarComponent], templateUrl: './mobile-search.component.html' })
+@Component({ selector: 'app-mobile-search', imports: [ExploreFilterBarComponent, FormsModule, IconComponent, AccountAvatarComponent], templateUrl: './mobile-search.component.html' })
 export class MobileSearchComponent implements OnDestroy {
   readonly areaSearchAvailable = input(false);
   readonly areaSearchRequested = output<void>();
@@ -60,6 +61,7 @@ export class MobileSearchComponent implements OnDestroy {
     this.close();
     if (suggestion.bathroom) await this.router.navigate(['/banheiros', suggestion.bathroom.id]);
     else if (suggestion.address) {
+      this.state.referenceLabel.set(suggestion.address.label);
       this.state.position.set(suggestion.address.position);
       this.state.query = '';
       await this.state.search();

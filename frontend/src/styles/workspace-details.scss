@@ -3,6 +3,12 @@
   background: var(--color-surface);
   overflow-wrap: anywhere;
 }
+.details-primary,
+.detail-secondary,
+.detail-secondary-content,
+.details-extra {
+  display: contents;
+}
 .details-close {
   position: absolute;
   top: var(--space-3);

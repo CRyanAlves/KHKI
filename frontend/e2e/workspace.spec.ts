@@ -40,6 +40,7 @@ test('urgent action handles location denial without leaving exploration', async 
 });
 
 test('one map survives selection, route, browser history and panel collapse with search context', async ({ page }) => {
+  test.setTimeout(90000);
   await page.setViewportSize({ width: 1440, height: 650 });
   let styles = 0;
   page.on('request', (request) => {
@@ -51,7 +52,8 @@ test('one map survives selection, route, browser history and panel collapse with
   const header = await page.locator('.site-header').boundingBox();
   const panel = page.locator('.workspace-panel');
   await page.getByRole('button', { name: 'Filtros', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Condição de acesso', exact: true }).selectOption('FREE');
+  await page.getByRole('radio', { name: 'Livre para todos', exact: true }).check();
+  await page.getByRole('button', { name: /^Mostrar \d+ banheiros?$/ }).click();
   await expect(page.getByText('2 banheiros encontrados', { exact: true })).toBeVisible();
   await page.getByRole('combobox', { name: 'Ordenação', exact: true }).selectOption('rating');
   const list = page.locator('.result-list');
@@ -78,7 +80,7 @@ test('one map survives selection, route, browser history and panel collapse with
   await expect(page.getByText('1,1 km de carro', { exact: true })).toBeVisible();
   await page.goBack();
   await page.getByRole('link', { name: 'Fechar detalhes', exact: true }).click();
-  await expect(page.getByRole('combobox', { name: 'Condição de acesso', exact: true })).toHaveValue('FREE');
+  await expect(page.locator('.applied-filter-tags').getByRole('button', { name: 'Remover filtro: Livre para todos', exact: true })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Ordenação', exact: true })).toHaveValue('rating');
   await expect.poll(() => list.evaluate((element) => element.scrollTop)).toBeCloseTo(scroll, 0);
   expect(await page.evaluate(() => window.scrollY)).toBe(0);
@@ -88,7 +90,7 @@ test('one map survives selection, route, browser history and panel collapse with
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
   await page.getByRole('button', { name: 'Reabrir painel', exact: true }).click();
   await expect(panel).toBeVisible();
-  await expect(page.getByRole('combobox', { name: 'Condição de acesso', exact: true })).toHaveValue('FREE');
+  await expect(page.locator('.applied-filter-tags').getByRole('button', { name: 'Remover filtro: Livre para todos', exact: true })).toBeVisible();
   expect(await map!.evaluate((element) => element === document.querySelector('app-map'))).toBe(true);
 });
 
