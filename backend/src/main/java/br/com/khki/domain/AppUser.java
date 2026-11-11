@@ -8,17 +8,33 @@ import java.util.UUID;
 public class AppUser {
 
   @Id
-  public UUID id = UUID.randomUUID();
+  private UUID id = UUID.randomUUID();
 
   @Column(nullable = false, length = 80)
-  public String name;
+  private String name;
 
   @Column(nullable = false, unique = true, length = 254)
-  public String email;
+  private String email;
 
   @Column(nullable = false, length = 100)
-  public String password;
+  @com.fasterxml.jackson.annotation.JsonIgnore
+  private String password;
 
   @Column(nullable = false, length = 20)
-  public String role = "USER";
+  private String role = "USER";
+
+  public UUID getId() { return id; }
+  public void setId(UUID value) { id = value; }
+
+  public String getName() { return name; }
+  public void setName(String value) { name = value; }
+
+  public String getEmail() { return email; }
+  public void setEmail(String value) { email = value; }
+
+  public String getPassword() { return password; }
+  public void setPassword(String value) { password = value; }
+
+  public String getRole() { return role; }
+  public void setRole(String value) { role = value; }
 }

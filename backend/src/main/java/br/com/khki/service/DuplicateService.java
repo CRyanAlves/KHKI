@@ -37,11 +37,11 @@ public class DuplicateService {
   @PreAuthorize("isAuthenticated()")
   public NearbyResult preview(String name, String address, String complement, double latitude, double longitude, Double radius) {
     var target = new Bathroom();
-    target.name = name;
-    target.address = address;
-    target.complement = complement;
-    target.latitude = latitude;
-    target.longitude = longitude;
+    target.setName(name);
+    target.setAddress(address);
+    target.setComplement(complement);
+    target.setLatitude(latitude);
+    target.setLongitude(longitude);
     return find(target, radius);
   }
 
@@ -49,13 +49,13 @@ public class DuplicateService {
     double radius = requestedRadius == null ? defaultRadius : requestedRadius;
     double latitudeDelta = radius / 110000;
     var candidates = bathrooms
-      .findByStatusAndLatitudeBetween(Status.APPROVED, target.latitude - latitudeDelta, target.latitude + latitudeDelta)
+      .findByStatusAndLatitudeBetween(Status.APPROVED, target.getLatitude() - latitudeDelta, target.getLatitude() + latitudeDelta)
       .stream()
-      .filter(value -> !value.id.equals(target.id))
+      .filter(value -> !value.getId().equals(target.getId()))
       .map(value -> {
-        double distance = distance(target.latitude, target.longitude, value.latitude, value.longitude);
-        boolean differentComplement = !normalize(target.complement).isBlank() && !normalize(value.complement).isBlank() && !normalize(target.complement).equals(normalize(value.complement));
-        boolean similar = similarity(target.name, value.name) >= nameSimilarity || similarity(target.address, value.address) >= addressSimilarity;
+        double distance = distance(target.getLatitude(), target.getLongitude(), value.getLatitude(), value.getLongitude());
+        boolean differentComplement = !normalize(target.getComplement()).isBlank() && !normalize(value.getComplement()).isBlank() && !normalize(target.getComplement()).equals(normalize(value.getComplement()));
+        boolean similar = similarity(target.getName(), value.getName()) >= nameSimilarity || similarity(target.getAddress(), value.getAddress()) >= addressSimilarity;
         return new NearbyCandidate(content.view(value), Math.round(distance * 10) / 10.0, similar, differentComplement);
       })
       .filter(value -> value.distanceMeters() <= radius)

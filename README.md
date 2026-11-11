@@ -36,7 +36,7 @@ O comando reutiliza `frontend/.prettierrc`, sem vírgulas finais e com largura d
 
 ## Banco de dados
 
-Sem variáveis, a aplicação usa **H2 persistente** em `backend/data/khki`. Isso permite executar a apresentação sem Docker. H2 console fica desabilitado. Flyway aplica `V1__initial_schema.sql`, e Hibernate valida o schema sem alterá-lo.
+Sem variáveis, a aplicação usa **H2 persistente** em `backend/data/khki`. Isso permite executar a apresentação sem Docker. H2 console fica desabilitado. Flyway aplica as migrações versionadas, e Hibernate valida o schema sem alterá-lo. Consulte [a estrutura relacional e a migração das imagens](database/README.md) antes de atualizar uma base existente.
 
 Para PostgreSQL, copie `.env.example` para `.env` e escolha uma senha local. Inicie Docker Desktop, execute `docker compose up -d database` e use:
 
@@ -77,7 +77,7 @@ Configure `GEOAPIFY_API_KEY` no ambiente ou no `.env`. O comando de configuraç�
 | Migração                   | `backend/src/main/resources/db/migration/` | Schema versionado pelo Flyway                                        |
 | Testes de interface        | `frontend/e2e/`                            | Fluxos públicos, autenticados, moderação, cadastro e navegação       |
 
-Fotos ficam como bytes privados no banco, adequados ao MVP de pequeno volume. O backend valida assinatura/formato real, tamanho e resolução e regrava JPEG sem metadados originais. A aprovação é humana, sem promessa de detecção automática de pessoas/reflexos. Uma foto rejeitada não rejeita seu cadastro ou avaliação. Ao remover uma foto, os bytes são apagados, mantendo o registro de moderação.
+Fotos são arquivos privados, locais no desenvolvimento e no Cloudflare R2 em produção. O PostgreSQL guarda URLs e metadados nas coleções do banheiro e da avaliação, sem uma entidade JPA `Photo`. Uma foto avulsa é persistida como avaliação sem comentário nem notas e não altera a média do banheiro. O backend continua validando tamanho, formato e resolução, regravando JPEG sem metadados. Aprovação, rejeição e denúncias são humanas. A remoção física usa uma fila persistente de tentativas, preservando o histórico da moderação. O [guia do banco](database/README.md) explica configuração, SQL independente, relações e migração sem perda dos bytes antigos. A produção exige um bucket R2 configurado antes da publicação desta versão.
 
 O perfil ADMIN é exigido na cadeia Spring Security e no serviço de moderação. Ocultar um banheiro também impede consulta pública a suas avaliações e fotos. Avaliações negativas podem ser aprovadas e contam na média. O usuário pode corrigir e reenviar banheiros/avaliações rejeitados. As decisões mantêm responsável, data, motivo e alvo. Motivos e nomes são renderizados como texto pelo Angular, sem `innerHTML`.
 

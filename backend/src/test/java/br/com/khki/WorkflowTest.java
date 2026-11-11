@@ -37,7 +37,7 @@ class WorkflowTest {
   ReviewRepository reviews;
 
   @Autowired
-  PhotoRepository photos;
+  ImageRepository photos;
 
   @Autowired
   AppUserRepository users;
@@ -51,6 +51,12 @@ class WorkflowTest {
   @Autowired
   AbuseGuard abuse;
 
+  @Autowired
+  br.com.khki.storage.ImageStorage imageStorage;
+
+  @Autowired
+  org.springframework.jdbc.core.JdbcTemplate jdbc;
+
   @BeforeEach
   void isolateRateLimitState() {
     ((java.util.Map<?, ?>) org.springframework.test.util.ReflectionTestUtils.getField(abuse, "buckets")).clear();
@@ -59,15 +65,15 @@ class WorkflowTest {
   @Test
   void publicSearchPaginatesBeforeClientFiltersWithoutExposingPendingContent() throws Exception {
     var created = new java.util.ArrayList<Bathroom>();
-    var author = users.findAll().get(0).id;
+    var author = users.findAll().get(0).getId();
     for (int index = 0; index < 202; index++) {
       var bathroom = new Bathroom();
-      bathroom.authorId = author;
-      bathroom.name = "Paginação dos filtros " + index;
-      bathroom.address = "Endereço de teste";
-      bathroom.category = "Biblioteca";
-      bathroom.access = Access.FREE;
-      bathroom.status = index == 201 ? Status.PENDING : Status.APPROVED;
+      bathroom.setAuthorId(author);
+      bathroom.setName("Paginação dos filtros " + index);
+      bathroom.setAddress("Endereço de teste");
+      bathroom.setCategory("Biblioteca");
+      bathroom.setAccess(Access.FREE);
+      bathroom.setStatus(index == 201 ? Status.PENDING : Status.APPROVED);
       created.add(bathroom);
     }
     bathrooms.saveAll(created);
@@ -78,7 +84,7 @@ class WorkflowTest {
       assertThat(second.size()).isEqualTo(1);
       var ids = new java.util.HashSet<String>();
       first.forEach(value -> ids.add(value.get("id").asText()));
-      assertThat(ids).doesNotContain(second.get(0).get("id").asText(), created.get(201).id.toString());
+      assertThat(ids).doesNotContain(second.get(0).get("id").asText(), created.get(201).getId().toString());
       mvc.perform(get("/api/bathrooms").param("offset", "-1")).andExpect(status().isBadRequest());
       mvc.perform(get("/api/bathrooms").param("offset", "100001")).andExpect(status().isBadRequest());
       mvc.perform(get("/api/bathrooms").param("offset", "invalid")).andExpect(status().isBadRequest());
@@ -254,7 +260,7 @@ class WorkflowTest {
     mvc.perform(get("/api/bathrooms/" + bathroomId + "/reviews")).andExpect(status().isNotFound());
     decide("BATHROOM", bathroomId, "APPROVED");
     decide("PHOTO", photoId, "REMOVED");
-    assertThat(photos.findById(photoId).orElseThrow().data).isEmpty();
+    assertThat(photos.findById(photoId).orElseThrow().getStatus()).isEqualTo(Status.REMOVED);
     assertThat(audits.count()).isGreaterThanOrEqualTo(6);
     mvc.perform(get("/api/me/contributions").cookie(session)).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(3));
     mvc.perform(post("/api/auth/logout").cookie(session).with(csrf())).andExpect(status().isNoContent());
@@ -273,18 +279,18 @@ class WorkflowTest {
   void rejectsDisguisedUploads() throws Exception {
     var admin = users.findByEmail("admin@khki.test").orElseThrow();
     var bathroom = new Bathroom();
-    bathroom.authorId = admin.id;
-    bathroom.name = "Upload";
-    bathroom.address = "Teste";
-    bathroom.category = "Teste";
-    bathroom.access = Access.FREE;
-    bathroom.status = Status.APPROVED;
+    bathroom.setAuthorId(admin.getId());
+    bathroom.setName("Upload");
+    bathroom.setAddress("Teste");
+    bathroom.setCategory("Teste");
+    bathroom.setAccess(Access.FREE);
+    bathroom.setStatus(Status.APPROVED);
     bathrooms.save(bathroom);
     mvc
       .perform(
-        multipart("/api/bathrooms/" + bathroom.id + "/photos")
+        multipart("/api/bathrooms/" + bathroom.getId() + "/photos")
           .file(new MockMultipartFile("file", "photo.jpg", "image/jpeg", "<script>alert(1)</script>".getBytes()))
-          .with(user(admin.email).roles("ADMIN"))
+          .with(user(admin.getEmail()).roles("ADMIN"))
           .with(csrf())
       )
       .andExpect(status().isBadRequest());
@@ -294,18 +300,18 @@ class WorkflowTest {
   void rejectedContributionCanOnlyBeResubmittedByAuthor() throws Exception {
     var admin = users.findByEmail("admin@khki.test").orElseThrow();
     var bathroom = new Bathroom();
-    bathroom.authorId = admin.id;
-    bathroom.name = "Rejeitado";
-    bathroom.address = "Teste";
-    bathroom.category = "Teste";
-    bathroom.access = Access.FREE;
-    bathroom.status = Status.REJECTED;
-    bathroom.reason = "Corrigir endereço";
+    bathroom.setAuthorId(admin.getId());
+    bathroom.setName("Rejeitado");
+    bathroom.setAddress("Teste");
+    bathroom.setCategory("Teste");
+    bathroom.setAccess(Access.FREE);
+    bathroom.setStatus(Status.REJECTED);
+    bathroom.setReason("Corrigir endereço");
     bathrooms.save(bathroom);
     mvc
       .perform(
-        put("/api/bathrooms/" + bathroom.id)
-          .with(user(admin.email).roles("ADMIN"))
+        put("/api/bathrooms/" + bathroom.getId())
+          .with(user(admin.getEmail()).roles("ADMIN"))
           .with(csrf())
           .contentType("application/json")
           .content(bathroomInput("Corrigido"))
@@ -313,7 +319,7 @@ class WorkflowTest {
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.status").value("PENDING"))
       .andExpect(jsonPath("$.reason").isEmpty());
-    mvc.perform(get("/api/bathrooms/" + bathroom.id)).andExpect(status().isNotFound());
+    mvc.perform(get("/api/bathrooms/" + bathroom.getId())).andExpect(status().isNotFound());
   }
 
   @Test
@@ -340,36 +346,36 @@ class WorkflowTest {
   void existingNonAuthorCannotReadPrivatePhotosOrReviseAnotherContribution() throws Exception {
     var admin = users.findByEmail("admin@khki.test").orElseThrow();
     var outsider = new AppUser();
-    outsider.name = "Outra pessoa";
-    outsider.email = "outsider-" + UUID.randomUUID() + "@khki.test";
-    outsider.password = "unused-test-hash";
+    outsider.setName("Outra pessoa");
+    outsider.setEmail("outsider-" + UUID.randomUUID() + "@khki.test");
+    outsider.setPassword("unused-test-hash");
     users.save(outsider);
     var bathroom = new Bathroom();
-    bathroom.authorId = admin.id;
-    bathroom.name = "Privado";
-    bathroom.address = "Teste";
-    bathroom.category = "Teste";
-    bathroom.access = Access.FREE;
-    bathroom.status = Status.REJECTED;
+    bathroom.setAuthorId(admin.getId());
+    bathroom.setName("Privado");
+    bathroom.setAddress("Teste");
+    bathroom.setCategory("Teste");
+    bathroom.setAccess(Access.FREE);
+    bathroom.setStatus(Status.REJECTED);
     bathrooms.save(bathroom);
-    var photo = new Photo();
-    photo.authorId = admin.id;
-    photo.bathroomId = bathroom.id;
-    photo.data = new byte[] { 1 };
+    var photo = new ImageContribution();
+    photo.setAuthorId(admin.getId());
+    photo.setBathroomId(bathroom.getId());
+    photo.setUrl("/api/photos/" + photo.getId());
     photos.save(photo);
-    mvc.perform(get("/api/photos/" + photo.id).with(user(outsider.email))).andExpect(status().isNotFound());
-    mvc.perform(get("/api/me/contributions/BATHROOM/" + bathroom.id).with(user(outsider.email))).andExpect(status().isNotFound());
+    mvc.perform(get("/api/photos/" + photo.getId()).with(user(outsider.getEmail()))).andExpect(status().isNotFound());
+    mvc.perform(get("/api/me/contributions/BATHROOM/" + bathroom.getId()).with(user(outsider.getEmail()))).andExpect(status().isNotFound());
     mvc
       .perform(
-        put("/api/bathrooms/" + bathroom.id)
-          .with(user(outsider.email))
+        put("/api/bathrooms/" + bathroom.getId())
+          .with(user(outsider.getEmail()))
           .with(csrf())
           .contentType("application/json")
           .content(bathroomInput("Tentativa indevida"))
       )
       .andExpect(status().isForbidden());
     mvc
-      .perform(get("/api/admin/content/BATHROOM/" + bathroom.id).with(user(admin.email).roles("ADMIN")))
+      .perform(get("/api/admin/content/BATHROOM/" + bathroom.getId()).with(user(admin.getEmail()).roles("ADMIN")))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.contribution.status").value("REJECTED"))
       .andExpect(jsonPath("$.content.name").value("Privado"));
@@ -378,15 +384,15 @@ class WorkflowTest {
   private Bathroom moderationBathroom(String name, Status status, String complement, double latitude) {
     var author = users.findByEmail("admin@khki.test").orElseThrow();
     var bathroom = new Bathroom();
-    bathroom.authorId = author.id;
-    bathroom.name = name;
-    bathroom.address = "Rua das Flores, 123, Indaiatuba";
-    bathroom.complement = complement;
-    bathroom.category = "Shopping";
-    bathroom.access = Access.FREE;
-    bathroom.status = status;
-    bathroom.latitude = latitude;
-    bathroom.longitude = -47.218;
+    bathroom.setAuthorId(author.getId());
+    bathroom.setName(name);
+    bathroom.setAddress("Rua das Flores, 123, Indaiatuba");
+    bathroom.setComplement(complement);
+    bathroom.setCategory("Shopping");
+    bathroom.setAccess(Access.FREE);
+    bathroom.setStatus(status);
+    bathroom.setLatitude(latitude);
+    bathroom.setLongitude(-47.218);
     return bathrooms.save(bathroom);
   }
 
@@ -396,21 +402,21 @@ class WorkflowTest {
     mvc
       .perform(get("/api/admin/queue/details").with(user("admin@khki.test").roles("ADMIN")))
       .andExpect(status().isOk())
-      .andExpect(jsonPath("$[?(@.contribution.id == '" + bathroom.id + "')].author").value("Administrador"));
+      .andExpect(jsonPath("$[?(@.contribution.id == '" + bathroom.getId() + "')].author").value("Administrador"));
     mvc
       .perform(
-        post("/api/admin/content/BATHROOM/" + bathroom.id + "/decision")
+        post("/api/admin/content/BATHROOM/" + bathroom.getId() + "/decision")
           .with(user("admin@khki.test").roles("ADMIN"))
           .with(csrf())
           .contentType("application/json")
           .content("{\"status\":\"NEEDS_INFORMATION\",\"reason\":\"Informe o andar e o horário.\",\"expectedVersion\":0}")
       )
       .andExpect(status().isOk());
-    mvc.perform(get("/api/bathrooms/" + bathroom.id)).andExpect(status().isNotFound());
-    mvc.perform(get("/api/me/contributions").with(user("admin@khki.test").roles("ADMIN"))).andExpect(jsonPath("$[?(@.id == '" + bathroom.id + "')].status").value("NEEDS_INFORMATION"));
+    mvc.perform(get("/api/bathrooms/" + bathroom.getId())).andExpect(status().isNotFound());
+    mvc.perform(get("/api/me/contributions").with(user("admin@khki.test").roles("ADMIN"))).andExpect(jsonPath("$[?(@.id == '" + bathroom.getId() + "')].status").value("NEEDS_INFORMATION"));
     mvc
       .perform(
-        put("/api/bathrooms/" + bathroom.id)
+        put("/api/bathrooms/" + bathroom.getId())
           .with(user("admin@khki.test").roles("ADMIN"))
           .with(csrf())
           .contentType("application/json")
@@ -418,9 +424,9 @@ class WorkflowTest {
       )
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.status").value("PENDING"));
-    assertThat(bathrooms.findById(bathroom.id).orElseThrow().complement).isEqualTo("Piso L2, bloco B");
+    assertThat(bathrooms.findById(bathroom.getId()).orElseThrow().getComplement()).isEqualTo("Piso L2, bloco B");
     mvc
-      .perform(get("/api/admin/content/BATHROOM/" + bathroom.id + "/history").with(user("admin@khki.test").roles("ADMIN")))
+      .perform(get("/api/admin/content/BATHROOM/" + bathroom.getId() + "/history").with(user("admin@khki.test").roles("ADMIN")))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.length()").value(1))
       .andExpect(jsonPath("$[0].moderator").value("Administrador"))
@@ -432,46 +438,46 @@ class WorkflowTest {
     var pending = moderationBathroom("Shopping Árvore", Status.PENDING, "Piso L1", -24.1);
     var nearby = moderationBathroom("Shopping Arvore", Status.APPROVED, "Piso L2", -24.1002);
     var unrelated = moderationBathroom("Terminal rodoviário", Status.APPROVED, null, -24.1003);
-    unrelated.address = "Avenida Central, 900, Salto";
+    unrelated.setAddress("Avenida Central, 900, Salto");
     bathrooms.save(unrelated);
     var distant = moderationBathroom("Shopping Árvore", Status.APPROVED, "Piso L3", -24.105);
-    mvc.perform(get("/api/admin/bathrooms/" + pending.id + "/nearby")).andExpect(status().isUnauthorized());
-    mvc.perform(get("/api/admin/bathrooms/" + pending.id + "/nearby").with(user("common@khki.test"))).andExpect(status().isForbidden());
+    mvc.perform(get("/api/admin/bathrooms/" + pending.getId() + "/nearby")).andExpect(status().isUnauthorized());
+    mvc.perform(get("/api/admin/bathrooms/" + pending.getId() + "/nearby").with(user("common@khki.test"))).andExpect(status().isForbidden());
     mvc
       .perform(
-        get("/api/admin/bathrooms/" + pending.id + "/nearby")
+        get("/api/admin/bathrooms/" + pending.getId() + "/nearby")
           .with(user("admin@khki.test").roles("ADMIN"))
           .param("radiusMeters", "1")
       )
       .andExpect(status().isBadRequest());
     mvc
-      .perform(get("/api/admin/bathrooms/" + pending.id + "/nearby").with(user("admin@khki.test").roles("ADMIN")))
+      .perform(get("/api/admin/bathrooms/" + pending.getId() + "/nearby").with(user("admin@khki.test").roles("ADMIN")))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.radiusMeters").value(150))
       .andExpect(jsonPath("$.candidates.length()").value(2))
-      .andExpect(jsonPath("$.candidates[0].bathroom.id").value(nearby.id.toString()))
+      .andExpect(jsonPath("$.candidates[0].bathroom.id").value(nearby.getId().toString()))
       .andExpect(jsonPath("$.candidates[0].possibleDuplicate").value(true))
       .andExpect(jsonPath("$.candidates[0].differentComplement").value(true))
       .andExpect(jsonPath("$.candidates[1].possibleDuplicate").value(false));
-    assertThat(bathrooms.findById(pending.id).orElseThrow().status).isEqualTo(Status.PENDING);
+    assertThat(bathrooms.findById(pending.getId()).orElseThrow().getStatus()).isEqualTo(Status.PENDING);
     mvc
       .perform(
-        get("/api/admin/bathrooms/" + pending.id + "/nearby")
+        get("/api/admin/bathrooms/" + pending.getId() + "/nearby")
           .with(user("admin@khki.test").roles("ADMIN"))
           .param("radiusMeters", "1000")
       )
       .andExpect(jsonPath("$.candidates.length()").value(3));
     mvc
       .perform(
-        post("/api/admin/content/BATHROOM/" + pending.id + "/decision")
+        post("/api/admin/content/BATHROOM/" + pending.getId() + "/decision")
           .with(user("admin@khki.test").roles("ADMIN"))
           .with(csrf())
           .contentType("application/json")
-          .content("{\"status\":\"REJECTED\",\"reason\":\"Mesmo banheiro após conferência do andar.\",\"expectedVersion\":0,\"duplicateOfId\":\"" + nearby.id + "\"}")
+          .content("{\"status\":\"REJECTED\",\"reason\":\"Mesmo banheiro após conferência do andar.\",\"expectedVersion\":0,\"duplicateOfId\":\"" + nearby.getId() + "\"}")
       )
       .andExpect(status().isOk());
-    mvc.perform(get("/api/admin/content/BATHROOM/" + pending.id + "/history").with(user("admin@khki.test").roles("ADMIN"))).andExpect(jsonPath("$[0].duplicateOfId").value(nearby.id.toString()));
-    assertThat(distant.status).isEqualTo(Status.APPROVED);
+    mvc.perform(get("/api/admin/content/BATHROOM/" + pending.getId() + "/history").with(user("admin@khki.test").roles("ADMIN"))).andExpect(jsonPath("$[0].duplicateOfId").value(nearby.getId().toString()));
+    assertThat(distant.getStatus()).isEqualTo(Status.APPROVED);
   }
 
   @Test
@@ -479,33 +485,34 @@ class WorkflowTest {
     var bathroom = moderationBathroom("Concorrência " + UUID.randomUUID(), Status.PENDING, null, -25.1);
     mvc
       .perform(
-        post("/api/admin/content/BATHROOM/" + bathroom.id + "/decision")
+        post("/api/admin/content/BATHROOM/" + bathroom.getId() + "/decision")
           .with(user("admin@khki.test").roles("ADMIN"))
           .with(csrf())
           .contentType("application/json")
           .content("{\"status\":\"APPROVED\",\"reason\":\"Conferido\",\"expectedVersion\":9}")
       )
       .andExpect(status().isConflict());
-    assertThat(bathrooms.findById(bathroom.id).orElseThrow().status).isEqualTo(Status.PENDING);
-    decide("BATHROOM", bathroom.id, "APPROVED");
+    assertThat(bathrooms.findById(bathroom.getId()).orElseThrow().getStatus()).isEqualTo(Status.PENDING);
+    decide("BATHROOM", bathroom.getId(), "APPROVED");
     var report = new Report();
-    report.targetType = TargetType.BATHROOM;
-    report.targetId = bathroom.id;
-    report.reason = "INCORRECT";
+    report.setTargetType(TargetType.BATHROOM);
+    report.setTargetId(bathroom.getId());
+    report.setReason("INCORRECT");
+    report.setReference(ContentReference.of(report.getTargetType(), report.getTargetId(), false));
     reports.save(report);
-    String endpoint = "/api/admin/reports/" + report.id + "/resolve";
+    String endpoint = "/api/admin/reports/" + report.getId() + "/resolve";
     mvc.perform(post(endpoint).with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"reason\":\"Conferido\",\"status\":\"HIDDEN\",\"expectedVersion\":0,\"contentVersion\":0}")).andExpect(status().isConflict());
-    assertThat(reports.findById(report.id).orElseThrow().resolved).isFalse();
+    assertThat(reports.findById(report.getId()).orElseThrow().getResolved()).isFalse();
     mvc.perform(post(endpoint).with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"reason\":\"Informação incorreta confirmada.\",\"status\":\"HIDDEN\",\"expectedVersion\":0,\"contentVersion\":1}")).andExpect(status().isOk());
-    assertThat(reports.findById(report.id).orElseThrow().resolved).isTrue();
+    assertThat(reports.findById(report.getId()).orElseThrow().getResolved()).isTrue();
     mvc
-      .perform(get("/api/admin/reports/" + report.id).with(user("admin@khki.test").roles("ADMIN")))
+      .perform(get("/api/admin/reports/" + report.getId()).with(user("admin@khki.test").roles("ADMIN")))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.resolved").value(true))
       .andExpect(jsonPath("$.version").value(1));
-    mvc.perform(get("/api/bathrooms/" + bathroom.id)).andExpect(status().isNotFound());
+    mvc.perform(get("/api/bathrooms/" + bathroom.getId())).andExpect(status().isNotFound());
     mvc.perform(post(endpoint).with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"reason\":\"Outra decisão\",\"expectedVersion\":0}")).andExpect(status().isConflict());
-    mvc.perform(get("/api/admin/reports").with(user("admin@khki.test").roles("ADMIN")).param("resolved", "true")).andExpect(jsonPath("$[?(@.id == '" + report.id + "')].resolved").value(true));
+    mvc.perform(get("/api/admin/reports").with(user("admin@khki.test").roles("ADMIN")).param("resolved", "true")).andExpect(jsonPath("$[?(@.id == '" + report.getId() + "')].resolved").value(true));
   }
 
   @Test
@@ -529,9 +536,9 @@ class WorkflowTest {
       .andExpect(jsonPath("$.id").value(id.toString()));
     assertThat(
       bathrooms
-        .findByAuthorIdOrderByCreatedAtDesc(users.findByEmail("admin@khki.test").orElseThrow().id)
+        .findByAuthorIdOrderByCreatedAtDesc(users.findByEmail("admin@khki.test").orElseThrow().getId())
         .stream()
-        .filter(value -> value.name.equals(name))
+        .filter(value -> value.getName().equals(name))
         .count()
     ).isEqualTo(1);
     mvc.perform(get("/api/bathrooms/" + id)).andExpect(status().isNotFound());
@@ -542,12 +549,12 @@ class WorkflowTest {
       .andExpect(jsonPath("$.fingerprint").doesNotExist());
     mvc.perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(input.replace(name, "Dados diferentes"))).andExpect(status().isConflict());
     var outsider = new AppUser();
-    outsider.name = "Outro autor";
-    outsider.email = "receipt-" + key + "@khki.test";
-    outsider.password = "unused-test-hash";
+    outsider.setName("Outro autor");
+    outsider.setEmail("receipt-" + key + "@khki.test");
+    outsider.setPassword("unused-test-hash");
     users.save(outsider);
-    mvc.perform(get("/api/me/submissions/" + key).with(user(outsider.email))).andExpect(status().isNotFound());
-    mvc.perform(post("/api/bathrooms").with(user(outsider.email)).with(csrf()).contentType("application/json").content(input)).andExpect(status().isConflict());
+    mvc.perform(get("/api/me/submissions/" + key).with(user(outsider.getEmail()))).andExpect(status().isNotFound());
+    mvc.perform(post("/api/bathrooms").with(user(outsider.getEmail())).with(csrf()).contentType("application/json").content(input)).andExpect(status().isConflict());
     decide("BATHROOM", id, "REJECTED");
     String correction = input.replace(key.toString(), UUID.randomUUID().toString()).replace(name, "Corrigido " + key);
     for (int attempt = 0; attempt < 2; attempt++) mvc
@@ -574,7 +581,7 @@ class WorkflowTest {
       body(
         mvc
           .perform(
-            multipart("/api/bathrooms/" + bathroom.id + "/photos")
+            multipart("/api/bathrooms/" + bathroom.getId() + "/photos")
               .file(upload)
               .param("submissionId", key.toString())
               .with(user("admin@khki.test").roles("ADMIN"))
@@ -588,7 +595,7 @@ class WorkflowTest {
     );
     mvc
       .perform(
-        multipart("/api/bathrooms/" + bathroom.id + "/photos")
+        multipart("/api/bathrooms/" + bathroom.getId() + "/photos")
           .file(upload)
           .param("submissionId", key.toString())
           .with(user("admin@khki.test").roles("ADMIN"))
@@ -596,11 +603,11 @@ class WorkflowTest {
       )
       .andExpect(status().isCreated())
       .andExpect(jsonPath("$.id").value(photoId.toString()));
-    assertThat(photos.findByBathroomIdAndStatus(bathroom.id, Status.PENDING)).hasSize(1);
+    assertThat(photos.findByBathroomIdAndStatus(bathroom.getId(), Status.PENDING)).hasSize(1);
     mvc.perform(get("/api/photos/" + photoId)).andExpect(status().isNotFound());
     mvc
       .perform(
-        multipart("/api/bathrooms/" + bathroom.id + "/photos")
+        multipart("/api/bathrooms/" + bathroom.getId() + "/photos")
           .file(upload)
           .param("submissionId", "invalid")
           .with(user("admin@khki.test").roles("ADMIN"))
@@ -615,10 +622,10 @@ class WorkflowTest {
     moderationBathroom("Biblioteca Central", Status.PENDING, "Piso L2", -27.3001);
     mvc.perform(get("/api/bathrooms/nearby").param("latitude", "-27.3").param("longitude", "-47.218")).andExpect(status().isUnauthorized());
     mvc
-      .perform(get("/api/bathrooms/nearby").with(user("common@khki.test")).param("name", "Biblioteca Central").param("address", approved.address).param("complement", "Piso L2").param("latitude", "-27.3002").param("longitude", "-47.218"))
+      .perform(get("/api/bathrooms/nearby").with(user("common@khki.test")).param("name", "Biblioteca Central").param("address", approved.getAddress()).param("complement", "Piso L2").param("latitude", "-27.3002").param("longitude", "-47.218"))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.candidates.length()").value(1))
-      .andExpect(jsonPath("$.candidates[0].bathroom.id").value(approved.id.toString()))
+      .andExpect(jsonPath("$.candidates[0].bathroom.id").value(approved.getId().toString()))
       .andExpect(jsonPath("$.candidates[0].differentComplement").value(true));
   }
 
@@ -646,9 +653,9 @@ class WorkflowTest {
       assertThat(statuses).contains(201);
       assertThat(
         bathrooms
-          .findByAuthorIdOrderByCreatedAtDesc(users.findByEmail("admin@khki.test").orElseThrow().id)
+          .findByAuthorIdOrderByCreatedAtDesc(users.findByEmail("admin@khki.test").orElseThrow().getId())
           .stream()
-          .filter(value -> value.name.equals(name))
+          .filter(value -> value.getName().equals(name))
           .count()
       ).isEqualTo(1);
     } finally {
@@ -779,7 +786,7 @@ class WorkflowTest {
     );
     UUID attached = attachmentUpload(bathroomId, null, true);
     UUID rejected = attachmentUpload(bathroomId, null, false);
-    assertThat(photos.findById(rejected).orElseThrow().registrationAttachment).isTrue();
+    assertThat(photos.findById(rejected).orElseThrow().getRegistrationAttachment()).isTrue();
     mvc
       .perform(get("/api/admin/queue").with(user("admin@khki.test").roles("ADMIN")))
       .andExpect(status().isOk())
@@ -789,12 +796,12 @@ class WorkflowTest {
     decide("BATHROOM", bathroomId, "APPROVED");
     mvc.perform(get("/api/photos/" + attached)).andExpect(status().isOk());
     mvc.perform(get("/api/photos/" + rejected)).andExpect(status().isNotFound());
-    assertThat(photos.findById(rejected).orElseThrow().status).isEqualTo(Status.REJECTED);
+    assertThat(photos.findById(rejected).orElseThrow().getStatus()).isEqualTo(Status.REJECTED);
     assertThat(audits.findByTargetTypeAndTargetIdOrderByCreatedAtDesc(TargetType.PHOTO, attached))
       .singleElement()
       .satisfies(audit -> {
-        assertThat(audit.decision).isEqualTo(Status.APPROVED);
-        assertThat(audit.moderatorId).isEqualTo(users.findByEmail("admin@khki.test").orElseThrow().id);
+        assertThat(audit.getDecision()).isEqualTo(Status.APPROVED);
+        assertThat(audit.getModeratorId()).isEqualTo(users.findByEmail("admin@khki.test").orElseThrow().getId());
       });
     UUID standalone = attachmentUpload(bathroomId, null, false);
     UUID reviewId = pendingReview(bathroomId);
@@ -815,12 +822,12 @@ class WorkflowTest {
     mvc.perform(get("/api/photos/" + reviewPhoto)).andExpect(status().isOk());
     mvc.perform(get("/api/photos/" + standalone)).andExpect(status().isNotFound());
     mvc.perform(get("/api/photos/" + otherPhoto)).andExpect(status().isNotFound());
-    assertThat(photos.findById(standalone).orElseThrow().status).isEqualTo(Status.PENDING);
-    assertThat(photos.findById(otherPhoto).orElseThrow().status).isEqualTo(Status.PENDING);
+    assertThat(photos.findById(standalone).orElseThrow().getStatus()).isEqualTo(Status.PENDING);
+    assertThat(photos.findById(otherPhoto).orElseThrow().getStatus()).isEqualTo(Status.PENDING);
     decide("BATHROOM", bathroomId, "HIDDEN");
     decide("BATHROOM", bathroomId, "APPROVED");
-    assertThat(photos.findById(standalone).orElseThrow().status).isEqualTo(Status.PENDING);
-    assertThat(photos.findById(otherPhoto).orElseThrow().status).isEqualTo(Status.PENDING);
+    assertThat(photos.findById(standalone).orElseThrow().getStatus()).isEqualTo(Status.PENDING);
+    assertThat(photos.findById(otherPhoto).orElseThrow().getStatus()).isEqualTo(Status.PENDING);
   }
 
   @Test
@@ -835,9 +842,9 @@ class WorkflowTest {
         .get("id")
         .asText()
     );
-    long before = bathrooms.findById(bathroomId).orElseThrow().version;
+    long before = bathrooms.findById(bathroomId).orElseThrow().getVersion();
     UUID photo = attachmentUpload(bathroomId, null, true);
-    assertThat(bathrooms.findById(bathroomId).orElseThrow().version).isGreaterThan(before);
+    assertThat(bathrooms.findById(bathroomId).orElseThrow().getVersion()).isGreaterThan(before);
     mvc
       .perform(
         post("/api/admin/content/BATHROOM/" + bathroomId + "/decision")
@@ -847,7 +854,7 @@ class WorkflowTest {
           .content("{\"status\":\"APPROVED\",\"reason\":\"Análise antiga\",\"expectedVersion\":" + before + "}")
       )
       .andExpect(status().isConflict());
-    assertThat(photos.findById(photo).orElseThrow().status).isEqualTo(Status.PENDING);
+    assertThat(photos.findById(photo).orElseThrow().getStatus()).isEqualTo(Status.PENDING);
     assertThat(audits.findByTargetTypeAndTargetIdOrderByCreatedAtDesc(TargetType.PHOTO, photo)).isEmpty();
     decide("BATHROOM", bathroomId, "APPROVED");
     var image = new ByteArrayOutputStream();
@@ -862,9 +869,9 @@ class WorkflowTest {
       )
       .andExpect(status().isConflict());
     UUID review = pendingReview(bathroomId);
-    long oldReviewVersion = reviews.findById(review).orElseThrow().version;
+    long oldReviewVersion = reviews.findById(review).orElseThrow().getVersion();
     attachmentUpload(bathroomId, review, false);
-    assertThat(reviews.findById(review).orElseThrow().version).isGreaterThan(oldReviewVersion);
+    assertThat(reviews.findById(review).orElseThrow().getVersion()).isGreaterThan(oldReviewVersion);
     mvc
       .perform(
         multipart("/api/bathrooms/" + bathroomId + "/photos")
@@ -890,32 +897,57 @@ class WorkflowTest {
         .asText()
     );
     decide("BATHROOM", bathroomId, "APPROVED");
-    var photo = new Photo();
-    photo.authorId = users.findByEmail("admin@khki.test").orElseThrow().id;
-    photo.bathroomId = bathroomId;
-    photo.registrationAttachment = true;
-    photo.data = new byte[] { 1 };
+    var photo = new ImageContribution();
+    photo.setAuthorId(users.findByEmail("admin@khki.test").orElseThrow().getId());
+    photo.setBathroomId(bathroomId);
+    photo.setRegistrationAttachment(true);
+    photo.setUrl("/api/photos/" + photo.getId());
     photos.save(photo);
     mvc
       .perform(get("/api/admin/queue").with(user("admin@khki.test").roles("ADMIN")))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$[?(@.id == '" + bathroomId + "')]").isNotEmpty())
-      .andExpect(jsonPath("$[?(@.id == '" + photo.id + "')]").isEmpty());
+      .andExpect(jsonPath("$[?(@.id == '" + photo.getId() + "')]").isEmpty());
     decide("BATHROOM", bathroomId, "APPROVED");
-    assertThat(photos.findById(photo.id).orElseThrow().status).isEqualTo(Status.APPROVED);
+    assertThat(photos.findById(photo.getId()).orElseThrow().getStatus()).isEqualTo(Status.APPROVED);
     UUID reviewId = pendingReview(bathroomId);
     decide("REVIEW", reviewId, "APPROVED");
-    var reviewPhoto = new Photo();
-    reviewPhoto.authorId = photo.authorId;
-    reviewPhoto.bathroomId = bathroomId;
-    reviewPhoto.reviewId = reviewId;
-    reviewPhoto.data = new byte[] { 1 };
+    var reviewPhoto = new ImageContribution();
+    reviewPhoto.setAuthorId(photo.getAuthorId());
+    reviewPhoto.setBathroomId(bathroomId);
+    reviewPhoto.setReviewId(reviewId);
+    reviewPhoto.setUrl("/api/photos/" + reviewPhoto.getId());
     photos.save(reviewPhoto);
     mvc
       .perform(get("/api/admin/queue").with(user("admin@khki.test").roles("ADMIN")))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$[?(@.id == '" + reviewId + "')]").isNotEmpty());
     decide("REVIEW", reviewId, "APPROVED");
-    assertThat(photos.findById(reviewPhoto.id).orElseThrow().status).isEqualTo(Status.APPROVED);
+    assertThat(photos.findById(reviewPhoto.getId()).orElseThrow().getStatus()).isEqualTo(Status.APPROVED);
+  }
+
+  @Test
+  void standaloneImageIsUnratedReviewAndPhotoReportRemainsValidWhenAnotherImageChanges() throws Exception {
+    UUID bathroomId = UUID.fromString(body(mvc.perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(bathroomInput("Imagem externa sem nota"))).andExpect(status().isCreated()).andReturn()).get("id").asText());
+    UUID first = attachmentUpload(bathroomId, null, true);
+    UUID second = attachmentUpload(bathroomId, null, true);
+    decide("BATHROOM", bathroomId, "APPROVED");
+    mvc.perform(post("/api/reports").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"targetType\":\"PHOTO\",\"targetId\":\"" + first + "\",\"reason\":\"PRIVACY\"}")).andExpect(status().isAccepted());
+    decide("PHOTO", second, "HIDDEN");
+    mvc.perform(get("/api/photos/" + first)).andExpect(status().isOk());
+    UUID standalone = attachmentUpload(bathroomId, null, false);
+    var review = reviews.findById(standalone).orElseThrow();
+    assertThat(review.getPhotoOnly()).isTrue();
+    assertThat(review.getCleanliness()).isNull();
+    assertThat(review.getStructure()).isNull();
+    assertThat(review.getComment()).isNull();
+    mvc.perform(get("/api/photos/" + standalone)).andExpect(status().isNotFound());
+    decide("PHOTO", standalone, "APPROVED");
+    mvc.perform(get("/api/bathrooms/" + bathroomId)).andExpect(status().isOk()).andExpect(jsonPath("$.rating").isEmpty()).andExpect(jsonPath("$.reviewCount").value(0));
+    mvc.perform(get("/api/bathrooms/" + bathroomId + "/reviews")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
+    assertThat(imageStorage.read(standalone)).isNotEmpty();
+    assertThat(jdbc.queryForObject("SELECT url FROM review_images WHERE image_id = ?", String.class, standalone)).isEqualTo("/api/photos/" + standalone);
+    decide("PHOTO", standalone, "REMOVED");
+    assertThatThrownBy(() -> imageStorage.read(standalone)).isInstanceOf(br.com.khki.api.ApiException.class);
   }
 }

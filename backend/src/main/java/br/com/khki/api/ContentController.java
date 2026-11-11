@@ -72,29 +72,29 @@ public class ContentController {
   @PostMapping("/bathrooms")
   @ResponseStatus(HttpStatus.CREATED)
   public ContributionView create(@Valid @RequestBody BathroomInput input, Principal principal) {
-    return content.createBathroom(input, accounts.current(principal).id);
+    return content.createBathroom(input, accounts.current(principal).getId());
   }
 
   @PutMapping("/bathrooms/{id}")
   public ContributionView revise(@PathVariable UUID id, @Valid @RequestBody BathroomInput input, Principal principal) {
-    return content.reviseBathroom(id, input, accounts.current(principal).id);
+    return content.reviseBathroom(id, input, accounts.current(principal).getId());
   }
 
   @PostMapping("/bathrooms/{id}/reviews")
   @ResponseStatus(HttpStatus.CREATED)
   public ContributionView review(@PathVariable UUID id, @Valid @RequestBody ReviewInput input, Principal principal) {
-    return content.createReview(id, input, accounts.current(principal).id);
+    return content.createReview(id, input, accounts.current(principal).getId());
   }
 
   @PutMapping("/reviews/{id}")
   public ContributionView reviseReview(@PathVariable UUID id, @Valid @RequestBody ReviewInput input, Principal principal) {
-    return content.reviseReview(id, input, accounts.current(principal).id);
+    return content.reviseReview(id, input, accounts.current(principal).getId());
   }
 
   @PostMapping(value = "/bathrooms/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @ResponseStatus(HttpStatus.CREATED)
   public ContributionView upload(@PathVariable UUID id, @RequestParam(required = false) UUID reviewId, @RequestParam(required = false) UUID submissionId, @RequestParam(defaultValue = "false") boolean registrationAttachment, @RequestPart MultipartFile file, Principal principal) {
-    return photos.upload(id, reviewId, accounts.current(principal).id, file, submissionId, registrationAttachment);
+    return photos.upload(id, reviewId, accounts.current(principal).getId(), file, submissionId, registrationAttachment);
   }
 
   @GetMapping("/photos/{id}")
@@ -108,20 +108,20 @@ public class ContentController {
 
   @GetMapping("/me/contributions")
   public List<ContributionView> mine(Principal principal) {
-    return content.mine(accounts.current(principal).id);
+    return content.mine(accounts.current(principal).getId());
   }
 
   @GetMapping("/me/submissions/{id}")
   public ContributionView submission(@PathVariable UUID id, Principal principal) {
-    return content.submission(id, accounts.current(principal).id);
+    return content.submission(id, accounts.current(principal).getId());
   }
 
   @GetMapping("/me/contributions/{type}/{id}")
   public Object own(@PathVariable TargetType type, @PathVariable UUID id, Principal principal) {
     var target = content.target(type, id);
-    if (!target.authorId.equals(accounts.current(principal).id)) throw ApiException.missing();
+    if (!target.getAuthorId().equals(accounts.current(principal).getId())) throw ApiException.missing();
     if (target instanceof Bathroom bathroom) return content.view(bathroom);
-    if (target instanceof Review review) return new ReviewView(review.id, "Sua avaliação", review.cleanliness, review.structure, review.comment, review.createdAt);
+    if (target instanceof Review review) return new ReviewView(review.getId(), "Sua avaliação", review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt());
     return content.contribution(target);
   }
 
@@ -131,9 +131,10 @@ public class ContentController {
     content.requirePublic(input.targetType(), input.targetId());
     abuse.check("report:" + request.getRemoteAddr() + ":" + input.targetId(), 1, 600);
     var report = new Report();
-    report.targetId = input.targetId();
-    report.targetType = input.targetType();
-    report.reason = input.reason();
+    report.setTargetId(input.targetId());
+    report.setTargetType(input.targetType());
+    report.setReason(input.reason());
+    report.setReference(content.reference(report.getTargetType(), report.getTargetId()));
     reports.save(report);
     return Map.of("message", "Denúncia recebida para análise.");
   }
