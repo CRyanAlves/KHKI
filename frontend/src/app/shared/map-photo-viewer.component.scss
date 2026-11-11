@@ -90,13 +90,3 @@
 .photo-next {
   right: var(--space-4);
 }
-.photo-report {
-  bottom: var(--space-4);
-  right: var(--space-4);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-sm);
-  min-height: var(--control-size);
-}

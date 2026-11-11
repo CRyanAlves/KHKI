@@ -1,12 +1,11 @@
 package br.com.khki;
 
+import br.com.khki.infrastructure.security.SessionPolicy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import br.com.khki.security.SessionPolicy;
 import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -40,10 +39,10 @@ class SessionPersistenceTest {
   JdbcIndexedSessionRepository sessions;
 
   @Autowired
-  br.com.khki.security.AbuseGuard abuse;
+  br.com.khki.infrastructure.security.AbuseGuard abuse;
 
   @Autowired
-  br.com.khki.repository.AppUserRepository users;
+  br.com.khki.usecase.account.UserRepository users;
 
   @Autowired
   org.springframework.security.crypto.password.PasswordEncoder passwords;
@@ -128,7 +127,7 @@ class SessionPersistenceTest {
 
   @Test
   void sessionSupportsTheFullEmailLengthAcceptedByTheAccountContract() throws Exception {
-    var account = new br.com.khki.domain.AppUser();
+    var account = new br.com.khki.usecase.account.User();
     account.setName("Conta com e-mail longo");
     account.setEmail("a".repeat(64) + "@" + "b".repeat(63) + "." + "c".repeat(63) + "." + "d".repeat(61));
     account.setPassword(passwords.encode("Test-user-password-123"));
