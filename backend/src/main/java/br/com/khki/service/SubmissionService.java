@@ -16,10 +16,12 @@ public class SubmissionService {
 
   private final SubmissionReceiptRepository receipts;
   private final ObjectMapper json;
+  private final br.com.khki.repository.ImageRepository images;
 
-  public SubmissionService(SubmissionReceiptRepository receipts, ObjectMapper json) {
+  public SubmissionService(SubmissionReceiptRepository receipts, ObjectMapper json, br.com.khki.repository.ImageRepository images) {
     this.receipts = receipts;
     this.json = json;
+    this.images = images;
   }
 
   public String fingerprint(Object request) {
@@ -42,26 +44,27 @@ public class SubmissionService {
     if (key == null) return null;
     var receipt = receipts.findById(key).orElse(null);
     if (receipt == null) return null;
-    if (!receipt.authorId.equals(authorId) || !receipt.operation.equals(operation) || !receipt.fingerprint.equals(fingerprint)) throw new ApiException(HttpStatus.CONFLICT, "Esta tentativa já foi utilizada com outros dados. Confira suas contribuições antes de reenviar.");
-    return receipt.targetId;
+    if (!receipt.getAuthorId().equals(authorId) || !receipt.getOperation().equals(operation) || !receipt.getFingerprint().equals(fingerprint)) throw new ApiException(HttpStatus.CONFLICT, "Esta tentativa já foi utilizada com outros dados. Confira suas contribuições antes de reenviar.");
+    return receipt.getTargetId();
   }
 
   public void remember(UUID key, UUID authorId, String operation, String fingerprint, TargetType type, UUID targetId) {
     if (key == null) return;
     var receipt = new SubmissionReceipt();
-    receipt.id = key;
-    receipt.authorId = authorId;
-    receipt.operation = operation;
-    receipt.fingerprint = fingerprint;
-    receipt.targetType = type;
-    receipt.targetId = targetId;
+    receipt.setId(key);
+    receipt.setAuthorId(authorId);
+    receipt.setOperation(operation);
+    receipt.setFingerprint(fingerprint);
+    receipt.setTargetType(type);
+    receipt.setTargetId(targetId);
+    receipt.setReference(ContentReference.of(type, targetId, type == TargetType.PHOTO && images.findById(targetId).orElseThrow(ApiException::missing).getRegistrationAttachment()));
     receipts.save(receipt);
   }
 
   public SubmissionReceipt own(UUID key, UUID authorId) {
     return receipts
       .findById(key)
-      .filter(value -> value.authorId.equals(authorId))
+      .filter(value -> value.getAuthorId().equals(authorId))
       .orElseThrow(ApiException::missing);
   }
 }

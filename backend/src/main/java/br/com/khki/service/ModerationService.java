@@ -4,6 +4,7 @@ import br.com.khki.api.*;
 import br.com.khki.api.Contracts.*;
 import br.com.khki.domain.*;
 import br.com.khki.repository.*;
+import br.com.khki.storage.ImageCleanupService;
 import java.util.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,33 +16,35 @@ import org.springframework.transaction.annotation.Transactional;
 @PreAuthorize("hasRole('ADMIN')")
 public class ModerationService {
 
+  private final ImageCleanupService cleanup;
   private final ContentService content;
   private final BathroomRepository bathrooms;
   private final ReviewRepository reviews;
-  private final PhotoRepository photos;
+  private final ImageRepository photos;
   private final ReportRepository reports;
   private final ModerationAuditRepository audits;
 
-  public ModerationService(ContentService content, BathroomRepository bathrooms, ReviewRepository reviews, PhotoRepository photos, ReportRepository reports, ModerationAuditRepository audits) {
+  public ModerationService(ContentService content, BathroomRepository bathrooms, ReviewRepository reviews, ImageRepository photos, ReportRepository reports, ModerationAuditRepository audits, ImageCleanupService cleanup) {
     this.content = content;
     this.bathrooms = bathrooms;
     this.reviews = reviews;
     this.photos = photos;
     this.reports = reports;
     this.audits = audits;
+    this.cleanup = cleanup;
   }
 
   public List<ContributionView> queue(Status status) {
     var result = new ArrayList<ContributionView>();
     bathrooms.findByStatus(status).forEach(value -> result.add(content.contribution(value)));
-    reviews.findByStatus(status).forEach(value -> result.add(content.contribution(value)));
+    reviews.findByStatus(status).stream().filter(review -> !review.getPhotoOnly()).forEach(value -> result.add(content.contribution(value)));
     photos.findByStatusAndReviewIdIsNullAndRegistrationAttachmentFalse(status).forEach(value -> result.add(content.contribution(value)));
     if (status == Status.PENDING) {
       var included = new HashSet<UUID>();
       result.forEach(item -> included.add(item.id()));
-      for (Photo photo : photos.findByStatus(Status.PENDING)) {
-        ModeratedContent parent = photo.reviewId != null ? reviews.findById(photo.reviewId).orElse(null) : photo.registrationAttachment ? bathrooms.findById(photo.bathroomId).orElse(null) : null;
-        if (parent != null && parent.status == Status.APPROVED && included.add(parent.id)) result.add(content.contribution(parent));
+      for (ImageContribution photo : photos.findByStatus(Status.PENDING)) {
+        ModeratedContent parent = photo.getReviewId() != null ? reviews.findById(photo.getReviewId()).orElse(null) : photo.getRegistrationAttachment() ? bathrooms.findById(photo.getBathroomId()).orElse(null) : null;
+        if (parent != null && parent.getStatus() == Status.APPROVED && included.add(parent.getId())) result.add(content.contribution(parent));
       }
     }
     result.sort(Comparator.comparing(ContributionView::createdAt));
@@ -52,14 +55,14 @@ public class ModerationService {
     var target = content.target(type, id);
     var contribution = content.contribution(target);
     var bathroom = bathrooms.findById(contribution.bathroomId()).orElseThrow(ApiException::missing);
-    Object details = target instanceof Bathroom value ? content.view(value) : target instanceof Review review ? new ReviewView(review.id, content.authorName(review.authorId), review.cleanliness, review.structure, review.comment, review.createdAt) : contribution;
+    Object details = target instanceof Bathroom value ? content.view(value) : target instanceof Review review ? new ReviewView(review.getId(), content.authorName(review.getAuthorId()), review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt()) : contribution;
     var pictures = photos
-      .findByBathroomIdAndStatusNotOrderByCreatedAtDesc(bathroom.id, Status.REMOVED)
+      .findByBathroomIdAndStatusNotOrderByCreatedAtDesc(bathroom.getId(), Status.REMOVED)
       .stream()
       .filter(photo -> attachedTo(photo, target))
       .map(content::contribution)
       .toList();
-    return new ModerationDetail(contribution, details, content.authorName(target.authorId), target.version, content.view(bathroom), pictures);
+    return new ModerationDetail(contribution, details, content.authorName(target.getAuthorId()), target.getVersion(), content.view(bathroom), pictures);
   }
 
   public List<ModerationQueueItem> queueDetails(Status status) {
@@ -68,25 +71,25 @@ public class ModerationService {
       .map(item -> {
         var target = content.target(item.type(), item.id());
         var bathroom = bathrooms.findById(item.bathroomId()).orElseThrow(ApiException::missing);
-        var pictures = photos.findByBathroomIdAndStatusNotOrderByCreatedAtDesc(bathroom.id, Status.REMOVED);
+        var pictures = photos.findByBathroomIdAndStatusNotOrderByCreatedAtDesc(bathroom.getId(), Status.REMOVED);
         UUID thumbnail =
           item.type() == TargetType.PHOTO && status != Status.REMOVED
             ? item.id()
             : pictures
                 .stream()
-                .filter(photo -> attachedTo(photo, target) && photo.status != Status.REJECTED && photo.status != Status.HIDDEN)
-                .map(photo -> photo.id)
+                .filter(photo -> attachedTo(photo, target) && photo.getStatus() != Status.REJECTED && photo.getStatus() != Status.HIDDEN)
+                .map(photo -> photo.getId())
                 .findFirst()
                 .orElse(null);
-        return new ModerationQueueItem(item, content.authorName(target.authorId), bathroom.address, bathroom.complement, bathroom.category, thumbnail, target.version);
+        return new ModerationQueueItem(item, content.authorName(target.getAuthorId()), bathroom.getAddress(), bathroom.getComplement(), bathroom.getCategory(), thumbnail, target.getVersion());
       })
       .toList();
   }
 
   public void decide(TargetType type, UUID id, Decision input, UUID moderatorId) {
     var target = content.target(type, id);
-    checkVersion(input.expectedVersion(), target.version);
-    boolean valid = switch (target.status) {
+    checkVersion(input.expectedVersion(), target.getVersion());
+    boolean valid = switch (target.getStatus()) {
       case PENDING -> input.status() == Status.APPROVED || input.status() == Status.REJECTED || (input.status() == Status.NEEDS_INFORMATION && type != TargetType.PHOTO);
       case NEEDS_INFORMATION -> input.status() == Status.APPROVED || input.status() == Status.REJECTED || input.status() == Status.NEEDS_INFORMATION;
       case APPROVED -> input.status() == Status.HIDDEN || input.status() == Status.REMOVED || (input.status() == Status.APPROVED && type != TargetType.PHOTO && hasPendingAttachments(target));
@@ -99,43 +102,48 @@ public class ModerationService {
       if (type != TargetType.BATHROOM || input.status() != Status.REJECTED || id.equals(input.duplicateOfId())) throw new ApiException(HttpStatus.BAD_REQUEST, "Informe um cadastro existente válido para rejeitar por duplicidade.");
       content.approved(input.duplicateOfId());
     }
-    target.status = input.status();
-    target.reason = input.reason().strip();
-    if (target instanceof Photo photo && input.status() == Status.REMOVED) photo.data = new byte[0];
-    recordDecision(type, target, moderatorId, target.reason, input.duplicateOfId());
-    if (input.status() == Status.APPROVED && !(target instanceof Photo)) {
-      UUID bathroomId = target instanceof Bathroom ? target.id : ((Review) target).bathroomId;
-      for (Photo photo : photos.findByBathroomIdAndStatus(bathroomId, Status.PENDING)) {
+    target.setStatus(input.status());
+    target.setReason(input.reason().strip());
+    if (target instanceof ImageContribution photo) {
+      photos.save(photo);
+      if (input.status() == Status.REMOVED) cleanup.enqueue(photo.getId());
+    }
+    recordDecision(type, target, moderatorId, target.getReason(), input.duplicateOfId());
+    if (input.status() == Status.APPROVED && !(target instanceof ImageContribution)) {
+      UUID bathroomId = target instanceof Bathroom ? target.getId() : ((Review) target).getBathroomId();
+      for (ImageContribution photo : photos.findByBathroomIdAndStatus(bathroomId, Status.PENDING)) {
         if (!attachedTo(photo, target)) continue;
-        photo.status = Status.APPROVED;
-        photo.reason = "Aprovada junto com " + (type == TargetType.BATHROOM ? "o cadastro do banheiro " : "a avaliação ") + id + ".";
-        recordDecision(TargetType.PHOTO, photo, moderatorId, photo.reason, null);
+        photo.setStatus(Status.APPROVED);
+        photo.setReason("Aprovada junto com " + (type == TargetType.BATHROOM ? "o cadastro do banheiro " : "a avaliação ") + id + ".");
+        photos.save(photo);
+        recordDecision(TargetType.PHOTO, photo, moderatorId, photo.getReason(), null);
       }
     }
   }
 
   private boolean hasPendingAttachments(ModeratedContent target) {
-    UUID bathroomId = target instanceof Bathroom ? target.id : ((Review) target).bathroomId;
+    UUID bathroomId = target instanceof Bathroom ? target.getId() : ((Review) target).getBathroomId();
     return photos
       .findByBathroomIdAndStatus(bathroomId, Status.PENDING)
       .stream()
       .anyMatch(photo -> attachedTo(photo, target));
   }
 
-  private boolean attachedTo(Photo photo, ModeratedContent target) {
-    if (target instanceof Review) return Objects.equals(photo.reviewId, target.id);
-    if (target instanceof Bathroom) return photo.registrationAttachment && photo.reviewId == null && photo.bathroomId.equals(target.id);
-    return photo.id.equals(target.id);
+  private boolean attachedTo(ImageContribution photo, ModeratedContent target) {
+    if (target instanceof Review) return Objects.equals(photo.getReviewId(), target.getId());
+    if (target instanceof Bathroom) return photo.getRegistrationAttachment() && photo.getReviewId() == null && photo.getBathroomId().equals(target.getId());
+    return photo.getId().equals(target.getId());
   }
 
   private void recordDecision(TargetType type, ModeratedContent target, UUID moderatorId, String reason, UUID duplicateOfId) {
     var audit = new ModerationAudit();
-    audit.targetType = type;
-    audit.targetId = target.id;
-    audit.moderatorId = moderatorId;
-    audit.decision = target.status;
-    audit.reason = reason;
-    audit.duplicateOfId = duplicateOfId;
+    audit.setTargetType(type);
+    audit.setTargetId(target.getId());
+    audit.setModeratorId(moderatorId);
+    audit.setDecision(target.getStatus());
+    audit.setReason(reason);
+    audit.setDuplicateOfId(duplicateOfId);
+    audit.setReference(content.reference(audit.getTargetType(), audit.getTargetId()));
     audits.save(audit);
   }
 
@@ -152,27 +160,28 @@ public class ModerationService {
   }
 
   private ReportView reportView(Report report) {
-    var contribution = content.contribution(content.target(report.targetType, report.targetId));
+    var contribution = content.contribution(content.target(report.getTargetType(), report.getTargetId()));
     var bathroom = bathrooms.findById(contribution.bathroomId()).orElseThrow(ApiException::missing);
-    return new ReportView(report.id, report.targetType, report.targetId, report.reason, report.createdAt, report.resolved, report.version, contribution.title(), bathroom.address);
+    return new ReportView(report.getId(), report.getTargetType(), report.getTargetId(), report.getReason(), report.getCreatedAt(), report.getResolved(), report.getVersion(), contribution.title(), bathroom.getAddress());
   }
 
   public void resolve(UUID id, String reason, UUID moderatorId, Long expectedVersion, Status status, Long contentVersion) {
     var report = reports.findById(id).orElseThrow(ApiException::missing);
-    checkVersion(expectedVersion, report.version);
-    if (report.resolved) throw new ApiException(HttpStatus.CONFLICT, "Esta denúncia já foi encerrada. Atualize a fila.");
-    checkVersion(contentVersion, content.target(report.targetType, report.targetId).version);
+    checkVersion(expectedVersion, report.getVersion());
+    if (report.getResolved()) throw new ApiException(HttpStatus.CONFLICT, "Esta denúncia já foi encerrada. Atualize a fila.");
+    checkVersion(contentVersion, content.target(report.getTargetType(), report.getTargetId()).getVersion());
     if (status != null) {
       if (status != Status.HIDDEN && status != Status.REMOVED) throw new ApiException(HttpStatus.BAD_REQUEST, "Escolha manter, ocultar ou remover o conteúdo.");
-      decide(report.targetType, report.targetId, new Decision(status, reason, contentVersion, null), moderatorId);
+      decide(report.getTargetType(), report.getTargetId(), new Decision(status, reason, contentVersion, null), moderatorId);
     }
-    report.resolved = true;
+    report.setResolved(true);
     var audit = new ModerationAudit();
-    audit.targetType = report.targetType;
-    audit.targetId = report.targetId;
-    audit.moderatorId = moderatorId;
-    audit.decision = content.target(report.targetType, report.targetId).status;
-    audit.reason = "Denúncia " + id + " encerrada: " + reason.strip();
+    audit.setTargetType(report.getTargetType());
+    audit.setTargetId(report.getTargetId());
+    audit.setModeratorId(moderatorId);
+    audit.setDecision(content.target(report.getTargetType(), report.getTargetId()).getStatus());
+    audit.setReason("Denúncia " + id + " encerrada: " + reason.strip());
+    audit.setReference(content.reference(audit.getTargetType(), audit.getTargetId()));
     audits.save(audit);
   }
 
@@ -185,7 +194,7 @@ public class ModerationService {
     return audits
       .findByTargetTypeAndTargetIdOrderByCreatedAtDesc(type, id)
       .stream()
-      .map(value -> new AuditView(value.id, value.targetType, value.targetId, value.moderatorId, content.authorName(value.moderatorId), value.decision, value.reason, value.createdAt, value.duplicateOfId))
+      .map(value -> new AuditView(value.getId(), value.getTargetType(), value.getTargetId(), value.getModeratorId(), content.authorName(value.getModeratorId()), value.getDecision(), value.getReason(), value.getCreatedAt(), value.getDuplicateOfId()))
       .toList();
   }
 }

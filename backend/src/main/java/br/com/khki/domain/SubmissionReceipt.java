@@ -9,27 +9,65 @@ import java.util.UUID;
 public class SubmissionReceipt {
 
   @Id
-  public UUID id;
+  private UUID id;
 
   @Version
-  public Long version;
+  private Long version;
 
-  @Column(nullable = false)
-  public UUID authorId;
+  @Column(name = "author_id", nullable = false)
+  private UUID authorId;
+
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "author_id", insertable = false, updatable = false)
+  @com.fasterxml.jackson.annotation.JsonIgnore
+  private AppUser author;
 
   @Column(nullable = false, length = 80)
-  public String operation;
+  private String operation;
 
   @Column(nullable = false, length = 64)
-  public String fingerprint;
+  private String fingerprint;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 20)
-  public TargetType targetType;
+  private TargetType targetType;
 
   @Column(nullable = false)
-  public UUID targetId;
+  private UUID targetId;
 
   @Column(nullable = false)
-  public Instant createdAt = Instant.now();
+  private Instant createdAt = Instant.now();
+  @Embedded
+  @com.fasterxml.jackson.annotation.JsonIgnore
+  private ContentReference reference;
+
+  public UUID getId() { return id; }
+  public void setId(UUID value) { id = value; }
+
+  public Long getVersion() { return version; }
+  public void setVersion(Long value) { version = value; }
+
+  public UUID getAuthorId() { return authorId; }
+  public void setAuthorId(UUID value) { authorId = value; }
+
+  public AppUser getAuthor() { return author; }
+  public void setAuthor(AppUser value) { author = value; }
+
+  public String getOperation() { return operation; }
+  public void setOperation(String value) { operation = value; }
+
+  public String getFingerprint() { return fingerprint; }
+  public void setFingerprint(String value) { fingerprint = value; }
+
+  public TargetType getTargetType() { return targetType; }
+  public void setTargetType(TargetType value) { targetType = value; }
+
+  public UUID getTargetId() { return targetId; }
+  public void setTargetId(UUID value) { targetId = value; }
+
+  public Instant getCreatedAt() { return createdAt; }
+  public void setCreatedAt(Instant value) { createdAt = value; }
+
+  public ContentReference getReference() { return reference; }
+  public void setReference(ContentReference value) { reference = value; }
 }

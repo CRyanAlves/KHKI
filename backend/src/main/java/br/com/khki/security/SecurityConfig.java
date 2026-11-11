@@ -29,7 +29,7 @@ public class SecurityConfig {
     return email ->
       users
         .findByEmail(email)
-        .map(user -> User.withUsername(user.email).password(user.password).roles(user.role).build())
+        .map(user -> User.withUsername(user.getEmail()).password(user.getPassword()).roles(user.getRole()).build())
         .orElseThrow(() -> new UsernameNotFoundException("Credenciais inválidas."));
   }
 

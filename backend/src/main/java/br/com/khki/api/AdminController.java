@@ -54,7 +54,7 @@ public class AdminController {
 
   @PostMapping("/content/{type}/{id}/decision")
   public void decide(@PathVariable TargetType type, @PathVariable UUID id, @Valid @RequestBody Decision input, Principal principal) {
-    moderation.decide(type, id, input, accounts.current(principal).id);
+    moderation.decide(type, id, input, accounts.current(principal).getId());
   }
 
   @GetMapping("/reports")
@@ -71,7 +71,7 @@ public class AdminController {
 
   @PostMapping("/reports/{id}/resolve")
   public void resolve(@PathVariable UUID id, @Valid @RequestBody Resolution input, Principal principal) {
-    moderation.resolve(id, input.reason(), accounts.current(principal).id, input.expectedVersion(), input.status(), input.contentVersion());
+    moderation.resolve(id, input.reason(), accounts.current(principal).getId(), input.expectedVersion(), input.status(), input.contentVersion());
   }
 
   @GetMapping("/audit")

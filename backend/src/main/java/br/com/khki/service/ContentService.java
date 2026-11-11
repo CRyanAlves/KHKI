@@ -16,11 +16,11 @@ public class ContentService {
 
   private final BathroomRepository bathrooms;
   private final ReviewRepository reviews;
-  private final PhotoRepository photos;
+  private final ImageRepository photos;
   private final AppUserRepository users;
   private final SubmissionService submissions;
 
-  public ContentService(BathroomRepository bathrooms, ReviewRepository reviews, PhotoRepository photos, AppUserRepository users, SubmissionService submissions) {
+  public ContentService(BathroomRepository bathrooms, ReviewRepository reviews, ImageRepository photos, AppUserRepository users, SubmissionService submissions) {
     this.bathrooms = bathrooms;
     this.reviews = reviews;
     this.photos = photos;
@@ -31,7 +31,7 @@ public class ContentService {
   public Bathroom approved(UUID id) {
     return bathrooms
       .findById(id)
-      .filter(value -> value.status == Status.APPROVED)
+      .filter(value -> value.getStatus() == Status.APPROVED)
       .orElseThrow(ApiException::missing);
   }
 
@@ -48,10 +48,10 @@ public class ContentService {
     return bathrooms
       .findByStatus(Status.APPROVED)
       .stream()
-      .filter(value -> normalize(value.name + " " + value.address).contains(term))
-      .filter(value -> access == null || value.access == access)
-      .filter(value -> accessible == null || accessible.equals(value.accessible))
-      .sorted(Comparator.comparing((Bathroom value) -> value.name).thenComparing(value -> value.id))
+      .filter(value -> normalize(value.getName() + " " + value.getAddress()).contains(term))
+      .filter(value -> access == null || value.getAccess() == access)
+      .filter(value -> accessible == null || accessible.equals(value.getAccessible()))
+      .sorted(Comparator.comparing((Bathroom value) -> value.getName()).thenComparing(value -> value.getId()))
       .skip(offset)
       .limit(200)
       .map(this::view)
@@ -59,36 +59,37 @@ public class ContentService {
   }
 
   public BathroomView view(Bathroom bathroom) {
-    var approvedReviews = reviews.findByBathroomIdAndStatusOrderByCreatedAtDesc(bathroom.id, Status.APPROVED);
+    bathroom = bathrooms.findById(bathroom.getId()).orElseThrow(ApiException::missing);
+    var approvedReviews = reviews.findByBathroomIdAndStatusOrderByCreatedAtDesc(bathroom.getId(), Status.APPROVED).stream().filter(review -> !review.getPhotoOnly()).toList();
     Double average = approvedReviews.isEmpty()
       ? null
       : approvedReviews
           .stream()
-          .mapToDouble(review -> (review.cleanliness + review.structure) / 2.0)
+          .mapToDouble(review -> (review.getCleanliness() + review.getStructure()) / 2.0)
           .average()
           .orElseThrow();
     return new BathroomView(
-      bathroom.id,
-      bathroom.name,
-      bathroom.address,
-      bathroom.category,
-      bathroom.latitude,
-      bathroom.longitude,
-      bathroom.access,
-      bathroom.accessDetails,
-      bathroom.hours,
-      bathroom.accessible,
-      bathroom.items.isBlank() ? List.of() : List.of(bathroom.items.split(",")),
+      bathroom.getId(),
+      bathroom.getName(),
+      bathroom.getAddress(),
+      bathroom.getCategory(),
+      bathroom.getLatitude(),
+      bathroom.getLongitude(),
+      bathroom.getAccess(),
+      bathroom.getAccessDetails(),
+      bathroom.getHours(),
+      bathroom.getAccessible(),
+      List.copyOf(bathroom.getItems()),
       average,
       approvedReviews.size(),
       photos
-        .findByBathroomIdAndStatus(bathroom.id, Status.APPROVED)
+        .findByBathroomIdAndStatus(bathroom.getId(), Status.APPROVED)
         .stream()
         .filter(this::parentVisible)
-        .map(photo -> photo.id)
+        .map(photo -> photo.getId())
         .toList(),
-      bathroom.demo,
-      bathroom.complement,
+      bathroom.getDemo(),
+      bathroom.getComplement(),
       BathroomDetailsMapper.view(bathroom)
     );
   }
@@ -98,7 +99,8 @@ public class ContentService {
     return reviews
       .findByBathroomIdAndStatusOrderByCreatedAtDesc(id, Status.APPROVED)
       .stream()
-      .map(review -> new ReviewView(review.id, users.findById(review.authorId).orElseThrow().name, review.cleanliness, review.structure, review.comment, review.createdAt))
+      .filter(review -> !review.getPhotoOnly())
+      .map(review -> new ReviewView(review.getId(), users.findById(review.getAuthorId()).orElseThrow().getName(), review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt()))
       .toList();
   }
 
@@ -107,10 +109,10 @@ public class ContentService {
     UUID previous = submissions.replay(input.submissionId(), authorId, "BATHROOM_CREATE", fingerprint);
     if (previous != null) return contribution(target(TargetType.BATHROOM, previous));
     var bathroom = new Bathroom();
-    bathroom.authorId = authorId;
+    bathroom.setAuthorId(authorId);
     apply(bathroom, input);
     bathrooms.save(bathroom);
-    submissions.remember(input.submissionId(), authorId, "BATHROOM_CREATE", fingerprint, TargetType.BATHROOM, bathroom.id);
+    submissions.remember(input.submissionId(), authorId, "BATHROOM_CREATE", fingerprint, TargetType.BATHROOM, bathroom.getId());
     return contribution(bathroom);
   }
 
@@ -122,8 +124,8 @@ public class ContentService {
     if (previous != null) return contribution(target(TargetType.BATHROOM, previous));
     editable(bathroom, authorId);
     apply(bathroom, input);
-    bathroom.status = Status.PENDING;
-    bathroom.reason = null;
+    bathroom.setStatus(Status.PENDING);
+    bathroom.setReason(null);
     bathrooms.save(bathroom);
     submissions.remember(input.submissionId(), authorId, operation, fingerprint, TargetType.BATHROOM, id);
     return contribution(bathroom);
@@ -131,57 +133,58 @@ public class ContentService {
 
   public ContributionView submission(UUID key, UUID authorId) {
     var receipt = submissions.own(key, authorId);
-    return contribution(target(receipt.targetType, receipt.targetId));
+    return contribution(target(receipt.getTargetType(), receipt.getTargetId()));
   }
 
   private void apply(Bathroom bathroom, BathroomInput input) {
-    bathroom.name = input.name().strip();
-    bathroom.address = input.address().strip();
-    bathroom.complement = input.complement() == null ? null : input.complement().strip();
-    bathroom.category = input.category().strip();
-    bathroom.latitude = input.latitude();
-    bathroom.longitude = input.longitude();
-    bathroom.access = input.access();
-    bathroom.accessDetails = input.accessDetails();
-    bathroom.hours = input.hours();
-    bathroom.accessible = input.accessible();
-    bathroom.items = String.join(",", new TreeSet<>(input.items()));
+    bathroom.setName(input.name().strip());
+    bathroom.setAddress(input.address().strip());
+    bathroom.setComplement(input.complement() == null ? null : input.complement().strip());
+    bathroom.setCategory(input.category().strip());
+    bathroom.setLatitude(input.latitude());
+    bathroom.setLongitude(input.longitude());
+    bathroom.setAccess(input.access());
+    bathroom.setAccessDetails(input.accessDetails());
+    bathroom.setHours(input.hours());
+    bathroom.setAccessible(input.accessible());
+    bathroom.setItems(new TreeSet<>(input.items()));
     BathroomDetailsMapper.apply(bathroom, input.details());
   }
 
   private void editable(ModeratedContent content, UUID authorId) {
-    if (!content.authorId.equals(authorId) || (content.status != Status.REJECTED && content.status != Status.NEEDS_INFORMATION)) throw new ApiException(HttpStatus.FORBIDDEN, "Somente o autor pode reenviar uma contribuição rejeitada ou com solicitação de informações.");
+    if (!content.getAuthorId().equals(authorId) || (content.getStatus() != Status.REJECTED && content.getStatus() != Status.NEEDS_INFORMATION)) throw new ApiException(HttpStatus.FORBIDDEN, "Somente o autor pode reenviar uma contribuição rejeitada ou com solicitação de informações.");
   }
 
   public String authorName(UUID id) {
     return users
       .findById(id)
-      .map(user -> user.name)
+      .map(user -> user.getName())
       .orElse("Autor indisponível");
   }
 
   public ContributionView createReview(UUID bathroomId, ReviewInput input, UUID authorId) {
     approved(bathroomId);
     var review = new Review();
-    review.authorId = authorId;
-    review.bathroomId = bathroomId;
+    review.setAuthorId(authorId);
+    review.setBathroomId(bathroomId);
     applyReview(review, input);
     return contribution(reviews.save(review));
   }
 
   private void applyReview(Review review, ReviewInput input) {
-    review.cleanliness = input.cleanliness();
-    review.structure = input.structure();
-    review.comment = input.comment();
+    review.setCleanliness(input.cleanliness());
+    review.setStructure(input.structure());
+    review.setComment(input.comment());
   }
 
   public ContributionView reviseReview(UUID id, ReviewInput input, UUID authorId) {
     var review = reviews.findById(id).orElseThrow(ApiException::missing);
     editable(review, authorId);
-    approved(review.bathroomId);
+    approved(review.getBathroomId());
+    if (review.getPhotoOnly()) throw new ApiException(HttpStatus.BAD_REQUEST, "Este envio contém somente fotos.");
     applyReview(review, input);
-    review.status = Status.PENDING;
-    review.reason = null;
+    review.setStatus(Status.PENDING);
+    review.setReason(null);
     return contribution(reviews.save(review));
   }
 
@@ -189,7 +192,7 @@ public class ContentService {
     return bathrooms
       .findByStatus(Status.APPROVED)
       .stream()
-      .filter(value -> distance(latitude, longitude, value.latitude, value.longitude) < 150 && normalize(value.name).contains(normalize(name)))
+      .filter(value -> distance(latitude, longitude, value.getLatitude(), value.getLongitude()) < 150 && normalize(value.getName()).contains(normalize(name)))
       .limit(5)
       .map(this::view)
       .toList();
@@ -202,38 +205,38 @@ public class ContentService {
     return 6371000 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
   }
 
-  public boolean parentVisible(Photo photo) {
+  public boolean parentVisible(ImageContribution photo) {
     return (
       bathrooms
-        .findById(photo.bathroomId)
-        .filter(value -> value.status == Status.APPROVED)
+        .findById(photo.getBathroomId())
+        .filter(value -> value.getStatus() == Status.APPROVED)
         .isPresent() &&
-      (photo.reviewId == null ||
+      (photo.getOwnerReviewId() == null ||
         reviews
-          .findById(photo.reviewId)
-          .filter(value -> value.status == Status.APPROVED)
+          .findById(photo.getOwnerReviewId())
+          .filter(value -> value.getStatus() == Status.APPROVED)
           .isPresent())
     );
   }
 
   public ContributionView contribution(ModeratedContent content) {
     TargetType type = content instanceof Bathroom ? TargetType.BATHROOM : content instanceof Review ? TargetType.REVIEW : TargetType.PHOTO;
-    UUID bathroomId = content instanceof Bathroom ? content.id : content instanceof Review review ? review.bathroomId : ((Photo) content).bathroomId;
+    UUID bathroomId = content instanceof Bathroom ? content.getId() : content instanceof Review review ? review.getBathroomId() : ((ImageContribution) content).getBathroomId();
     String title =
       content instanceof Bathroom bathroom
-        ? bathroom.name
+        ? bathroom.getName()
         : (type == TargetType.REVIEW ? "Avaliação: " : "Foto: ") +
           bathrooms
             .findById(bathroomId)
-            .map(value -> value.name)
+            .map(value -> value.getName())
             .orElse("Banheiro");
-    return new ContributionView(content.id, type, title, content.status, content.reason, content.createdAt, bathroomId);
+    return new ContributionView(content.getId(), type, title, content.getStatus(), content.getReason(), content.getCreatedAt(), bathroomId);
   }
 
   public List<ContributionView> mine(UUID authorId) {
     var result = new ArrayList<ContributionView>();
     bathrooms.findByAuthorIdOrderByCreatedAtDesc(authorId).forEach(value -> result.add(contribution(value)));
-    reviews.findByAuthorIdOrderByCreatedAtDesc(authorId).forEach(value -> result.add(contribution(value)));
+    reviews.findByAuthorIdOrderByCreatedAtDesc(authorId).stream().filter(review -> !review.getPhotoOnly()).forEach(value -> result.add(contribution(value)));
     photos.findByAuthorIdOrderByCreatedAtDesc(authorId).forEach(value -> result.add(contribution(value)));
     result.sort(Comparator.comparing(ContributionView::createdAt).reversed());
     return result;
@@ -242,15 +245,19 @@ public class ContentService {
   public ModeratedContent target(TargetType type, UUID id) {
     return switch (type) {
       case BATHROOM -> bathrooms.findById(id).orElseThrow(ApiException::missing);
-      case REVIEW -> reviews.findById(id).orElseThrow(ApiException::missing);
+      case REVIEW -> reviews.findById(id).filter(review -> !review.getPhotoOnly()).orElseThrow(ApiException::missing);
       case PHOTO -> photos.findById(id).orElseThrow(ApiException::missing);
     };
   }
 
+  public ContentReference reference(TargetType type, UUID id) {
+    return ContentReference.of(type, id, type == TargetType.PHOTO && ((ImageContribution) target(type, id)).getRegistrationAttachment());
+  }
+
   public void requirePublic(TargetType type, UUID id) {
     var content = target(type, id);
-    if (content.status != Status.APPROVED) throw ApiException.missing();
-    if (content instanceof Review review) approved(review.bathroomId);
-    if (content instanceof Photo photo && !parentVisible(photo)) throw ApiException.missing();
+    if (content.getStatus() != Status.APPROVED) throw ApiException.missing();
+    if (content instanceof Review review) approved(review.getBathroomId());
+    if (content instanceof ImageContribution photo && !parentVisible(photo)) throw ApiException.missing();
   }
 }

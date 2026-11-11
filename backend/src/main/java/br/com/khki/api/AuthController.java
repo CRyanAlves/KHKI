@@ -61,12 +61,12 @@ public class AuthController {
   public UserView login(@Valid @RequestBody Login input, HttpServletRequest request, HttpServletResponse response) {
     if (input.password().getBytes(StandardCharsets.UTF_8).length > 72) throw new ApiException(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos.");
     var user = users.findByEmail(input.email().strip().toLowerCase(Locale.ROOT)).orElse(null);
-    boolean matches = passwords.matches(input.password(), user == null ? dummyHash : user.password);
+    boolean matches = passwords.matches(input.password(), user == null ? dummyHash : user.getPassword());
     if (user == null || !matches) throw new ApiException(HttpStatus.UNAUTHORIZED, "E-mail ou senha inválidos.");
     if (request.getSession(false) != null) request.changeSessionId();
     sessions.start(request.getSession(), input.rememberMe());
     var context = SecurityContextHolder.createEmptyContext();
-    context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(user.email, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.role))));
+    context.setAuthentication(UsernamePasswordAuthenticationToken.authenticated(user.getEmail(), null, List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))));
     SecurityContextHolder.setContext(context);
     new HttpSessionSecurityContextRepository().saveContext(context, request, response);
     return accounts.view(user);

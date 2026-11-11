@@ -28,7 +28,7 @@ public class AccountService {
   }
 
   public UserView view(AppUser user) {
-    return new UserView(user.id, user.name, user.role);
+    return new UserView(user.getId(), user.getName(), user.getRole());
   }
 
   public UserView register(Register input) {
@@ -36,9 +36,9 @@ public class AccountService {
     String email = input.email().strip().toLowerCase(Locale.ROOT);
     if (users.findByEmail(email).isPresent()) throw new ApiException(HttpStatus.CONFLICT, "Não foi possível cadastrar com os dados informados.");
     var user = new AppUser();
-    user.name = input.name().strip();
-    user.email = email;
-    user.password = passwords.encode(input.password());
+    user.setName(input.name().strip());
+    user.setEmail(email);
+    user.setPassword(passwords.encode(input.password()));
     return view(users.save(user));
   }
 }

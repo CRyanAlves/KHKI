@@ -32,6 +32,14 @@ server:
         same-site: lax
         secure: ${COOKIE_SECURE:false}
 khki:
+  storage:
+    driver: ${MEDIA_STORAGE_DRIVER:local}
+    directory: ${MEDIA_STORAGE_DIRECTORY:./data/images}
+    endpoint: ${R2_ENDPOINT:}
+    bucket: ${R2_BUCKET:}
+    access-key: ${R2_ACCESS_KEY_ID:}
+    secret-key: ${R2_SECRET_ACCESS_KEY:}
+    migrate-legacy: ${MEDIA_MIGRATE_LEGACY:false}
   session:
     remember-duration: ${SESSION_REMEMBER_DURATION:14d}
     maximum-duration: ${SESSION_MAXIMUM_DURATION:12h}

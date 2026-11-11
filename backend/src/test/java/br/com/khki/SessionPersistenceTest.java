@@ -129,10 +129,10 @@ class SessionPersistenceTest {
   @Test
   void sessionSupportsTheFullEmailLengthAcceptedByTheAccountContract() throws Exception {
     var account = new br.com.khki.domain.AppUser();
-    account.name = "Conta com e-mail longo";
-    account.email = "a".repeat(64) + "@" + "b".repeat(63) + "." + "c".repeat(63) + "." + "d".repeat(61);
-    account.password = passwords.encode("Test-user-password-123");
-    account.role = "USER";
+    account.setName("Conta com e-mail longo");
+    account.setEmail("a".repeat(64) + "@" + "b".repeat(63) + "." + "c".repeat(63) + "." + "d".repeat(61));
+    account.setPassword(passwords.encode("Test-user-password-123"));
+    account.setRole("USER");
     users.save(account);
     try {
       var result = mvc
@@ -140,7 +140,7 @@ class SessionPersistenceTest {
           post("/api/auth/login")
             .with(csrf())
             .contentType("application/json")
-            .content("{\"email\":\"" + account.email + "\",\"password\":\"Test-user-password-123\"}")
+            .content("{\"email\":\"" + account.getEmail() + "\",\"password\":\"Test-user-password-123\"}")
         )
         .andExpect(status().isOk())
         .andReturn();
