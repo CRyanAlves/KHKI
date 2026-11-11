@@ -21,8 +21,6 @@
               }
             </button>
             <span class="gallery-count">1 / {{ bathroom.photoIds.length }}</span>
-
-            <button class="photo-report" (click)="report = { type: 'PHOTO', id: bathroom.photoIds[0] }"><app-icon name="Flag" [size]="15" />Denunciar foto</button>
           </div>
         } @else {
           <div class="gallery-empty">
@@ -147,7 +145,7 @@
             </div>
           </section>
         }
-        <a class="button secondary full photo-invite" [routerLink]="['/banheiros', bathroom.id, 'fotos']"><app-icon name="Camera" [size]="20" />Adicionar foto<app-icon name="ChevronRight" [size]="18" /></a>
+        <a class="button secondary full photo-invite" [routerLink]="['/banheiros', bathroom.id, 'avaliar']"><app-icon name="Camera" [size]="20" />Avaliar com foto<app-icon name="ChevronRight" [size]="18" /></a>
         @if (tab !== 'photos') {
           <section class="detail-section">
             <div class="section-title">

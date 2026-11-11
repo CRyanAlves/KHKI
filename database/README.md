@@ -10,17 +10,16 @@ O banco anterior já possuía chaves estrangeiras entre autores, banheiros, aval
 
 - `app_users`: autores e administradores.
 - `bathrooms`: local, coordenadas, acesso, acessibilidade e estado de moderação.
-- `reviews`: avaliações vinculadas a autor e banheiro. `photo_only=true` representa envio avulso de imagem, sem comentário e sem notas. Esses registros não entram na média nem na contagem de avaliações com nota.
-- `bathroom_images`: URLs e metadados dos anexos do cadastro, com FK para o banheiro.
-- `review_images`: URLs e metadados dos anexos da avaliação, com FK para a avaliação.
+- `reviews`: avaliações vinculadas a autor e banheiro. `photo_only=true` identifica exclusivamente registros históricos sem comentário e sem notas; novos envios avulsos são proibidos. Esses registros não entram na média nem na contagem de avaliações com nota.
+- `bathrooms.image_urls` e `reviews.image_urls`: listas de URLs em colunas JSONB diretamente nos respectivos conteúdos, sem tabelas de imagens.
 - `bathroom_items` e `bathroom_types`: coleções normalizadas, com PK composta e FK para catálogos de valores permitidos.
 - `reports`, `moderation_audit` e `submission_receipts`: destinos tipados com FKs e uma restrição que exige exatamente um destino compatível com `target_type` e `target_id`.
 - `image_deletions`: fila persistente para repetir exclusões físicas que falhem temporariamente.
 - `spring_session` e `spring_session_attributes`: sessões persistentes; seus bytes são atributos de sessão, não imagens.
 
-Não existe mais uma entidade JPA `Photo`. `ImageReference` é um valor `@Embeddable`, armazenado com `@ElementCollection` no banheiro ou na avaliação. `ImageContribution` é apenas uma projeção de compatibilidade para as rotas existentes `/photos` e para as telas que usam o tipo `PHOTO`.
+Não existe entidade ou tabela de foto. `imageUrls` é uma lista de strings mapeada com `@JdbcTypeCode(SqlTypes.JSON)`. Apenas o banheiro e a avaliação possuem status, recebem denúncias e são moderados. O arquivo privado é lido por `/api/photos/{id}` após autorização sobre o conteúdo pai.
 
-Os vínculos JPA usam `@ManyToOne`, `@OneToMany`, `@JoinColumn`, `@CollectionTable`, `@OrderColumn` e `FetchType.LAZY`. Os IDs escalares existentes continuam como entrada compatível dos serviços; as associações que compartilham essas colunas são de leitura (`insertable=false, updatable=false`). As entidades têm campos privados e getters/setters para respeitar os proxies do Hibernate. Não se usa `CascadeType.REMOVE` sobre usuários ou conteúdo moderado. Remover conteúdo continua sendo uma decisão auditável, sem apagar seus vínculos históricos.
+Os vínculos JPA usam `@ManyToOne`, `@OneToMany`, `@JoinColumn`, `@CollectionTable`, `@JdbcTypeCode` e `FetchType.LAZY`. Os IDs escalares existentes continuam como entrada compatível dos serviços; as associações que compartilham essas colunas são de leitura (`insertable=false, updatable=false`). As entidades têm campos privados e getters/setters para respeitar os proxies do Hibernate. Não se usa `CascadeType.REMOVE` sobre usuários ou conteúdo moderado. Remover conteúdo continua sendo uma decisão auditável, sem apagar seus vínculos históricos.
 
 ## Criar um banco vazio sem iniciar a aplicação
 
@@ -32,7 +31,7 @@ psql --dbname=CONEXAO_CONFIGURADA -v ON_ERROR_STOP=1 -f database/schema.sql
 
 Use `.pgpass` ou o gerenciador de segredos para autenticar; não grave senhas no comando. A aplicação usa `ddl-auto=validate`: Hibernate valida o esquema, sem criá-lo nem alterá-lo automaticamente.
 
-Se o esquema foi criado manualmente, inicie com `SPRING_FLYWAY_ENABLED=false` e configure o schema JPA e a tabela de sessões como `khki`. Para voltar a gerenciar esse banco com Flyway, estabeleça explicitamente o baseline na versão 12 antes de habilitá-lo; não aplique V1 sobre o esquema pronto. O fluxo habitual de bancos existentes continua pelas migrações versionadas.
+Se o esquema foi criado manualmente, inicie com `SPRING_FLYWAY_ENABLED=false` e configure o schema JPA e a tabela de sessões como `khki`. Para voltar a gerenciar esse banco com Flyway, estabeleça explicitamente o baseline na versão 14 antes de habilitá-lo; não aplique V1 sobre o esquema pronto. O fluxo habitual de bancos existentes continua pelas migrações versionadas.
 
 ## Armazenamento das imagens
 
@@ -67,7 +66,8 @@ Não execute `schema.sql` para atualizar produção. A migração das imagens ex
 4. A aplicação aplica V10, que acrescenta `photos.storage_url` sem apagar bytes. O exportador copia cada imagem não removida, lê o arquivo novamente e compara o conteúdo integral. Só então grava a URL confirmada.
 5. V11 recusa avançar se houver imagem sem URL de exportação, anexo incoerente ou listas com valores fora dos catálogos. Copia os IDs, estados, motivos, datas e versões para as coleções, converte fotos avulsas em avaliações sem nota e retira a tabela `photos`.
 6. V12 adiciona FKs tipadas aos destinos e a fila de exclusões. V13 aplica RLS às novas tabelas de produção.
-7. Confira contagens, URLs, notas e moderação antes de liberar os uploads. Volte `MEDIA_MIGRATE_LEGACY=false`.
+7. V14 incorpora as URLs aos conteúdos, redireciona referências históricas e remove as tabelas de imagens. Anexos com estado diferente do pai são preservados em avaliações históricas com o mesmo estado, sem publicação indevida.
+8. Confira contagens, URLs, notas e moderação antes de liberar os uploads. Volte `MEDIA_MIGRATE_LEGACY=false`.
 
 Arquivos exportados têm chaves determinísticas `images/UUID.jpg` no R2. Uma tentativa de exportação interrompida pode ser repetida sem duplicar arquivos. As migrações históricas V1–V9 permanecem imutáveis. O SQL e o código novos precisam ser publicados juntos; a versão antiga do backend consulta a tabela `photos`.
 
@@ -75,8 +75,8 @@ O SQL impede remover bytes não exportados, mas não substitui a cópia dos arqu
 
 ## Contratos e validação
 
-As rotas, IDs de fotos, DTOs, login, permissões, galeria e filas atuais foram mantidos. Fotos de cadastro ou de avaliação continuam acompanhando a aprovação do pai. Fotos avulsas continuam aparecendo como `PHOTO` na API por compatibilidade, embora sua persistência seja uma avaliação sem comentário e sem nota. Ocultar o pai continua ocultando suas imagens publicamente.
+Login, permissões, IDs das imagens, leitura e galeria permanecem. O upload avulso foi removido: é necessário anexar a um cadastro ou a uma avaliação pendente do próprio autor. A resposta do upload identifica o conteúdo pai, e não uma contribuição de foto. Somente `BATHROOM` e `REVIEW` são alvos válidos. A decisão de moderação é aplicada ao conteúdo inteiro, incluindo imagens. A organização dos pacotes e os contratos alterados estão em `../backend/README.md`.
 
 Os testes exercitam o fluxo HTTP com Spring MockMvc, PostgreSQL e H2, incluindo moderação, privacidade, idempotência, sessão e restrições do banco. `RelationalMigrationTest` valida exportação, preservação de metadados, bloqueio de migração sem cópia confirmada e rejeição de referências inválidas. Os testes locais não comprovam credenciais nem operação do R2 de produção.
 
-Em 11/11/2026, a inspeção de produção encontrou 21 banheiros, 72 avaliações e 41 imagens no schema `khki`. O backup foi restaurado em um PostgreSQL local e migrado com sucesso: 72 avaliações com nota, 32 avaliações somente com fotos, 2 URLs de anexos de cadastro e 39 URLs de anexos de avaliações. A API dessa cópia abriu 17 banheiros públicos e 33 imagens públicas. O R2 foi habilitado pelo responsável pela conta, o bucket privado `khki` foi confirmado e uma credencial de leitura/escrita restrita a esse bucket foi configurada no Render. A aplicação aplica a migração coordenada durante a publicação; a confirmação da execução em produção depende do estado do deploy e das verificações posteriores.
+A publicação anterior de V13 foi verificada em produção. V14 e a reorganização por caso de uso são uma nova alteração: a execução local dos testes não significa que essa versão já foi publicada no Render ou aplicada no Supabase.

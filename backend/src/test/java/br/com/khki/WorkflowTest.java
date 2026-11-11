@@ -1,13 +1,23 @@
 package br.com.khki;
 
+import br.com.khki.infrastructure.security.AbuseGuard;
+import br.com.khki.shared.api.Contracts.*;
+import br.com.khki.shared.domain.ContentReference;
+import br.com.khki.shared.domain.Status;
+import br.com.khki.shared.domain.TargetType;
+import br.com.khki.usecase.account.User;
+import br.com.khki.usecase.account.UserRepository;
+import br.com.khki.usecase.bathroom.AccessType;
+import br.com.khki.usecase.bathroom.Bathroom;
+import br.com.khki.usecase.bathroom.BathroomRepository;
+import br.com.khki.usecase.moderation.ModerationAuditRepository;
+import br.com.khki.usecase.report.Report;
+import br.com.khki.usecase.report.ReportRepository;
+import br.com.khki.usecase.review.ReviewRepository;
 import static org.assertj.core.api.Assertions.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import br.com.khki.domain.*;
-import br.com.khki.repository.*;
-import br.com.khki.security.AbuseGuard;
 import com.fasterxml.jackson.databind.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -37,10 +47,7 @@ class WorkflowTest {
   ReviewRepository reviews;
 
   @Autowired
-  ImageRepository photos;
-
-  @Autowired
-  AppUserRepository users;
+  UserRepository users;
 
   @Autowired
   ModerationAuditRepository audits;
@@ -52,7 +59,7 @@ class WorkflowTest {
   AbuseGuard abuse;
 
   @Autowired
-  br.com.khki.storage.ImageStorage imageStorage;
+  br.com.khki.infrastructure.storage.ImageStorage imageStorage;
 
   @Autowired
   org.springframework.jdbc.core.JdbcTemplate jdbc;
@@ -72,7 +79,7 @@ class WorkflowTest {
       bathroom.setName("Paginação dos filtros " + index);
       bathroom.setAddress("Endereço de teste");
       bathroom.setCategory("Biblioteca");
-      bathroom.setAccess(Access.FREE);
+      bathroom.setAccess(AccessType.FREE);
       bathroom.setStatus(index == 201 ? Status.PENDING : Status.APPROVED);
       created.add(bathroom);
     }
@@ -168,21 +175,8 @@ class WorkflowTest {
     var image = new ByteArrayOutputStream();
     ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB), "png", image);
     var upload = new MockMultipartFile("file", "banheiro.png", "image/png", image.toByteArray());
-    UUID photoId = UUID.fromString(
-      body(
-        mvc
-          .perform(
-            multipart("/api/bathrooms/" + bathroomId + "/photos")
-              .file(upload)
-              .cookie(session)
-              .with(csrf())
-          )
-          .andExpect(status().isCreated())
-          .andReturn()
-      )
-        .get("id")
-        .asText()
-    );
+    mvc.perform(multipart("/api/bathrooms/" + bathroomId + "/photos").file(upload).param("registrationAttachment", "true").cookie(session).with(csrf())).andExpect(status().isCreated());
+    UUID photoId = imageId("bathrooms", bathroomId);
     mvc.perform(get("/api/photos/" + photoId)).andExpect(status().isNotFound());
     mvc
       .perform(get("/api/photos/" + photoId).cookie(session))
@@ -259,10 +253,10 @@ class WorkflowTest {
     mvc.perform(get("/api/photos/" + photoId)).andExpect(status().isNotFound());
     mvc.perform(get("/api/bathrooms/" + bathroomId + "/reviews")).andExpect(status().isNotFound());
     decide("BATHROOM", bathroomId, "APPROVED");
-    decide("PHOTO", photoId, "REMOVED");
-    assertThat(photos.findById(photoId).orElseThrow().getStatus()).isEqualTo(Status.REMOVED);
+    decide("BATHROOM", bathroomId, "REMOVED");
+    mvc.perform(get("/api/photos/" + photoId)).andExpect(status().isNotFound());
     assertThat(audits.count()).isGreaterThanOrEqualTo(6);
-    mvc.perform(get("/api/me/contributions").cookie(session)).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(3));
+    mvc.perform(get("/api/me/contributions").cookie(session)).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2));
     mvc.perform(post("/api/auth/logout").cookie(session).with(csrf())).andExpect(status().isNoContent());
   }
 
@@ -283,13 +277,14 @@ class WorkflowTest {
     bathroom.setName("Upload");
     bathroom.setAddress("Teste");
     bathroom.setCategory("Teste");
-    bathroom.setAccess(Access.FREE);
-    bathroom.setStatus(Status.APPROVED);
+    bathroom.setAccess(AccessType.FREE);
+    bathroom.setStatus(Status.PENDING);
     bathrooms.save(bathroom);
     mvc
       .perform(
         multipart("/api/bathrooms/" + bathroom.getId() + "/photos")
           .file(new MockMultipartFile("file", "photo.jpg", "image/jpeg", "<script>alert(1)</script>".getBytes()))
+          .param("registrationAttachment", "true")
           .with(user(admin.getEmail()).roles("ADMIN"))
           .with(csrf())
       )
@@ -304,7 +299,7 @@ class WorkflowTest {
     bathroom.setName("Rejeitado");
     bathroom.setAddress("Teste");
     bathroom.setCategory("Teste");
-    bathroom.setAccess(Access.FREE);
+    bathroom.setAccess(AccessType.FREE);
     bathroom.setStatus(Status.REJECTED);
     bathroom.setReason("Corrigir endereço");
     bathrooms.save(bathroom);
@@ -326,7 +321,7 @@ class WorkflowTest {
   void limitsRepeatedRequests() {
     String key = "test:" + UUID.randomUUID();
     abuse.check(key, 1, 300);
-    assertThatThrownBy(() -> abuse.check(key, 1, 300)).isInstanceOf(br.com.khki.api.ApiException.class);
+    assertThatThrownBy(() -> abuse.check(key, 1, 300)).isInstanceOf(br.com.khki.shared.api.ApiException.class);
   }
 
   @Test
@@ -345,7 +340,7 @@ class WorkflowTest {
   @Test
   void existingNonAuthorCannotReadPrivatePhotosOrReviseAnotherContribution() throws Exception {
     var admin = users.findByEmail("admin@khki.test").orElseThrow();
-    var outsider = new AppUser();
+    var outsider = new User();
     outsider.setName("Outra pessoa");
     outsider.setEmail("outsider-" + UUID.randomUUID() + "@khki.test");
     outsider.setPassword("unused-test-hash");
@@ -355,15 +350,13 @@ class WorkflowTest {
     bathroom.setName("Privado");
     bathroom.setAddress("Teste");
     bathroom.setCategory("Teste");
-    bathroom.setAccess(Access.FREE);
+    bathroom.setAccess(AccessType.FREE);
     bathroom.setStatus(Status.REJECTED);
     bathrooms.save(bathroom);
-    var photo = new ImageContribution();
-    photo.setAuthorId(admin.getId());
-    photo.setBathroomId(bathroom.getId());
-    photo.setUrl("/api/photos/" + photo.getId());
-    photos.save(photo);
-    mvc.perform(get("/api/photos/" + photo.getId()).with(user(outsider.getEmail()))).andExpect(status().isNotFound());
+    UUID photoId = UUID.randomUUID();
+    bathroom.getImageUrls().add("/api/photos/" + photoId);
+    bathrooms.save(bathroom);
+    mvc.perform(get("/api/photos/" + photoId).with(user(outsider.getEmail()))).andExpect(status().isNotFound());
     mvc.perform(get("/api/me/contributions/BATHROOM/" + bathroom.getId()).with(user(outsider.getEmail()))).andExpect(status().isNotFound());
     mvc
       .perform(
@@ -389,7 +382,7 @@ class WorkflowTest {
     bathroom.setAddress("Rua das Flores, 123, Indaiatuba");
     bathroom.setComplement(complement);
     bathroom.setCategory("Shopping");
-    bathroom.setAccess(Access.FREE);
+    bathroom.setAccess(AccessType.FREE);
     bathroom.setStatus(status);
     bathroom.setLatitude(latitude);
     bathroom.setLongitude(-47.218);
@@ -498,7 +491,7 @@ class WorkflowTest {
     report.setTargetType(TargetType.BATHROOM);
     report.setTargetId(bathroom.getId());
     report.setReason("INCORRECT");
-    report.setReference(ContentReference.of(report.getTargetType(), report.getTargetId(), false));
+    report.setReference(ContentReference.of(report.getTargetType(), report.getTargetId()));
     reports.save(report);
     String endpoint = "/api/admin/reports/" + report.getId() + "/resolve";
     mvc.perform(post(endpoint).with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"reason\":\"Conferido\",\"status\":\"HIDDEN\",\"expectedVersion\":0,\"contentVersion\":0}")).andExpect(status().isConflict());
@@ -548,7 +541,7 @@ class WorkflowTest {
       .andExpect(jsonPath("$.id").value(id.toString()))
       .andExpect(jsonPath("$.fingerprint").doesNotExist());
     mvc.perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(input.replace(name, "Dados diferentes"))).andExpect(status().isConflict());
-    var outsider = new AppUser();
+    var outsider = new User();
     outsider.setName("Outro autor");
     outsider.setEmail("receipt-" + key + "@khki.test");
     outsider.setPassword("unused-test-hash");
@@ -583,6 +576,7 @@ class WorkflowTest {
           .perform(
             multipart("/api/bathrooms/" + bathroom.getId() + "/photos")
               .file(upload)
+          .param("registrationAttachment", "true")
               .param("submissionId", key.toString())
               .with(user("admin@khki.test").roles("ADMIN"))
               .with(csrf())
@@ -597,18 +591,21 @@ class WorkflowTest {
       .perform(
         multipart("/api/bathrooms/" + bathroom.getId() + "/photos")
           .file(upload)
+          .param("registrationAttachment", "true")
           .param("submissionId", key.toString())
           .with(user("admin@khki.test").roles("ADMIN"))
           .with(csrf())
       )
       .andExpect(status().isCreated())
       .andExpect(jsonPath("$.id").value(photoId.toString()));
-    assertThat(photos.findByBathroomIdAndStatus(bathroom.getId(), Status.PENDING)).hasSize(1);
+    assertThat(bathrooms.findById(bathroom.getId()).orElseThrow().getImageUrls()).hasSize(1);
+    photoId = imageId("bathrooms", bathroom.getId());
     mvc.perform(get("/api/photos/" + photoId)).andExpect(status().isNotFound());
     mvc
       .perform(
         multipart("/api/bathrooms/" + bathroom.getId() + "/photos")
           .file(upload)
+          .param("registrationAttachment", "true")
           .param("submissionId", "invalid")
           .with(user("admin@khki.test").roles("ADMIN"))
           .with(csrf())
@@ -737,7 +734,7 @@ class WorkflowTest {
       .andExpect(jsonPath("$.details.charge").value("UNKNOWN"))
       .andExpect(jsonPath("$.details.stepFreeAccess").isEmpty())
       .andExpect(jsonPath("$.details.bathroomTypes").isEmpty());
-    var legacy = json.readValue(json.writeValueAsString(input), br.com.khki.api.Contracts.BathroomInput.class);
+    var legacy = json.readValue(json.writeValueAsString(input), br.com.khki.shared.api.Contracts.BathroomInput.class);
     assertThat(json.readTree(json.writeValueAsString(legacy)).has("details")).isFalse();
   }
 
@@ -750,7 +747,8 @@ class WorkflowTest {
       .with(user("admin@khki.test").roles("ADMIN"))
       .with(csrf());
     if (reviewId != null) request.param("reviewId", reviewId.toString());
-    return UUID.fromString(body(mvc.perform(request).andExpect(status().isCreated()).andReturn()).get("id").asText());
+    mvc.perform(request).andExpect(status().isCreated());
+    return imageId(reviewId == null ? "bathrooms" : "reviews", reviewId == null ? bathroomId : reviewId);
   }
 
   private UUID pendingReview(UUID bathroomId) throws Exception {
@@ -772,63 +770,7 @@ class WorkflowTest {
     );
   }
 
-  @Test
-  void onlyStandalonePhotosEnterQueueAndParentApprovalApprovesExactlyItsPendingAttachments() throws Exception {
-    UUID bathroomId = UUID.fromString(
-      body(
-        mvc
-          .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(bathroomInput("Aprovação conjunta")))
-          .andExpect(status().isCreated())
-          .andReturn()
-      )
-        .get("id")
-        .asText()
-    );
-    UUID attached = attachmentUpload(bathroomId, null, true);
-    UUID rejected = attachmentUpload(bathroomId, null, false);
-    assertThat(photos.findById(rejected).orElseThrow().getRegistrationAttachment()).isTrue();
-    mvc
-      .perform(get("/api/admin/queue").with(user("admin@khki.test").roles("ADMIN")))
-      .andExpect(status().isOk())
-      .andExpect(jsonPath("$[?(@.id == '" + attached + "')]").isEmpty());
-    mvc.perform(get("/api/photos/" + attached)).andExpect(status().isNotFound());
-    decide("PHOTO", rejected, "REJECTED");
-    decide("BATHROOM", bathroomId, "APPROVED");
-    mvc.perform(get("/api/photos/" + attached)).andExpect(status().isOk());
-    mvc.perform(get("/api/photos/" + rejected)).andExpect(status().isNotFound());
-    assertThat(photos.findById(rejected).orElseThrow().getStatus()).isEqualTo(Status.REJECTED);
-    assertThat(audits.findByTargetTypeAndTargetIdOrderByCreatedAtDesc(TargetType.PHOTO, attached))
-      .singleElement()
-      .satisfies(audit -> {
-        assertThat(audit.getDecision()).isEqualTo(Status.APPROVED);
-        assertThat(audit.getModeratorId()).isEqualTo(users.findByEmail("admin@khki.test").orElseThrow().getId());
-      });
-    UUID standalone = attachmentUpload(bathroomId, null, false);
-    UUID reviewId = pendingReview(bathroomId);
-    UUID reviewPhoto = attachmentUpload(bathroomId, reviewId, false);
-    UUID otherReview = pendingReview(bathroomId);
-    UUID otherPhoto = attachmentUpload(bathroomId, otherReview, false);
-    mvc
-      .perform(get("/api/admin/queue/details").with(user("admin@khki.test").roles("ADMIN")))
-      .andExpect(status().isOk())
-      .andExpect(jsonPath("$[?(@.contribution.id == '" + standalone + "')]").isNotEmpty())
-      .andExpect(jsonPath("$[?(@.contribution.id == '" + reviewPhoto + "')]").isEmpty());
-    mvc
-      .perform(get("/api/admin/content/REVIEW/" + reviewId).with(user("admin@khki.test").roles("ADMIN")))
-      .andExpect(status().isOk())
-      .andExpect(jsonPath("$.photos.length()").value(1))
-      .andExpect(jsonPath("$.photos[0].id").value(reviewPhoto.toString()));
-    decide("REVIEW", reviewId, "APPROVED");
-    mvc.perform(get("/api/photos/" + reviewPhoto)).andExpect(status().isOk());
-    mvc.perform(get("/api/photos/" + standalone)).andExpect(status().isNotFound());
-    mvc.perform(get("/api/photos/" + otherPhoto)).andExpect(status().isNotFound());
-    assertThat(photos.findById(standalone).orElseThrow().getStatus()).isEqualTo(Status.PENDING);
-    assertThat(photos.findById(otherPhoto).orElseThrow().getStatus()).isEqualTo(Status.PENDING);
-    decide("BATHROOM", bathroomId, "HIDDEN");
-    decide("BATHROOM", bathroomId, "APPROVED");
-    assertThat(photos.findById(standalone).orElseThrow().getStatus()).isEqualTo(Status.PENDING);
-    assertThat(photos.findById(otherPhoto).orElseThrow().getStatus()).isEqualTo(Status.PENDING);
-  }
+
 
   @Test
   void newAttachmentInvalidatesParentVersionAndCannotBeAddedAfterApproval() throws Exception {
@@ -854,8 +796,8 @@ class WorkflowTest {
           .content("{\"status\":\"APPROVED\",\"reason\":\"Análise antiga\",\"expectedVersion\":" + before + "}")
       )
       .andExpect(status().isConflict());
-    assertThat(photos.findById(photo).orElseThrow().getStatus()).isEqualTo(Status.PENDING);
-    assertThat(audits.findByTargetTypeAndTargetIdOrderByCreatedAtDesc(TargetType.PHOTO, photo)).isEmpty();
+    mvc.perform(get("/api/photos/" + photo)).andExpect(status().isNotFound());
+    assertThat(audits.findByTargetTypeAndTargetIdOrderByCreatedAtDesc(TargetType.BATHROOM, bathroomId)).isEmpty();
     decide("BATHROOM", bathroomId, "APPROVED");
     var image = new ByteArrayOutputStream();
     ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB), "png", image);
@@ -884,70 +826,44 @@ class WorkflowTest {
       .andExpect(status().isBadRequest());
   }
 
-  @Test
-  void legacyAttachmentsOfApprovedParentsRemainActionableInTheirParentQueue() throws Exception {
-    UUID bathroomId = UUID.fromString(
-      body(
-        mvc
-          .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(bathroomInput("Anexos antigos")))
-          .andExpect(status().isCreated())
-          .andReturn()
-      )
-        .get("id")
-        .asText()
-    );
-    decide("BATHROOM", bathroomId, "APPROVED");
-    var photo = new ImageContribution();
-    photo.setAuthorId(users.findByEmail("admin@khki.test").orElseThrow().getId());
-    photo.setBathroomId(bathroomId);
-    photo.setRegistrationAttachment(true);
-    photo.setUrl("/api/photos/" + photo.getId());
-    photos.save(photo);
-    mvc
-      .perform(get("/api/admin/queue").with(user("admin@khki.test").roles("ADMIN")))
-      .andExpect(status().isOk())
-      .andExpect(jsonPath("$[?(@.id == '" + bathroomId + "')]").isNotEmpty())
-      .andExpect(jsonPath("$[?(@.id == '" + photo.getId() + "')]").isEmpty());
-    decide("BATHROOM", bathroomId, "APPROVED");
-    assertThat(photos.findById(photo.getId()).orElseThrow().getStatus()).isEqualTo(Status.APPROVED);
-    UUID reviewId = pendingReview(bathroomId);
-    decide("REVIEW", reviewId, "APPROVED");
-    var reviewPhoto = new ImageContribution();
-    reviewPhoto.setAuthorId(photo.getAuthorId());
-    reviewPhoto.setBathroomId(bathroomId);
-    reviewPhoto.setReviewId(reviewId);
-    reviewPhoto.setUrl("/api/photos/" + reviewPhoto.getId());
-    photos.save(reviewPhoto);
-    mvc
-      .perform(get("/api/admin/queue").with(user("admin@khki.test").roles("ADMIN")))
-      .andExpect(status().isOk())
-      .andExpect(jsonPath("$[?(@.id == '" + reviewId + "')]").isNotEmpty());
-    decide("REVIEW", reviewId, "APPROVED");
-    assertThat(photos.findById(reviewPhoto.getId()).orElseThrow().getStatus()).isEqualTo(Status.APPROVED);
+
+
+
+
+  private UUID imageId(String table, UUID id) throws Exception {
+    if (!java.util.Set.of("bathrooms", "reviews").contains(table)) throw new IllegalArgumentException();
+    var urls = json.readTree(jdbc.queryForObject("SELECT image_urls::text FROM " + table + " WHERE id = ?", String.class, id));
+    return UUID.fromString(urls.get(urls.size() - 1).asText().substring("/api/photos/".length()));
   }
 
   @Test
-  void standaloneImageIsUnratedReviewAndPhotoReportRemainsValidWhenAnotherImageChanges() throws Exception {
-    UUID bathroomId = UUID.fromString(body(mvc.perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(bathroomInput("Imagem externa sem nota"))).andExpect(status().isCreated()).andReturn()).get("id").asText());
-    UUID first = attachmentUpload(bathroomId, null, true);
-    UUID second = attachmentUpload(bathroomId, null, true);
-    decide("BATHROOM", bathroomId, "APPROVED");
-    mvc.perform(post("/api/reports").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"targetType\":\"PHOTO\",\"targetId\":\"" + first + "\",\"reason\":\"PRIVACY\"}")).andExpect(status().isAccepted());
-    decide("PHOTO", second, "HIDDEN");
-    mvc.perform(get("/api/photos/" + first)).andExpect(status().isOk());
-    UUID standalone = attachmentUpload(bathroomId, null, false);
-    var review = reviews.findById(standalone).orElseThrow();
-    assertThat(review.getPhotoOnly()).isTrue();
-    assertThat(review.getCleanliness()).isNull();
-    assertThat(review.getStructure()).isNull();
-    assertThat(review.getComment()).isNull();
-    mvc.perform(get("/api/photos/" + standalone)).andExpect(status().isNotFound());
-    decide("PHOTO", standalone, "APPROVED");
-    mvc.perform(get("/api/bathrooms/" + bathroomId)).andExpect(status().isOk()).andExpect(jsonPath("$.rating").isEmpty()).andExpect(jsonPath("$.reviewCount").value(0));
-    mvc.perform(get("/api/bathrooms/" + bathroomId + "/reviews")).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(0));
-    assertThat(imageStorage.read(standalone)).isNotEmpty();
-    assertThat(jdbc.queryForObject("SELECT url FROM review_images WHERE image_id = ?", String.class, standalone)).isEqualTo("/api/photos/" + standalone);
-    decide("PHOTO", standalone, "REMOVED");
-    assertThatThrownBy(() -> imageStorage.read(standalone)).isInstanceOf(br.com.khki.api.ApiException.class);
+  void imagesAreOnlyAttachmentsAndModerationAlwaysTargetsTheirParent() throws Exception {
+    var bathroom = moderationBathroom("Fotos no cadastro", Status.PENDING, null, -26.9);
+    UUID photo = attachmentUpload(bathroom.getId(), null, true);
+    mvc.perform(get("/api/photos/" + photo)).andExpect(status().isNotFound());
+    mvc.perform(post("/api/reports").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"targetType\":\"PHOTO\",\"targetId\":\"" + photo + "\",\"reason\":\"PRIVACY\"}")).andExpect(status().isBadRequest());
+    mvc.perform(get("/api/admin/content/PHOTO/" + photo).with(user("admin@khki.test").roles("ADMIN"))).andExpect(status().isBadRequest());
+    decide("BATHROOM", bathroom.getId(), "APPROVED");
+    mvc.perform(get("/api/photos/" + photo)).andExpect(status().isOk());
+    UUID review = pendingReview(bathroom.getId());
+    UUID reviewPhoto = attachmentUpload(bathroom.getId(), review, false);
+    mvc.perform(get("/api/photos/" + reviewPhoto)).andExpect(status().isNotFound());
+    decide("REVIEW", review, "APPROVED");
+    mvc.perform(get("/api/photos/" + reviewPhoto)).andExpect(status().isOk());
+    decide("REVIEW", review, "HIDDEN");
+    mvc.perform(get("/api/photos/" + reviewPhoto)).andExpect(status().isNotFound());
+    mvc.perform(get("/api/photos/" + photo)).andExpect(status().isOk());
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.tables WHERE table_name IN ('bathroom_images','review_images','photos')", Integer.class)).isZero();
+  }
+
+  @Test
+  void rejectsStandaloneUploadsEvenForTheBathroomAuthor() throws Exception {
+    var bathroom = moderationBathroom("Sem envio avulso", Status.APPROVED, null, -26.9);
+    var bytes = new ByteArrayOutputStream();
+    ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB), "png", bytes);
+    long count = reviews.count();
+    mvc.perform(multipart("/api/bathrooms/" + bathroom.getId() + "/photos").file(new MockMultipartFile("file", "foto.png", "image/png", bytes.toByteArray())).with(user("admin@khki.test").roles("ADMIN")).with(csrf())).andExpect(status().isBadRequest());
+    assertThat(reviews.count()).isEqualTo(count);
+    assertThat(bathrooms.findById(bathroom.getId()).orElseThrow().getImageUrls()).isEmpty();
   }
 }

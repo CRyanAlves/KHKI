@@ -19,7 +19,7 @@ export interface PhotoView {
   photoIds: string[];
   index: number;
 }
-export type ExplorationScene = 'search' | 'details' | 'route' | 'review' | 'photos' | 'registration';
+export type ExplorationScene = 'search' | 'details' | 'route' | 'review' | 'registration';
 const MAP_MESSAGE_DURATION_MS = 6000;
 const SEARCH_PAGE_SIZE = 200;
 const SEARCH_MAX_OFFSET = 100000;

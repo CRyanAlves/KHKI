@@ -20,8 +20,7 @@ export class MobileContributionsComponent {
   readonly types = [
     { value: '', label: 'Tudo' },
     { value: 'BATHROOM', label: 'Banheiros' },
-    { value: 'REVIEW', label: 'Avaliações' },
-    { value: 'PHOTO', label: 'Fotos' }
+    { value: 'REVIEW', label: 'Avaliações' }
   ] as const;
   readonly statuses = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label: value === 'REJECTED' ? 'Não aprovado' : label }));
   readonly rows = computed(() =>

@@ -70,7 +70,7 @@ export class MobileUiService {
       if (!this.mobile()) return;
       if (scene !== this.previousScene) {
         if (this.previousScene === 'search') this.searchSheet = this.sheet();
-        this.sheet.set(scene === 'search' ? this.searchSheet : scene === 'registration' || scene === 'review' || scene === 'photos' ? 2 : 1);
+        this.sheet.set(scene === 'search' ? this.searchSheet : scene === 'registration' || scene === 'review' ? 2 : 1);
         this.drag.set(null);
         this.previousScene = scene;
       }

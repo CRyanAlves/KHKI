@@ -20,13 +20,13 @@ import { SkeletonComponent } from '../../shared/skeleton.component';
           <div>
             <span class="eyebrow">CADA CONTRIBUIÇÃO IMPORTA</span>
             <h1>Minhas contribuições<span class="accent">.</span></h1>
-            <p class="muted">Acompanhe seus cadastros, avaliações e fotos.</p>
+            <p class="muted">Acompanhe seus cadastros e avaliações.</p>
           </div>
           <a class="button primary" routerLink="/cadastrar"><app-icon name="Plus" [size]="18" />Cadastrar banheiro</a>
         </div>
         <div class="notice">
           <app-icon name="ShieldCheck" />
-          <p>Conteúdo em análise ainda não é público. Fotos anexadas acompanham a aprovação do cadastro ou avaliação; fotos avulsas passam por análise própria.</p>
+          <p>Conteúdo em análise ainda não é público. Fotos anexadas acompanham a aprovação do cadastro ou da avaliação.</p>
         </div>
         @if (error) {
           <p role="alert" class="error-message">{{ error }}</p>
@@ -36,15 +36,15 @@ import { SkeletonComponent } from '../../shared/skeleton.component';
         }
         @for (item of items; track item.id) {
           <article class="surface contribution-row">
-            <span class="contribution-icon"><app-icon [name]="item.type === 'PHOTO' ? 'Camera' : item.type === 'REVIEW' ? 'Star' : 'MapPin'" /></span>
+            <span class="contribution-icon"><app-icon [name]="item.type === 'REVIEW' ? 'Star' : 'MapPin'" /></span>
             <div>
-              <small class="eyebrow">{{ item.type === 'PHOTO' ? 'FOTO' : item.type === 'REVIEW' ? 'AVALIAÇÃO' : 'CADASTRO' }}</small>
+              <small class="eyebrow">{{ item.type === 'REVIEW' ? 'AVALIAÇÃO' : 'CADASTRO' }}</small>
               <h3>{{ item.title }}</h3>
               <small class="muted">Enviado em {{ item.createdAt | date: 'dd/MM/yyyy' }}</small>
               @if (item.reason) {
                 <p class="decision-reason">Motivo da decisão: {{ item.reason }}</p>
               }
-              @if ((item.status === 'REJECTED' || item.status === 'NEEDS_INFORMATION') && item.type !== 'PHOTO') {
+              @if ((item.status === 'REJECTED' || item.status === 'NEEDS_INFORMATION')) {
                 <a class="text-button" [routerLink]="item.type === 'BATHROOM' ? ['/cadastrar'] : ['/banheiros', item.bathroomId, 'avaliar']" [queryParams]="{ edit: item.id }">Corrigir e reenviar<app-icon name="ArrowRight" [size]="16" /></a>
               }
             </div>

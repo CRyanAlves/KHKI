@@ -3,23 +3,24 @@ erDiagram
   APP_USERS ||--o{ REVIEWS : envia
   APP_USERS ||--o{ MODERATION_AUDIT : modera
   BATHROOMS ||--o{ REVIEWS : recebe
-  BATHROOMS ||--o{ BATHROOM_IMAGES : possui
-  REVIEWS ||--o{ REVIEW_IMAGES : possui
   BATHROOMS ||--o{ BATHROOM_ITEMS : oferece
   AMENITY_TYPES ||--o{ BATHROOM_ITEMS : classifica
   BATHROOMS ||--o{ BATHROOM_TYPES : possui
   BATHROOM_TYPE_OPTIONS ||--o{ BATHROOM_TYPES : classifica
   BATHROOMS o|--o{ REPORTS : destino
   REVIEWS o|--o{ REPORTS : destino
-  BATHROOM_IMAGES o|--o{ REPORTS : destino
-  REVIEW_IMAGES o|--o{ REPORTS : destino
   BATHROOMS o|--o{ MODERATION_AUDIT : destino
   REVIEWS o|--o{ MODERATION_AUDIT : destino
-  BATHROOM_IMAGES o|--o{ MODERATION_AUDIT : destino
-  REVIEW_IMAGES o|--o{ MODERATION_AUDIT : destino
   APP_USERS ||--o{ SUBMISSION_RECEIPTS : envia
   BATHROOMS o|--o{ SUBMISSION_RECEIPTS : destino
   REVIEWS o|--o{ SUBMISSION_RECEIPTS : destino
-  BATHROOM_IMAGES o|--o{ SUBMISSION_RECEIPTS : destino
-  REVIEW_IMAGES o|--o{ SUBMISSION_RECEIPTS : destino
   SPRING_SESSION ||--o{ SPRING_SESSION_ATTRIBUTES : possui
+  BATHROOMS {
+    uuid id PK
+    jsonb image_urls
+  }
+  REVIEWS {
+    uuid id PK
+    uuid bathroom_id FK
+    jsonb image_urls
+  }

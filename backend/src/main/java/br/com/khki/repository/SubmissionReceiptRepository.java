@@ -1,7 +1,0 @@
-package br.com.khki.repository;
-
-import br.com.khki.domain.SubmissionReceipt;
-import java.util.UUID;
-import org.springframework.data.jpa.repository.JpaRepository;
-
-public interface SubmissionReceiptRepository extends JpaRepository<SubmissionReceipt, UUID> {}
