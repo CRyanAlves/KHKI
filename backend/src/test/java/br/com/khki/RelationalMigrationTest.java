@@ -1,8 +1,9 @@
 package br.com.khki;
 
+import br.com.khki.infrastructure.storage.FileImageStorage;
+import br.com.khki.infrastructure.storage.ImageStorage;
+import br.com.khki.infrastructure.storage.LegacyImageExporter;
 import static org.assertj.core.api.Assertions.*;
-
-import br.com.khki.storage.*;
 import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -63,17 +64,15 @@ class RelationalMigrationTest {
     assertThat(LegacyImageExporter.export(dataSource, schema, storage, true)).isEqualTo(3);
     Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).locations("classpath:db/migration").load().migrate();
     assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = 'photos'", Integer.class, schema)).isZero();
-    assertThat(jdbc.queryForObject("SELECT count(*) FROM bathroom_images", Integer.class)).isEqualTo(1);
-    assertThat(jdbc.queryForObject("SELECT count(*) FROM review_images", Integer.class)).isEqualTo(3);
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.tables WHERE table_schema = ? AND table_name IN ('bathroom_images','review_images')", Integer.class, schema)).isZero();
     assertThat(jdbc.queryForObject("SELECT count(*) FROM reviews WHERE photo_only AND cleanliness IS NULL AND structure IS NULL AND comment IS NULL", Integer.class)).isEqualTo(2);
     assertThat(jdbc.queryForObject("SELECT count(*) FROM reviews WHERE NOT photo_only", Integer.class)).isEqualTo(1);
     assertThat(jdbc.queryForObject("SELECT count(*) FROM bathroom_items", Integer.class)).isEqualTo(2);
     assertThat(jdbc.queryForObject("SELECT count(*) FROM bathroom_types", Integer.class)).isEqualTo(2);
-    assertThat(jdbc.queryForObject("SELECT bathroom_image_target_id FROM reports", UUID.class)).isEqualTo(pictures.get(0));
+    assertThat(jdbc.queryForObject("SELECT bathroom_target_id FROM reports", UUID.class)).isEqualTo(bathroom);
     assertThat(jdbc.queryForObject("SELECT status FROM reviews WHERE id = ?", String.class, pictures.get(2))).isEqualTo("PENDING");
     for (int index = 0; index < 3; index++) assertThat(storage.read(pictures.get(index))).containsExactly(1, 2, 3, index);
-    assertThat(jdbc.queryForObject("SELECT url FROM bathroom_images", String.class)).isEqualTo("/api/photos/" + pictures.get(0));
-    assertThat(jdbc.queryForObject("SELECT created_at FROM bathroom_images", Timestamp.class).toInstant()).isEqualTo(created);
+    assertThat(jdbc.queryForObject("SELECT CAST(image_urls AS TEXT) FROM bathrooms WHERE id = ?", String.class, bathroom)).contains("/api/photos/" + pictures.get(0));
     assertThatThrownBy(() -> jdbc.update("INSERT INTO bathroom_items VALUES (?,?)", UUID.randomUUID(), "PAPER")).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     assertThatThrownBy(() -> jdbc.update("INSERT INTO bathroom_items VALUES (?,?)", bathroom, "INVENTED")).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     assertThatThrownBy(() -> jdbc.update("UPDATE reviews SET cleanliness = 5 WHERE photo_only")).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
@@ -97,5 +96,21 @@ class RelationalMigrationTest {
     };
     assertThatThrownBy(() -> LegacyImageExporter.export(dataSource, schema, broken, true)).isInstanceOf(IllegalStateException.class);
     assertThat(jdbc.queryForObject("SELECT count(*) FROM photos", Integer.class)).isEqualTo(4);
+  }
+
+  @Test
+  void pendingLegacyImageDoesNotBecomePublicWithAnAlreadyApprovedParent() throws Exception {
+    jdbc.update("UPDATE photos SET status = 'PENDING' WHERE id = ?", pictures.get(1));
+    jdbc.update("UPDATE bathrooms SET status = 'PENDING' WHERE id = ?", bathroom);
+    Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).locations("classpath:db/migration").target("10").load().migrate();
+    LegacyImageExporter.export(dataSource, schema, new FileImageStorage(files), true);
+    Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema).locations("classpath:db/migration").load().migrate();
+    assertThat(jdbc.queryForObject("SELECT status FROM reviews WHERE id = ?", String.class, review)).isEqualTo("APPROVED");
+    assertThat(jdbc.queryForObject("SELECT CAST(image_urls AS TEXT) FROM reviews WHERE id = ?", String.class, review)).doesNotContain(pictures.get(1).toString());
+    assertThat(jdbc.queryForObject("SELECT status FROM reviews WHERE id = ?", String.class, pictures.get(1))).isEqualTo("PENDING");
+    assertThat(jdbc.queryForObject("SELECT CAST(image_urls AS TEXT) FROM reviews WHERE id = ?", String.class, pictures.get(1))).contains("/api/photos/" + pictures.get(1));
+    assertThat(jdbc.queryForObject("SELECT status FROM bathrooms WHERE id = ?", String.class, bathroom)).isEqualTo("PENDING");
+    assertThat(jdbc.queryForObject("SELECT CAST(image_urls AS TEXT) FROM bathrooms WHERE id = ?", String.class, bathroom)).contains(pictures.get(0).toString());
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM reviews WHERE status = 'APPROVED' AND CAST(image_urls AS TEXT) LIKE ?", Integer.class, "%" + pictures.get(0) + "%")).isZero();
   }
 }

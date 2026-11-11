@@ -25,7 +25,7 @@ export const routes: Routes = [
       { path: 'cadastrar', canActivate: [authenticated], canDeactivate: [leaveRegistration], loadComponent: () => import('./features/register/register.component').then((module) => module.RegisterComponent), title: 'Cadastrar banheiro · KHKI' },
       { path: '', pathMatch: 'full', loadComponent: () => import('./features/explore/search-state.component').then((module) => module.SearchStateComponent), title: 'KHKI · Encontre seu próximo alívio' },
       { path: 'banheiros/:id/avaliar', canActivate: [authenticated], loadComponent: () => import('./features/review/review.component').then((module) => module.ReviewComponent), title: 'Avaliar banheiro · KHKI' },
-      { path: 'banheiros/:id/fotos', canActivate: [authenticated], loadComponent: () => import('./features/photos/photos.component').then((module) => module.PhotosComponent), title: 'Enviar foto · KHKI' },
+      { path: 'banheiros/:id/fotos', redirectTo: 'banheiros/:id/avaliar', pathMatch: 'full' },
       { path: 'banheiros/:id/rota', loadComponent: () => import('./features/route/route.component').then((module) => module.RouteComponent), title: 'Como chegar · KHKI' },
       { path: 'banheiros/:id', loadComponent: () => import('./features/details/details.component').then((module) => module.DetailsComponent), title: 'Detalhes do banheiro · KHKI' }
     ]

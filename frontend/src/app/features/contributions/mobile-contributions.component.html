@@ -3,12 +3,12 @@
     <a routerLink="/" aria-label="KHKI — página inicial"><img [src]="theme.mode() === 'dark' ? 'assets/brand/khki-logo-dark.png' : 'assets/brand/khki-logo.png'" alt="KHKI" width="1983" height="793" /></a>
   </div>
   <h1>Minhas contribuições</h1>
-  <p class="contributions-subtitle">Acompanhe seus cadastros, avaliações e fotos.</p>
+  <p class="contributions-subtitle">Acompanhe seus cadastros e avaliações.</p>
   <details class="contributions-notice">
     <summary>
       <app-icon name="ShieldCheck" /><span>Envios em análise ainda não são públicos.</span><span class="notice-action">Entenda<app-icon name="ChevronDown" [size]="16" /></span>
     </summary>
-    <p>Fotos anexadas a cadastros ou avaliações acompanham a análise do envio. Fotos avulsas são analisadas separadamente.</p>
+    <p>Fotos são enviadas somente com um cadastro ou uma avaliação e acompanham a análise desse conteúdo.</p>
   </details>
   <div class="contributions-types" role="group" aria-label="Tipo de contribuição">
     @for (option of types; track option.value) {
@@ -45,9 +45,9 @@
     <div class="contributions-list" aria-label="Suas contribuições">
       @for (item of rows(); track item.id) {
         <article class="contributions-item">
-          <span class="contributions-thumbnail"><app-icon [name]="item.type === 'PHOTO' ? 'Camera' : item.type === 'REVIEW' ? 'Star' : 'MapPin'" [size]="28" /></span>
+          <span class="contributions-thumbnail"><app-icon [name]="item.type === 'REVIEW' ? 'Star' : 'MapPin'" [size]="28" /></span>
           <div class="contributions-info">
-            <small>{{ item.type === 'PHOTO' ? 'FOTO' : item.type === 'REVIEW' ? 'AVALIAÇÃO' : 'CADASTRO' }}</small>
+            <small>{{ item.type === 'REVIEW' ? 'AVALIAÇÃO' : 'CADASTRO' }}</small>
             <h2>{{ item.name }}</h2>
             <p>Enviado em {{ item.createdAt | date: 'dd/MM/yyyy' }}</p>
           </div>
@@ -61,7 +61,7 @@
               }
             </div>
           }
-          @if ((item.status === 'REJECTED' || item.status === 'NEEDS_INFORMATION') && item.type !== 'PHOTO') {
+          @if ((item.status === 'REJECTED' || item.status === 'NEEDS_INFORMATION')) {
             <a class="text-button contributions-correct" [routerLink]="item.type === 'BATHROOM' ? ['/cadastrar'] : ['/banheiros', item.bathroomId, 'avaliar']" [queryParams]="{ edit: item.id }">Corrigir e reenviar<app-icon name="ArrowRight" [size]="16" /></a>
           }
         </article>

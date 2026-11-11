@@ -1,6 +1,6 @@
 export type Access = 'FREE' | 'CUSTOMERS' | 'PAID' | 'OTHER';
 export type Status = 'PENDING' | 'NEEDS_INFORMATION' | 'APPROVED' | 'REJECTED' | 'HIDDEN' | 'REMOVED';
-export type TargetType = 'BATHROOM' | 'REVIEW' | 'PHOTO';
+export type TargetType = 'BATHROOM' | 'REVIEW';
 export interface User {
   id: string;
   name: string;
@@ -85,7 +85,7 @@ export interface ModerationDetail {
   author: string;
   version: number;
   bathroom: Bathroom;
-  photos: Contribution[];
+  photos: { id: string }[];
 }
 export interface AuditEntry {
   id: string;
@@ -100,7 +100,7 @@ export const ACCESS_LABELS: Record<Access, string> = { FREE: 'Acesso livre', CUS
 export const STATUS_LABELS: Record<Status, string> = { PENDING: 'Em análise', NEEDS_INFORMATION: 'Aguardando informações', APPROVED: 'Aprovado', REJECTED: 'Rejeitado', HIDDEN: 'Oculto', REMOVED: 'Removido' };
 export const ITEM_LABELS: Record<string, string> = { PAPER: 'Papel higiênico', SOAP: 'Sabonete líquido', SINK: 'Pia', DRYER: 'Secador de mãos', BIN: 'Lixeira', CHANGING_TABLE: 'Fraldário' };
 export const REPORT_LABELS: Record<string, string> = { INCORRECT: 'Informação incorreta', CLOSED: 'Local fechado', PRIVACY: 'Privacidade', INAPPROPRIATE: 'Conteúdo inadequado', SPAM: 'Spam', OTHER: 'Outro motivo' };
-export const TYPE_LABELS: Record<TargetType, string> = { BATHROOM: 'Banheiro', REVIEW: 'Avaliação', PHOTO: 'Foto' };
+export const TYPE_LABELS: Record<TargetType, string> = { BATHROOM: 'Banheiro', REVIEW: 'Avaliação' };
 
 export interface MapArea {
   north: number;
