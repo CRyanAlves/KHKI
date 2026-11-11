@@ -1,0 +1,1 @@
+ALTER TABLE photos ADD COLUMN storage_url VARCHAR(500);

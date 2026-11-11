@@ -31,18 +31,18 @@ public class DevelopmentData implements CommandLineRunner {
     if (!email.isBlank() && !password.isBlank() && users.findByEmail(email.toLowerCase(java.util.Locale.ROOT)).isEmpty()) {
       if (password.length() < 12 || password.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) throw new IllegalStateException("Configure uma senha administrativa de 12 a 72 bytes.");
       var user = new AppUser();
-      user.name = "Administrador";
-      user.email = email.toLowerCase(java.util.Locale.ROOT);
-      user.password = passwords.encode(password);
-      user.role = "ADMIN";
+      user.setName("Administrador");
+      user.setEmail(email.toLowerCase(java.util.Locale.ROOT));
+      user.setPassword(passwords.encode(password));
+      user.setRole("ADMIN");
       users.save(user);
     }
     if (!demo || bathrooms.count() > 0) return;
     var author = users.findByEmail("demo@khki.invalid").orElseGet(() -> {
       var user = new AppUser();
-      user.name = "Demonstração";
-      user.email = "demo@khki.invalid";
-      user.password = passwords.encode(java.util.UUID.randomUUID().toString());
+      user.setName("Demonstração");
+      user.setEmail("demo@khki.invalid");
+      user.setPassword(passwords.encode(java.util.UUID.randomUUID().toString()));
       return users.save(user);
     });
     seed(author, "Café do Centro", "Rua Augusta, 1234 — Consolação, São Paulo", "Cafeteria", -23.5535, -46.6558, Access.FREE, true, "Segunda a sábado, das 7h às 21h");
@@ -52,18 +52,18 @@ public class DevelopmentData implements CommandLineRunner {
 
   private void seed(AppUser author, String name, String address, String category, double latitude, double longitude, Access access, Boolean accessible, String hours) {
     var bathroom = new Bathroom();
-    bathroom.authorId = author.id;
-    bathroom.name = name;
-    bathroom.address = address;
-    bathroom.category = category;
-    bathroom.latitude = latitude;
-    bathroom.longitude = longitude;
-    bathroom.access = access;
-    bathroom.accessible = accessible;
-    bathroom.hours = hours;
-    bathroom.items = "PAPER,SOAP,SINK,BIN";
-    bathroom.demo = true;
-    bathroom.status = Status.APPROVED;
+    bathroom.setAuthorId(author.getId());
+    bathroom.setName(name);
+    bathroom.setAddress(address);
+    bathroom.setCategory(category);
+    bathroom.setLatitude(latitude);
+    bathroom.setLongitude(longitude);
+    bathroom.setAccess(access);
+    bathroom.setAccessible(accessible);
+    bathroom.setHours(hours);
+    bathroom.setItems(new java.util.TreeSet<>(java.util.Set.of("PAPER", "SOAP", "SINK", "BIN")));
+    bathroom.setDemo(true);
+    bathroom.setStatus(Status.APPROVED);
     bathrooms.save(bathroom);
   }
 }

@@ -43,7 +43,7 @@ class PhotoAttachmentMigrationTest {
       { unknownSeed, owner, unaudited, null, created.plusSeconds(30) }
     };
     for (Object[] row : rows) jdbc.update("INSERT INTO photos (id, author_id, status, created_at, bathroom_id, review_id, data) VALUES (?, ?, ?, ?, ?, ?, ?)", row[0], row[1], "PENDING", Timestamp.from((Instant) row[4]), row[2], row[3], new byte[] { 1 });
-    Flyway.configure().dataSource(url, "sa", "").locations("classpath:db/migration").load().migrate();
+    Flyway.configure().dataSource(url, "sa", "").locations("classpath:db/migration").target("7").load().migrate();
     for (UUID id : new UUID[] { initial, pendingInitial }) assertThat(jdbc.queryForObject("SELECT registration_attachment FROM photos WHERE id = ?", Boolean.class, id)).isTrue();
     for (UUID id : new UUID[] { standalone, linkedReview, foreign, unknownSeed }) assertThat(jdbc.queryForObject("SELECT registration_attachment FROM photos WHERE id = ?", Boolean.class, id)).isFalse();
   }

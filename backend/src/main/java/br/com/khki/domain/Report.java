@@ -9,21 +9,48 @@ import java.util.UUID;
 public class Report {
 
   @Id
-  public UUID id = UUID.randomUUID();
+  private UUID id = UUID.randomUUID();
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  public TargetType targetType;
+  private TargetType targetType;
 
   @Column(nullable = false)
-  public UUID targetId;
+  private UUID targetId;
 
   @Column(nullable = false, length = 40)
-  public String reason;
+  private String reason;
 
-  public Instant createdAt = Instant.now();
-  public boolean resolved;
+  private Instant createdAt = Instant.now();
+  private boolean resolved;
 
   @Version
-  public long version;
+  private long version;
+  @Embedded
+  @com.fasterxml.jackson.annotation.JsonIgnore
+  private ContentReference reference;
+
+  public UUID getId() { return id; }
+  public void setId(UUID value) { id = value; }
+
+  public TargetType getTargetType() { return targetType; }
+  public void setTargetType(TargetType value) { targetType = value; }
+
+  public UUID getTargetId() { return targetId; }
+  public void setTargetId(UUID value) { targetId = value; }
+
+  public String getReason() { return reason; }
+  public void setReason(String value) { reason = value; }
+
+  public Instant getCreatedAt() { return createdAt; }
+  public void setCreatedAt(Instant value) { createdAt = value; }
+
+  public boolean getResolved() { return resolved; }
+  public void setResolved(boolean value) { resolved = value; }
+
+  public long getVersion() { return version; }
+  public void setVersion(long value) { version = value; }
+
+  public ContentReference getReference() { return reference; }
+  public void setReference(ContentReference value) { reference = value; }
 }
