@@ -27,8 +27,8 @@
         @if (error) {
           <p role="alert" class="error-message">{{ error }}</p>
         }
-        @if (submission.uncertain) {
-          <p role="alert" class="registration-warning">Não foi possível confirmar a resposta do envio. Os dados foram preservados e ficam bloqueados até a nova tentativa confirmar se o cadastro já foi recebido.</p>
+        @if (submission.uncertain || submission.uncertainUploads) {
+          <p role="alert" class="registration-warning">Não foi possível confirmar a resposta do envio. <a routerLink="/contribuicoes">Confira Minhas contribuições</a> antes de iniciar outro envio para evitar duplicações.</p>
         }
 
         @if (loadingEdit) {
@@ -259,7 +259,7 @@
           } @else if (step === 1) {
             <button type="button" class="button secondary" [disabled]="busy" (click)="goTo(0)"><app-icon name="ArrowLeft" />Voltar</button><button class="button primary" [disabled]="busy || resolvingAddress">Continuar<app-icon name="ArrowRight" /></button>
           } @else {
-            <button type="button" class="button secondary" [disabled]="busy" (click)="goTo(1)"><app-icon name="ArrowLeft" />Voltar</button><button class="button primary" [disabled]="busy || resolvingAddress">{{ busy ? 'Enviando…' : submission.createdId ? 'Tentar enviar fotos restantes' : 'Enviar para análise' }}<app-icon name="ArrowRight" /></button>
+            <button type="button" class="button secondary" [disabled]="busy" (click)="goTo(1)"><app-icon name="ArrowLeft" />Voltar</button><button class="button primary" [disabled]="busy || resolvingAddress || submission.uncertain || submission.uncertainUploads" [attr.aria-busy]="busy">{{ busy ? 'Enviando…' : submission.createdId ? 'Tentar enviar fotos restantes' : 'Enviar para análise' }}<app-icon name="ArrowRight" /></button>
           }
         </footer>
       }

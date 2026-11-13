@@ -41,6 +41,11 @@ public class ApiErrors {
     return error(HttpStatus.CONFLICT, "Os dados já existem ou foram alterados. Atualize e tente novamente.");
   }
 
+  @ExceptionHandler({ org.springframework.web.servlet.resource.NoResourceFoundException.class, org.springframework.web.servlet.NoHandlerFoundException.class })
+  ResponseEntity<ProblemDetail> missing(Exception exception) {
+    return error(HttpStatus.NOT_FOUND, "Recurso não encontrado.");
+  }
+
   @ExceptionHandler(Exception.class)
   ResponseEntity<ProblemDetail> unexpected(Exception exception) {
     logger.error("Falha interna: {}", exception.getClass().getSimpleName());
