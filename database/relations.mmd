@@ -1,7 +1,7 @@
 erDiagram
-  APP_USERS ||--o{ BATHROOMS : cadastra
-  APP_USERS ||--o{ REVIEWS : envia
-  APP_USERS ||--o{ MODERATION_AUDIT : modera
+  USER ||--o{ BATHROOMS : cadastra
+  USER ||--o{ REVIEWS : envia
+  USER ||--o{ MODERATION_AUDIT : modera
   BATHROOMS ||--o{ REVIEWS : recebe
   BATHROOMS ||--o{ BATHROOM_ITEMS : oferece
   AMENITY_TYPES ||--o{ BATHROOM_ITEMS : classifica
@@ -11,9 +11,6 @@ erDiagram
   REVIEWS o|--o{ REPORTS : destino
   BATHROOMS o|--o{ MODERATION_AUDIT : destino
   REVIEWS o|--o{ MODERATION_AUDIT : destino
-  APP_USERS ||--o{ SUBMISSION_RECEIPTS : envia
-  BATHROOMS o|--o{ SUBMISSION_RECEIPTS : destino
-  REVIEWS o|--o{ SUBMISSION_RECEIPTS : destino
   SPRING_SESSION ||--o{ SPRING_SESSION_ATTRIBUTES : possui
   BATHROOMS {
     uuid id PK

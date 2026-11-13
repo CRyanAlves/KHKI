@@ -46,20 +46,6 @@ CREATE TABLE khki.amenity_types (
 
 
 --
--- Name: app_users; Type: TABLE; Schema: khki; Owner: -
---
-
-CREATE TABLE khki.app_users (
-    id uuid NOT NULL,
-    name character varying(80) NOT NULL,
-    email character varying(254) NOT NULL,
-    password character varying(100) NOT NULL,
-    role character varying(20) NOT NULL,
-    CONSTRAINT app_users_role_check CHECK (((role)::text = ANY ((ARRAY['USER'::character varying, 'ADMIN'::character varying])::text[])))
-);
-
-
---
 -- Name: bathroom_items; Type: TABLE; Schema: khki; Owner: -
 --
 
@@ -222,21 +208,16 @@ CREATE TABLE khki.spring_session_attributes (
 
 
 --
--- Name: submission_receipts; Type: TABLE; Schema: khki; Owner: -
+-- Name: user; Type: TABLE; Schema: khki; Owner: -
 --
 
-CREATE TABLE khki.submission_receipts (
+CREATE TABLE khki."user" (
     id uuid NOT NULL,
-    version bigint DEFAULT 0 NOT NULL,
-    author_id uuid NOT NULL,
-    operation character varying(80) NOT NULL,
-    fingerprint character varying(64) NOT NULL,
-    target_type character varying(20) NOT NULL,
-    target_id uuid NOT NULL,
-    created_at timestamp with time zone NOT NULL,
-    bathroom_target_id uuid,
-    review_target_id uuid,
-    CONSTRAINT submission_receipts_target_fk_check CHECK (((((target_type)::text = 'BATHROOM'::text) AND (bathroom_target_id IS NOT NULL) AND (bathroom_target_id = target_id) AND (review_target_id IS NULL)) OR (((target_type)::text = 'REVIEW'::text) AND (review_target_id IS NOT NULL) AND (review_target_id = target_id) AND (bathroom_target_id IS NULL))))
+    name character varying(80) NOT NULL,
+    email character varying(254) NOT NULL,
+    password character varying(100) NOT NULL,
+    role character varying(20) NOT NULL,
+    CONSTRAINT app_users_role_check CHECK (((role)::text = ANY ((ARRAY['USER'::character varying, 'ADMIN'::character varying])::text[])))
 );
 
 
@@ -249,18 +230,18 @@ ALTER TABLE ONLY khki.amenity_types
 
 
 --
--- Name: app_users app_users_email_key; Type: CONSTRAINT; Schema: khki; Owner: -
+-- Name: user app_users_email_key; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
-ALTER TABLE ONLY khki.app_users
+ALTER TABLE ONLY khki."user"
     ADD CONSTRAINT app_users_email_key UNIQUE (email);
 
 
 --
--- Name: app_users app_users_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
+-- Name: user app_users_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
-ALTER TABLE ONLY khki.app_users
+ALTER TABLE ONLY khki."user"
     ADD CONSTRAINT app_users_pkey PRIMARY KEY (id);
 
 
@@ -342,14 +323,6 @@ ALTER TABLE ONLY khki.spring_session_attributes
 
 ALTER TABLE ONLY khki.spring_session
     ADD CONSTRAINT spring_session_pkey PRIMARY KEY (primary_id);
-
-
---
--- Name: submission_receipts submission_receipts_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
---
-
-ALTER TABLE ONLY khki.submission_receipts
-    ADD CONSTRAINT submission_receipts_pkey PRIMARY KEY (id);
 
 
 --
@@ -451,27 +424,6 @@ CREATE INDEX spring_session_ix3 ON khki.spring_session USING btree (principal_na
 
 
 --
--- Name: submission_receipts_author_idx; Type: INDEX; Schema: khki; Owner: -
---
-
-CREATE INDEX submission_receipts_author_idx ON khki.submission_receipts USING btree (author_id);
-
-
---
--- Name: submission_receipts_bathroom_target_id_idx; Type: INDEX; Schema: khki; Owner: -
---
-
-CREATE INDEX submission_receipts_bathroom_target_id_idx ON khki.submission_receipts USING btree (bathroom_target_id);
-
-
---
--- Name: submission_receipts_review_target_id_idx; Type: INDEX; Schema: khki; Owner: -
---
-
-CREATE INDEX submission_receipts_review_target_id_idx ON khki.submission_receipts USING btree (review_target_id);
-
-
---
 -- Name: bathroom_items bathroom_items_bathroom_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
@@ -508,7 +460,7 @@ ALTER TABLE ONLY khki.bathroom_types
 --
 
 ALTER TABLE ONLY khki.bathrooms
-    ADD CONSTRAINT bathrooms_author_id_fkey FOREIGN KEY (author_id) REFERENCES khki.app_users(id);
+    ADD CONSTRAINT bathrooms_author_id_fkey FOREIGN KEY (author_id) REFERENCES khki."user"(id);
 
 
 --
@@ -532,7 +484,7 @@ ALTER TABLE ONLY khki.moderation_audit
 --
 
 ALTER TABLE ONLY khki.moderation_audit
-    ADD CONSTRAINT moderation_audit_moderator_id_fkey FOREIGN KEY (moderator_id) REFERENCES khki.app_users(id);
+    ADD CONSTRAINT moderation_audit_moderator_id_fkey FOREIGN KEY (moderator_id) REFERENCES khki."user"(id);
 
 
 --
@@ -564,7 +516,7 @@ ALTER TABLE ONLY khki.reports
 --
 
 ALTER TABLE ONLY khki.reviews
-    ADD CONSTRAINT reviews_author_id_fkey FOREIGN KEY (author_id) REFERENCES khki.app_users(id);
+    ADD CONSTRAINT reviews_author_id_fkey FOREIGN KEY (author_id) REFERENCES khki."user"(id);
 
 
 --
@@ -584,42 +536,17 @@ ALTER TABLE ONLY khki.spring_session_attributes
 
 
 --
--- Name: submission_receipts submission_receipts_author_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
---
-
-ALTER TABLE ONLY khki.submission_receipts
-    ADD CONSTRAINT submission_receipts_author_id_fkey FOREIGN KEY (author_id) REFERENCES khki.app_users(id);
-
-
---
--- Name: submission_receipts submission_receipts_bathroom_target_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
---
-
-ALTER TABLE ONLY khki.submission_receipts
-    ADD CONSTRAINT submission_receipts_bathroom_target_id_fkey FOREIGN KEY (bathroom_target_id) REFERENCES khki.bathrooms(id);
-
-
---
--- Name: submission_receipts submission_receipts_review_target_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
---
-
-ALTER TABLE ONLY khki.submission_receipts
-    ADD CONSTRAINT submission_receipts_review_target_id_fkey FOREIGN KEY (review_target_id) REFERENCES khki.reviews(id);
-
-
---
 -- PostgreSQL database dump complete
 --
 
 
 INSERT INTO khki.amenity_types (code) VALUES ('PAPER'), ('SOAP'), ('SINK'), ('DRYER'), ('BIN'), ('CHANGING_TABLE');
 INSERT INTO khki.bathroom_type_options (code) VALUES ('INDIVIDUAL'), ('FEMALE'), ('MALE');
-ALTER TABLE khki.app_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE khki."user" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.bathrooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.moderation_audit ENABLE ROW LEVEL SECURITY;
-ALTER TABLE khki.submission_receipts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.bathroom_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.bathroom_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.amenity_types ENABLE ROW LEVEL SECURITY;

@@ -15,10 +15,17 @@ export interface PhotoDraft {
 @Injectable()
 export class RegistrationSubmissionService {
   private readonly api = inject(ApiService);
-  private readonly key = crypto.randomUUID();
+  private request: Promise<boolean> | null = null;
   createdId = '';
   uncertain = false;
-  async send(form: BathroomInput, editId: string, photos: PhotoDraft[]): Promise<boolean> {
+  uncertainUploads = false;
+  send(form: BathroomInput, editId: string, photos: PhotoDraft[]): Promise<boolean> {
+    if (this.request) return this.request;
+    this.request = this.perform(form, editId, photos).finally(() => { this.request = null; });
+    return this.request;
+  }
+  private async perform(form: BathroomInput, editId: string, photos: PhotoDraft[]): Promise<boolean> {
+    if (this.uncertain || this.uncertainUploads) throw new Error('Confira Minhas contribuições antes de iniciar outro envio: a resposta anterior não foi confirmada.');
     if (!this.createdId) {
       const input: BathroomInput = {
         name: form.name,
@@ -32,7 +39,6 @@ export class RegistrationSubmissionService {
         hours: form.hours,
         accessible: form.accessible,
         items: [...form.items].sort(),
-        submissionId: this.key,
         details: form.details ? { ...form.details, bathroomTypes: [...form.details.bathroomTypes].sort(), lastVisited: form.details.lastVisited || null } : undefined
       };
       let contribution: Contribution;
@@ -44,11 +50,7 @@ export class RegistrationSubmissionService {
           throw error;
         }
         this.uncertain = true;
-        try {
-          contribution = await this.api.get<Contribution>('/me/submissions/' + this.key);
-        } catch {
-          throw error;
-        }
+        throw error;
       }
       this.createdId = contribution.id;
       this.uncertain = false;
@@ -58,14 +60,15 @@ export class RegistrationSubmissionService {
       body.append('file', photo.file);
       photo.error = '';
       try {
-        await this.api.post('/bathrooms/' + this.createdId + '/photos?registrationAttachment=true&submissionId=' + photo.key, body);
+        await this.api.post('/bathrooms/' + this.createdId + '/photos?registrationAttachment=true', body);
         photo.uploaded = true;
         photo.uncertain = false;
       } catch (error) {
         photo.uncertain = !(error instanceof HttpErrorResponse) || error.status === 0 || error.status >= 500;
-        photo.error = photo.uncertain ? 'Recebimento não confirmado. Tente novamente para verificar esta foto antes de removê-la.' : this.api.error(error);
+        photo.error = photo.uncertain ? 'Recebimento não confirmado. Confira as fotos em Minhas contribuições antes de enviar novamente.' : this.api.error(error);
       }
     }
+    this.uncertainUploads = photos.some((photo) => photo.uncertain);
     return photos.every((photo) => photo.uploaded);
   }
 }

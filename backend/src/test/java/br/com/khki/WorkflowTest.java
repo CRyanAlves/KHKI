@@ -509,111 +509,6 @@ class WorkflowTest {
   }
 
   @Test
-  void registrationRetriesReuseReceiptWithoutDuplicatingOrLeakingOtherAuthors() throws Exception {
-    UUID key = UUID.randomUUID();
-    String name = "Tentativa " + key;
-    String input = bathroomInput(name).replace("\"items\":", "\"submissionId\":\"" + key + "\",\"items\":");
-    UUID id = UUID.fromString(
-      body(
-        mvc
-          .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(input))
-          .andExpect(status().isCreated())
-          .andReturn()
-      )
-        .get("id")
-        .asText()
-    );
-    mvc
-      .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(input))
-      .andExpect(status().isCreated())
-      .andExpect(jsonPath("$.id").value(id.toString()));
-    assertThat(
-      bathrooms
-        .findByAuthorIdOrderByCreatedAtDesc(users.findByEmail("admin@khki.test").orElseThrow().getId())
-        .stream()
-        .filter(value -> value.getName().equals(name))
-        .count()
-    ).isEqualTo(1);
-    mvc.perform(get("/api/bathrooms/" + id)).andExpect(status().isNotFound());
-    mvc
-      .perform(get("/api/me/submissions/" + key).with(user("admin@khki.test").roles("ADMIN")))
-      .andExpect(status().isOk())
-      .andExpect(jsonPath("$.id").value(id.toString()))
-      .andExpect(jsonPath("$.fingerprint").doesNotExist());
-    mvc.perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(input.replace(name, "Dados diferentes"))).andExpect(status().isConflict());
-    var outsider = new User();
-    outsider.setName("Outro autor");
-    outsider.setEmail("receipt-" + key + "@khki.test");
-    outsider.setPassword("unused-test-hash");
-    users.save(outsider);
-    mvc.perform(get("/api/me/submissions/" + key).with(user(outsider.getEmail()))).andExpect(status().isNotFound());
-    mvc.perform(post("/api/bathrooms").with(user(outsider.getEmail())).with(csrf()).contentType("application/json").content(input)).andExpect(status().isConflict());
-    decide("BATHROOM", id, "REJECTED");
-    String correction = input.replace(key.toString(), UUID.randomUUID().toString()).replace(name, "Corrigido " + key);
-    for (int attempt = 0; attempt < 2; attempt++) mvc
-      .perform(
-        put("/api/bathrooms/" + id)
-          .with(user("admin@khki.test").roles("ADMIN"))
-          .with(csrf())
-          .contentType("application/json")
-          .content(correction)
-      )
-      .andExpect(status().isOk())
-      .andExpect(jsonPath("$.id").value(id.toString()))
-      .andExpect(jsonPath("$.status").value("PENDING"));
-  }
-
-  @Test
-  void photoRetriesAreIdempotentAndStayPrivate() throws Exception {
-    var bathroom = moderationBathroom("Reenvio de foto", Status.PENDING, null, -26.2);
-    UUID key = UUID.randomUUID();
-    var image = new ByteArrayOutputStream();
-    ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB), "png", image);
-    var upload = new MockMultipartFile("file", "banheiro.png", "image/png", image.toByteArray());
-    UUID photoId = UUID.fromString(
-      body(
-        mvc
-          .perform(
-            multipart("/api/bathrooms/" + bathroom.getId() + "/photos")
-              .file(upload)
-          .param("registrationAttachment", "true")
-              .param("submissionId", key.toString())
-              .with(user("admin@khki.test").roles("ADMIN"))
-              .with(csrf())
-          )
-          .andExpect(status().isCreated())
-          .andReturn()
-      )
-        .get("id")
-        .asText()
-    );
-    mvc
-      .perform(
-        multipart("/api/bathrooms/" + bathroom.getId() + "/photos")
-          .file(upload)
-          .param("registrationAttachment", "true")
-          .param("submissionId", key.toString())
-          .with(user("admin@khki.test").roles("ADMIN"))
-          .with(csrf())
-      )
-      .andExpect(status().isCreated())
-      .andExpect(jsonPath("$.id").value(photoId.toString()));
-    assertThat(bathrooms.findById(bathroom.getId()).orElseThrow().getImageUrls()).hasSize(1);
-    photoId = imageId("bathrooms", bathroom.getId());
-    mvc.perform(get("/api/photos/" + photoId)).andExpect(status().isNotFound());
-    mvc
-      .perform(
-        multipart("/api/bathrooms/" + bathroom.getId() + "/photos")
-          .file(upload)
-          .param("registrationAttachment", "true")
-          .param("submissionId", "invalid")
-          .with(user("admin@khki.test").roles("ADMIN"))
-          .with(csrf())
-      )
-      .andExpect(status().isBadRequest());
-  }
-
-  @Test
   void authenticatedRegistrationPreviewOnlyReturnsPublishedNeighbors() throws Exception {
     var approved = moderationBathroom("Biblioteca Central", Status.APPROVED, "Térreo", -27.3);
     moderationBathroom("Biblioteca Central", Status.PENDING, "Piso L2", -27.3001);
@@ -627,43 +522,8 @@ class WorkflowTest {
   }
 
   @Test
-  void concurrentIdenticalSubmissionCreatesExactlyOneRecord() throws Exception {
-    UUID key = UUID.randomUUID();
-    String name = "Concorrência de envio " + key;
-    String input = bathroomInput(name).replace("\"items\":", "\"submissionId\":\"" + key + "\",\"items\":");
-    var start = new java.util.concurrent.CountDownLatch(1);
-    var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
-    try {
-      java.util.concurrent.Callable<Integer> request = () -> {
-        start.await();
-        return mvc
-          .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(input))
-          .andReturn()
-          .getResponse()
-          .getStatus();
-      };
-      var first = pool.submit(request);
-      var second = pool.submit(request);
-      start.countDown();
-      var statuses = java.util.List.of(first.get(), second.get());
-      assertThat(statuses).allMatch(value -> value == 201 || value == 409);
-      assertThat(statuses).contains(201);
-      assertThat(
-        bathrooms
-          .findByAuthorIdOrderByCreatedAtDesc(users.findByEmail("admin@khki.test").orElseThrow().getId())
-          .stream()
-          .filter(value -> value.getName().equals(name))
-          .count()
-      ).isEqualTo(1);
-    } finally {
-      pool.shutdownNow();
-    }
-  }
-
-  @Test
   void structuredRegistrationPreservesIndependentChargeUnknownsAndModeration() throws Exception {
     var input = (com.fasterxml.jackson.databind.node.ObjectNode) json.readTree(bathroomInput("Cadastro estruturado"));
-    input.put("submissionId", UUID.randomUUID().toString());
     var details = input.putObject("details");
     details.put("audience", "CUSTOMERS").put("charge", "YES").put("feeAmount", 2.50).put("stepFreeAccess", true).put("grabBars", false).putNull("elevator").putNull("adaptedCabin").put("lastVisited", "2020-02-29");
     details.putArray("bathroomTypes").add("FEMALE").add("MALE");
@@ -680,12 +540,6 @@ class WorkflowTest {
       .andExpect(jsonPath("$.content.details.charge").value("YES"))
       .andExpect(jsonPath("$.content.details.grabBars").value(false))
       .andExpect(jsonPath("$.content.details.elevator").isEmpty());
-    mvc
-      .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(json.writeValueAsString(input)))
-      .andExpect(status().isCreated())
-      .andExpect(jsonPath("$.id").value(id));
-    details.put("charge", "NO").putNull("feeAmount");
-    mvc.perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(json.writeValueAsString(input))).andExpect(status().isConflict());
     decide("BATHROOM", UUID.fromString(id), "APPROVED");
     mvc
       .perform(get("/api/bathrooms/" + id))
@@ -770,8 +624,6 @@ class WorkflowTest {
     );
   }
 
-
-
   @Test
   void newAttachmentInvalidatesParentVersionAndCannotBeAddedAfterApproval() throws Exception {
     UUID bathroomId = UUID.fromString(
@@ -826,10 +678,6 @@ class WorkflowTest {
       .andExpect(status().isBadRequest());
   }
 
-
-
-
-
   private UUID imageId(String table, UUID id) throws Exception {
     if (!java.util.Set.of("bathrooms", "reviews").contains(table)) throw new IllegalArgumentException();
     var urls = json.readTree(jdbc.queryForObject("SELECT image_urls::text FROM " + table + " WHERE id = ?", String.class, id));
@@ -865,5 +713,16 @@ class WorkflowTest {
     mvc.perform(multipart("/api/bathrooms/" + bathroom.getId() + "/photos").file(new MockMultipartFile("file", "foto.png", "image/png", bytes.toByteArray())).with(user("admin@khki.test").roles("ADMIN")).with(csrf())).andExpect(status().isBadRequest());
     assertThat(reviews.count()).isEqualTo(count);
     assertThat(bathrooms.findById(bathroom.getId()).orElseThrow().getImageUrls()).isEmpty();
+  }
+
+  @Test
+  void userTableAndContributionsWorkWithoutSubmissionReceipts() throws Exception {
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.tables WHERE table_name = 'submission_receipts'", Integer.class)).isZero();
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM \"user\"", Integer.class)).isPositive();
+    var result = mvc.perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(bathroomInput("Cadastro sem recibo"))).andExpect(status().isCreated()).andReturn();
+    UUID id = UUID.fromString(body(result).get("id").asText());
+    assertThat(bathrooms.findById(id).orElseThrow().getAuthorId()).isEqualTo(users.findByEmail("admin@khki.test").orElseThrow().getId());
+    mvc.perform(get("/api/me/submissions/" + UUID.randomUUID()).with(user("admin@khki.test").roles("ADMIN"))).andExpect(status().isNotFound());
+    mvc.perform(get("/api/me/contributions/BATHROOM/" + id).with(user("admin@khki.test").roles("ADMIN"))).andExpect(status().isOk());
   }
 }

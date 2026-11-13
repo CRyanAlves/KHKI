@@ -368,7 +368,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
     this.uploadWarning = '';
     try {
       this.success = await this.submission.send(this.form, this.editId, this.photos);
-      if (!this.success) this.uploadWarning = 'O cadastro já foi salvo em análise. Algumas fotos falharam; tente enviar somente as restantes. As fotos já recebidas não serão duplicadas.';
+      if (!this.success) this.uploadWarning = 'O cadastro já foi salvo em análise. Algumas fotos não tiveram envio confirmado. Confira as mensagens de cada foto; fotos com recebimento confirmado não serão reenviadas.';
     } catch (error) {
       this.error = this.api.error(error);
     } finally {

@@ -121,67 +121,53 @@ test('denied GPS does not block a manual point and leaving a draft asks for conf
   await expect(page).toHaveURL(/\/$/);
 });
 
-test('lost creation response can be retried without creating a second bathroom', async ({ page }) => {
+test('submission stays disabled while pending and an unconfirmed response is not resent', async ({ page }) => {
   await login(page);
-  const name = 'Resposta perdida ' + Date.now();
+  const name = 'Envio sem recibo ' + Date.now();
   await location(page, name);
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   let requests = 0;
-  await page.route(
-    (url) => url.pathname === '/api/bathrooms',
-    async (route) => {
-      if (route.request().method() !== 'POST') {
-        await route.continue();
-        return;
-      }
-      requests++;
-      if (requests === 1) {
-        await route.fetch();
-        await route.abort('failed');
-      } else await route.continue();
-    }
-  );
-  await page.route('**/api/me/submissions/*', (route) => route.fulfill({ status: 503, json: { detail: 'Falha de rede simulada.' } }));
+  let release!: () => void;
+  const waiting = new Promise<void>((resolve) => { release = resolve; });
+  await page.route((url) => url.pathname === '/api/bathrooms', async (route) => {
+    if (route.request().method() !== 'POST') { await route.continue(); return; }
+    requests++;
+    await route.fetch();
+    await waiting;
+    await route.abort('failed');
+  });
   await page.getByRole('button', { name: 'Enviar para análise', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Enviando…', exact: true })).toBeDisabled();
+  await page.locator('.registration-form').evaluate((form) => (form as HTMLFormElement).requestSubmit());
+  expect(requests).toBe(1);
+  release();
   await expect(page.getByText(/Não foi possível confirmar a resposta do envio/)).toBeVisible();
-  await page.getByRole('button', { name: 'Voltar', exact: true }).click();
-  await expect(page.getByRole('combobox', { name: 'Quem pode usar?' })).toBeDisabled();
-  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-  await page.unroute('**/api/me/submissions/*');
-  await page.getByRole('button', { name: 'Enviar para análise', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Recebemos seu cadastro', exact: true })).toBeVisible();
-  expect(requests).toBe(2);
-  expect((await contributions(page)).filter((value) => value.type === 'BATHROOM' && value.title === name)).toHaveLength(1);
+  await expect(page.getByRole('button', { name: 'Enviar para análise', exact: true })).toBeDisabled();
+  expect((await contributions(page)).filter((item) => item.title === name)).toHaveLength(1);
 });
 
-test('partial photo upload retries only the missing receipt without duplicating received images', async ({ page }) => {
+test('partial photo upload retries only files with a confirmed rejection', async ({ page }) => {
   await login(page);
-  const name = 'Fotos com recuperação ' + Date.now();
+  const name = 'Fotos sem recibo ' + Date.now();
   await location(page, name);
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   await page.getByLabel('Fotos do banheiro', { exact: true }).setInputFiles(['../data/demo-regional/images/anexo-01.jpg', '../data/demo-regional/images/anexo-02.jpg']);
-  const requests: string[] = [];
-  await page.route(
-    (url) => /\/api\/bathrooms\/[^/]+\/photos$/.test(url.pathname),
-    async (route) => {
-      requests.push(route.request().url());
-      if (requests.length === 1) {
-        await route.fetch();
-        await route.abort('failed');
-      } else await route.continue();
-    }
-  );
+  let requests = 0;
+  await page.route((url) => /\/api\/bathrooms\/[^/]+\/photos$/.test(url.pathname), async (route) => {
+    requests++;
+    if (requests === 1) await route.fulfill({ status: 400, json: { detail: 'Envio recusado antes de salvar.' } });
+    else await route.continue();
+  });
   await page.getByRole('button', { name: 'Enviar para análise', exact: true }).click();
   await expect(page.getByText(/O cadastro já foi salvo em análise/)).toBeVisible();
   await page.getByRole('button', { name: 'Tentar enviar fotos restantes', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Recebemos seu cadastro', exact: true })).toBeVisible();
-  expect(requests).toHaveLength(3);
-  expect(requests[0]).toBe(requests[2]);
-  const rows = await contributions(page);
-  const bathroom = rows.find((value) => value.title === name)!;
-  expect(rows.filter((value) => value.type === 'PHOTO' && value.bathroomId === bathroom.id)).toHaveLength(2);
+  expect(requests).toBe(3);
+  const bathroom = (await contributions(page)).find((item) => item.title === name)!;
+  const own = await (await page.request.get('/api/me/contributions/BATHROOM/' + bathroom.id)).json();
+  expect(own.photoIds).toHaveLength(2);
 });
 
 test('background proximity failure does not expose a technical block or prevent registration', async ({ page }) => {

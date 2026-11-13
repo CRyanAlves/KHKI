@@ -8,12 +8,12 @@ O banco anterior já possuía chaves estrangeiras entre autores, banheiros, aval
 
 ## Modelo
 
-- `app_users`: autores e administradores.
+- `user`: autores e administradores; o nome é usado entre aspas no SQL.
 - `bathrooms`: local, coordenadas, acesso, acessibilidade e estado de moderação.
 - `reviews`: avaliações vinculadas a autor e banheiro. `photo_only=true` identifica exclusivamente registros históricos sem comentário e sem notas; novos envios avulsos são proibidos. Esses registros não entram na média nem na contagem de avaliações com nota.
 - `bathrooms.image_urls` e `reviews.image_urls`: listas de URLs em colunas JSONB diretamente nos respectivos conteúdos, sem tabelas de imagens.
 - `bathroom_items` e `bathroom_types`: coleções normalizadas, com PK composta e FK para catálogos de valores permitidos.
-- `reports`, `moderation_audit` e `submission_receipts`: destinos tipados com FKs e uma restrição que exige exatamente um destino compatível com `target_type` e `target_id`.
+- `reports` e `moderation_audit`: destinos tipados com FKs e uma restrição que exige exatamente um destino compatível com `target_type` e `target_id`.
 - `image_deletions`: fila persistente para repetir exclusões físicas que falhem temporariamente.
 - `spring_session` e `spring_session_attributes`: sessões persistentes; seus bytes são atributos de sessão, não imagens.
 
@@ -31,7 +31,7 @@ psql --dbname=CONEXAO_CONFIGURADA -v ON_ERROR_STOP=1 -f database/schema.sql
 
 Use `.pgpass` ou o gerenciador de segredos para autenticar; não grave senhas no comando. A aplicação usa `ddl-auto=validate`: Hibernate valida o esquema, sem criá-lo nem alterá-lo automaticamente.
 
-Se o esquema foi criado manualmente, inicie com `SPRING_FLYWAY_ENABLED=false` e configure o schema JPA e a tabela de sessões como `khki`. Para voltar a gerenciar esse banco com Flyway, estabeleça explicitamente o baseline na versão 14 antes de habilitá-lo; não aplique V1 sobre o esquema pronto. O fluxo habitual de bancos existentes continua pelas migrações versionadas.
+Se o esquema foi criado manualmente, inicie com `SPRING_FLYWAY_ENABLED=false` e configure o schema JPA e a tabela de sessões como `khki`. Para voltar a gerenciar esse banco com Flyway, estabeleça explicitamente o baseline na versão 16 antes de habilitá-lo; não aplique V1 sobre o esquema pronto. O fluxo habitual de bancos existentes continua pelas migrações versionadas.
 
 ## Armazenamento das imagens
 
@@ -77,6 +77,12 @@ O SQL impede remover bytes não exportados, mas não substitui a cópia dos arqu
 
 Login, permissões, IDs das imagens, leitura e galeria permanecem. O upload avulso foi removido: é necessário anexar a um cadastro ou a uma avaliação pendente do próprio autor. A resposta do upload identifica o conteúdo pai, e não uma contribuição de foto. Somente `BATHROOM` e `REVIEW` são alvos válidos. A decisão de moderação é aplicada ao conteúdo inteiro, incluindo imagens. A organização dos pacotes e os contratos alterados estão em `../backend/README.md`.
 
-Os testes exercitam o fluxo HTTP com Spring MockMvc, PostgreSQL e H2, incluindo moderação, privacidade, idempotência, sessão e restrições do banco. `RelationalMigrationTest` valida exportação, preservação de metadados, bloqueio de migração sem cópia confirmada e rejeição de referências inválidas. Os testes locais não comprovam credenciais nem operação do R2 de produção.
+Os testes exercitam o fluxo HTTP com Spring MockMvc, PostgreSQL e H2, incluindo moderação, privacidade, sessão e restrições do banco. `RelationalMigrationTest` valida exportação, preservação de metadados, bloqueio de migração sem cópia confirmada e rejeição de referências inválidas. Os testes locais não comprovam credenciais nem operação do R2 de produção.
 
 A publicação anterior de V13 foi verificada em produção. V14 e a reorganização por caso de uso são uma nova alteração: a execução local dos testes não significa que essa versão já foi publicada no Render ou aplicada no Supabase.
+
+## Remoção de recibos e nome da tabela de usuários
+
+V15 remove `submission_receipts`, e V16 renomeia `app_users` para `"user"`, preservando dados, FKs e RLS. As migrações anteriores permanecem imutáveis para bancos antigos continuarem migrando. O Hibernate usa o nome delimitado de `user`. O DDL independente já representa a versão 16.
+
+O contrato `submissionId` e a rota `/api/me/submissions/{id}` foram removidos. Cadastro e upload não calculam hashes nem guardam recibos. O frontend compartilha a requisição em andamento, bloqueia o botão e mantém o ID de um cadastro cuja resposta foi confirmada. Fotos confirmadas não são reenviadas. Se a resposta se perder, o formulário bloqueia a repetição automática e orienta conferir Minhas contribuições. Isso não garante idempotência entre abas, recargas ou requisições independentes.

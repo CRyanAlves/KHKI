@@ -34,7 +34,6 @@ public final class Contracts {
     Boolean accessible,
     @NotNull @Size(max = 8) Set<@Pattern(regexp = "PAPER|SOAP|SINK|DRYER|BIN|CHANGING_TABLE") String> items,
     @Size(max = 200) String complement,
-    UUID submissionId,
     @Valid @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) BathroomDetails details
   ) {}
 

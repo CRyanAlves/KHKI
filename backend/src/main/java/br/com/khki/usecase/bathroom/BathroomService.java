@@ -3,9 +3,7 @@ package br.com.khki.usecase.bathroom;
 import br.com.khki.shared.api.ApiException;
 import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.shared.domain.Status;
-import br.com.khki.shared.domain.TargetType;
 import br.com.khki.usecase.contribution.ContributionService;
-import br.com.khki.usecase.contribution.SubmissionReceiptService;
 import br.com.khki.usecase.image.ImageUrls;
 import br.com.khki.usecase.review.ReviewRepository;
 import java.text.Normalizer;
@@ -19,13 +17,11 @@ public class BathroomService {
 
   private final BathroomRepository bathrooms;
   private final ReviewRepository reviews;
-  private final SubmissionReceiptService submissions;
   private final ContributionService contributions;
 
-  public BathroomService(BathroomRepository bathrooms, ReviewRepository reviews, SubmissionReceiptService submissions, ContributionService contributions) {
+  public BathroomService(BathroomRepository bathrooms, ReviewRepository reviews, ContributionService contributions) {
     this.bathrooms = bathrooms;
     this.reviews = reviews;
-    this.submissions = submissions;
     this.contributions = contributions;
   }
 
@@ -91,29 +87,20 @@ public class BathroomService {
   }
 
   public ContributionView createBathroom(BathroomInput input, UUID authorId) {
-    String fingerprint = submissions.fingerprint(input);
-    UUID previous = submissions.replay(input.submissionId(), authorId, "BATHROOM_CREATE", fingerprint);
-    if (previous != null) return contributions.contribution(contributions.target(TargetType.BATHROOM, previous));
     var bathroom = new Bathroom();
     bathroom.setAuthorId(authorId);
     apply(bathroom, input);
     bathrooms.save(bathroom);
-    submissions.remember(input.submissionId(), authorId, "BATHROOM_CREATE", fingerprint, TargetType.BATHROOM, bathroom.getId());
     return contributions.contribution(bathroom);
   }
 
   public ContributionView reviseBathroom(UUID id, BathroomInput input, UUID authorId) {
     var bathroom = bathrooms.findById(id).orElseThrow(ApiException::missing);
-    String operation = "BATHROOM_EDIT:" + id;
-    String fingerprint = submissions.fingerprint(input);
-    UUID previous = submissions.replay(input.submissionId(), authorId, operation, fingerprint);
-    if (previous != null) return contributions.contribution(contributions.target(TargetType.BATHROOM, previous));
     contributions.editable(bathroom, authorId);
     apply(bathroom, input);
     bathroom.setStatus(Status.PENDING);
     bathroom.setReason(null);
     bathrooms.save(bathroom);
-    submissions.remember(input.submissionId(), authorId, operation, fingerprint, TargetType.BATHROOM, id);
     return contributions.contribution(bathroom);
   }
 

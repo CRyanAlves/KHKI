@@ -48,7 +48,6 @@ export interface BathroomInput {
   hours: string;
   accessible: boolean | null;
   items: string[];
-  submissionId?: string;
   details?: BathroomDetails;
 }
 export interface Review {

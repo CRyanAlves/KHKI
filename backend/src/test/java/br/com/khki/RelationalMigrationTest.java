@@ -67,6 +67,8 @@ class RelationalMigrationTest {
     assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.tables WHERE table_schema = ? AND table_name IN ('bathroom_images','review_images')", Integer.class, schema)).isZero();
     assertThat(jdbc.queryForObject("SELECT count(*) FROM reviews WHERE photo_only AND cleanliness IS NULL AND structure IS NULL AND comment IS NULL", Integer.class)).isEqualTo(2);
     assertThat(jdbc.queryForObject("SELECT count(*) FROM reviews WHERE NOT photo_only", Integer.class)).isEqualTo(1);
+    assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.tables WHERE table_schema = ? AND table_name IN ('app_users','submission_receipts')", Integer.class, schema)).isZero();
+    assertThat(jdbc.queryForObject("SELECT id FROM \"user\" WHERE id = ?", UUID.class, author)).isEqualTo(author);
     assertThat(jdbc.queryForObject("SELECT count(*) FROM bathroom_items", Integer.class)).isEqualTo(2);
     assertThat(jdbc.queryForObject("SELECT count(*) FROM bathroom_types", Integer.class)).isEqualTo(2);
     assertThat(jdbc.queryForObject("SELECT bathroom_target_id FROM reports", UUID.class)).isEqualTo(bathroom);
