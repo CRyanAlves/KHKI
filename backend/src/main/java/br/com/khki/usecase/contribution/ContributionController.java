@@ -34,11 +34,6 @@ public class ContributionController {
     return contributionService.mine(accounts.current(principal).getId());
   }
 
-  @GetMapping("/me/submissions/{id}")
-  public ContributionView submission(@PathVariable UUID id, Principal principal) {
-    return contributionService.submission(id, accounts.current(principal).getId());
-  }
-
   @GetMapping("/me/contributions/{type}/{id}")
   public Object own(@PathVariable TargetType type, @PathVariable UUID id, Principal principal) {
     var target = contributionService.target(type, id);
