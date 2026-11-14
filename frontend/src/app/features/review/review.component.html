@@ -1,0 +1,71 @@
+<main class="review-panel">
+  <a class="back-link" [routerLink]="['/banheiros', id]"><app-icon name="ArrowLeft" [size]="18" />Voltar ao banheiro</a>
+  <header class="review-heading">
+    <h1>Avaliar banheiro<span class="accent">.</span></h1>
+    <p class="muted">{{ name }}</p>
+  </header>
+  @if (loading) {
+    <app-skeleton variant="form" label="Carregando formulário…" />
+  } @else if (sent) {
+    <section class="submission-success" role="status">
+      <app-icon name="CheckCircle" [size]="40" />
+      <h2>Avaliação em análise</h2>
+      <p>Obrigado por compartilhar. Sua avaliação ainda não é pública.</p>
+      @if (warning) {
+        <p role="alert" class="error-message">{{ warning }}</p>
+      }
+      <a routerLink="/contribuicoes" class="button primary">Acompanhar contribuição</a>
+    </section>
+  } @else {
+    <form (ngSubmit)="submit()" [attr.aria-busy]="busy">
+      <fieldset [disabled]="busy" class="review-score">
+        <legend>Limpeza *</legend>
+        <div class="rating-picker" role="group" aria-label="Nota de limpeza">
+          @for (score of scores; track score) {
+            <button type="button" [class.active]="cleanliness >= score" [attr.aria-label]="'Limpeza: ' + score + ' de 5'" [attr.aria-pressed]="cleanliness === score" (click)="cleanliness = score"><app-icon name="Star" [size]="28" /></button>
+          }
+        </div>
+        <p class="score-description" aria-live="polite">{{ ratingLabel(cleanliness) }}</p>
+      </fieldset>
+      <fieldset [disabled]="busy" class="review-score" aria-describedby="structure-description">
+        <legend>Estrutura *</legend>
+        <p id="structure-description" class="criterion-description">Conservação e funcionamento dos itens</p>
+        <div class="rating-picker" role="group" aria-label="Nota de estrutura">
+          @for (score of scores; track score) {
+            <button type="button" [class.active]="structure >= score" [attr.aria-label]="'Estrutura: ' + score + ' de 5'" [attr.aria-pressed]="structure === score" (click)="structure = score"><app-icon name="Star" [size]="28" /></button>
+          }
+        </div>
+        <p class="score-description" aria-live="polite">{{ ratingLabel(structure) }}</p>
+      </fieldset>
+      <label class="comment-label" for="review-comment">Sua experiência <span class="optional">Opcional</span></label>
+      <textarea id="review-comment" name="comment" [(ngModel)]="comment" [disabled]="busy" rows="3" maxlength="1500" placeholder="Como estavam a limpeza e os itens do banheiro?"></textarea>
+      <section class="review-photo" aria-labelledby="review-photo-label">
+        <h2 id="review-photo-label">Foto do banheiro <span class="optional">Opcional</span></h2>
+        <input #photoInput hidden type="file" accept="image/jpeg,image/png" aria-label="Selecionar foto do banheiro" [disabled]="busy" (change)="choose($event)" />
+        @if (file) {
+          <div class="photo-preview">
+            <img [src]="previewUrl" alt="Prévia da foto selecionada" />
+            <span>{{ file.name }}</span>
+            <button type="button" class="button secondary" [disabled]="busy" aria-label="Remover foto" (click)="removePhoto()"><app-icon name="X" [size]="18" /></button>
+          </div>
+        }
+        <button type="button" class="button secondary full" [disabled]="busy" (click)="photoInput.click()" aria-describedby="review-photo-help review-photo-limits"><app-icon name="Camera" [size]="20" />{{ file ? 'Substituir foto' : 'Adicionar foto' }}</button>
+        <p id="review-photo-limits" class="photo-limits">Uma foto JPG ou PNG, até 5 MB.</p>
+        @if (photoError) {
+          <p class="error-message" role="alert">{{ photoError }}</p>
+        }
+        <p id="review-photo-help" class="photo-guidance"><app-icon name="Info" [size]="18" /><span>Fotografe o banheiro vazio, sem pessoas, reflexos ou dados pessoais.</span></p>
+      </section>
+      <footer class="review-footer">
+        <div class="moderation-guidance"><app-icon name="ShieldCheck" [size]="20" /><p><strong>Sua avaliação será analisada antes da publicação.</strong><span>Opiniões positivas e negativas são bem-vindas.</span></p></div>
+        @if (!cleanliness || !structure) {
+          <p class="score-guidance" id="review-score-help">Selecione as duas notas para enviar.</p>
+        }
+        @if (error) {
+          <p role="alert" class="error-message">{{ error }}</p>
+        }
+        <button class="button primary full" [disabled]="busy || !cleanliness || !structure" [attr.aria-describedby]="!cleanliness || !structure ? 'review-score-help' : null"><span>{{ busy ? 'Enviando…' : 'Enviar avaliação' }}</span><app-icon [name]="busy ? 'Clock' : 'ArrowRight'" [size]="20" /></button>
+      </footer>
+    </form>
+  }
+</main>
