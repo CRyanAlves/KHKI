@@ -93,8 +93,8 @@ test('review and human moderation publish a negative review and preserve audit',
   await expect(page).toHaveURL(/\/avaliar$/);
   await page.getByRole('button', { name: 'Limpeza: 1 de 5', exact: true }).click();
   await page.getByRole('button', { name: 'Estrutura: 2 de 5', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Conte sua experiência' }).fill('Experiência negativa: limpeza e estrutura precisam melhorar.');
-  await page.getByRole('button', { name: 'Enviar avaliação para análise' }).click();
+  await page.getByRole('textbox', { name: 'Sua experiência' }).fill('Experiência negativa: limpeza e estrutura precisam melhorar.');
+  await page.getByRole('button', { name: 'Enviar avaliação' }).click();
   await expect(page.getByRole('heading', { name: 'Avaliação em análise' })).toBeVisible();
   await page.getByRole('button', { name: 'Sair da conta' }).click();
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
