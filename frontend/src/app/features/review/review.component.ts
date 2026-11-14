@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ExplorationState } from '../workspace/exploration-state.service';
@@ -6,64 +6,15 @@ import { ApiService } from '../../core/api.service';
 import { Contribution, Review } from '../../core/models';
 import { IconComponent } from '../../shared/icon.component';
 import { validatePhoto } from '../../shared/photo-validation';
-
 import { SkeletonComponent } from '../../shared/skeleton.component';
 
 @Component({
   selector: 'app-review',
   imports: [SkeletonComponent, FormsModule, RouterLink, IconComponent],
-  template: `<main class="narrow-page">
-    <a class="back-link" [routerLink]="['/banheiros', id]"><app-icon name="ArrowLeft" [size]="18" />Voltar ao banheiro</a>
-    <section class="surface form-surface">
-      <span class="eyebrow">SUA EXPERIÊNCIA FAZ DIFERENÇA</span>
-      <h1>Avaliar banheiro<span class="accent">.</span></h1>
-      <p class="muted">{{ name }}</p>
-      @if (loading) {
-        <app-skeleton variant="form" label="Carregando formulário…" />
-      } @else if (sent) {
-        <div class="submission-success">
-          <app-icon name="CheckCircle" [size]="40" />
-          <h2>Avaliação em análise</h2>
-          <p>Obrigado por compartilhar. Sua avaliação ainda não é pública.</p>
-          @if (warning) {
-            <p role="alert" class="error-message">{{ warning }}</p>
-          }
-          <a routerLink="/contribuicoes" class="button primary">Acompanhar contribuição</a>
-        </div>
-      } @else {
-        <form (ngSubmit)="submit()">
-          <fieldset>
-            <legend>Como estava a limpeza? *</legend>
-            <div class="rating-picker">
-              @for (score of [1, 2, 3, 4, 5]; track score) {
-                <button type="button" [class.active]="cleanliness >= score" [attr.aria-label]="'Limpeza: ' + score + ' de 5'" [attr.aria-pressed]="cleanliness === score" (click)="cleanliness = score"><app-icon name="Star" [size]="30" /></button>
-              }
-            </div>
-          </fieldset>
-          <fieldset>
-            <legend>E a estrutura? *</legend>
-            <div class="rating-picker">
-              @for (score of [1, 2, 3, 4, 5]; track score) {
-                <button type="button" [class.active]="structure >= score" [attr.aria-label]="'Estrutura: ' + score + ' de 5'" [attr.aria-pressed]="structure === score" (click)="structure = score"><app-icon name="Star" [size]="30" /></button>
-              }
-            </div>
-          </fieldset>
-          <label>Conte sua experiência <span class="optional">opcional</span><textarea name="comment" [(ngModel)]="comment" rows="4" maxlength="1500" placeholder="O que pode ajudar a próxima pessoa?"></textarea></label><label>Foto do banheiro <span class="optional">opcional</span><input type="file" accept="image/jpeg,image/png" (change)="choose($event)" /></label>
-          <div class="photo-warning">
-            <app-icon name="Camera" />
-            <p>Envie apenas fotos do banheiro vazio, sem pessoas, reflexos de pessoas ou informações pessoais.</p>
-          </div>
-          <p class="muted">Avaliações positivas e negativas são bem-vindas. A análise verifica as regras de conteúdo.</p>
-          @if (error) {
-            <p role="alert" class="error-message">{{ error }}</p>
-          }
-          <button class="button primary full" [disabled]="busy || !cleanliness || !structure">{{ busy ? 'Enviando…' : 'Enviar avaliação para análise' }}</button>
-        </form>
-      }
-    </section>
-  </main>`
+  templateUrl: './review.component.html',
+  styleUrl: './review.component.scss'
 })
-export class ReviewComponent implements OnInit {
+export class ReviewComponent implements OnInit, OnDestroy {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly exploration = inject(ExplorationState);
   private readonly api = inject(ApiService);
@@ -76,6 +27,9 @@ export class ReviewComponent implements OnInit {
   structure = 0;
   comment = '';
   file: File | null = null;
+  previewUrl = '';
+  photoError = '';
+  readonly scores = [1, 2, 3, 4, 5];
   busy = false;
   error = '';
   sent = false;
@@ -100,12 +54,31 @@ export class ReviewComponent implements OnInit {
       this.exploration.panelReady.update((value) => value + 1);
     }
   }
+  ratingLabel(score: number): string {
+    return score ? score + ' de 5 · ' + ['Muito ruim', 'Ruim', 'Regular', 'Boa', 'Excelente'][score - 1] : 'Selecione uma nota de 1 a 5.';
+  }
   choose(event: Event): void {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    this.error = file ? validatePhoto(file) || '' : '';
-    this.file = this.error ? null : file || null;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.photoError = validatePhoto(file) || '';
+    if (this.photoError) return;
+    this.removePhoto();
+    this.file = file;
+    this.previewUrl = URL.createObjectURL(file);
+  }
+  removePhoto(): void {
+    if (this.previewUrl) URL.revokeObjectURL(this.previewUrl);
+    this.previewUrl = '';
+    this.file = null;
+    this.photoError = '';
+  }
+  ngOnDestroy(): void {
+    this.removePhoto();
   }
   async submit(): Promise<void> {
+    if (this.busy || this.sent || !this.cleanliness || !this.structure) return;
     this.busy = true;
     this.error = '';
     try {
