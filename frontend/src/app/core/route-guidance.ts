@@ -1,3 +1,4 @@
+import { jsonObject } from './json-object';
 import { distanceMeters } from './navigation-geometry';
 
 export interface RouteManeuver {
@@ -38,9 +39,6 @@ const ICONS: Readonly<Record<string, string>> = {
   FerryEnter: 'Ship',
   FerryExit: 'Ship'
 };
-function record(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
-}
 export function parseManeuvers(legs: unknown, coordinates: number[][][]): RouteManeuver[] {
   const positions: number[][] = [];
   let offset = 0;
@@ -55,13 +53,13 @@ export function parseManeuvers(legs: unknown, coordinates: number[][][]): RouteM
   }
   const result: RouteManeuver[] = [];
   for (const [legIndex, leg] of (Array.isArray(legs) ? legs.slice(0, 500) : []).entries()) {
-    const steps = record(leg)['steps'];
+    const steps = jsonObject(leg)['steps'];
     if (!Array.isArray(steps)) continue;
     let previous = -1;
     for (const raw of steps.slice(0, 500)) {
       if (result.length >= 500) return result;
-      const step = record(raw);
-      const instruction = record(step['instruction']);
+      const step = jsonObject(raw);
+      const instruction = jsonObject(step['instruction']);
       const text = instruction['text'];
       if (typeof text !== 'string' || !text.trim() || text.length > 2000) continue;
       const type = typeof instruction['type'] === 'string' && Object.hasOwn(ICONS, instruction['type']) ? instruction['type'] : 'None';

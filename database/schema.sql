@@ -126,8 +126,6 @@ CREATE TABLE khki.image_deletions (
 
 CREATE TABLE khki.moderation_audit (
     id uuid NOT NULL,
-    target_type character varying(20) NOT NULL,
-    target_id uuid NOT NULL,
     moderator_id uuid NOT NULL,
     decision character varying(20) NOT NULL,
     reason character varying(500) NOT NULL,
@@ -135,7 +133,7 @@ CREATE TABLE khki.moderation_audit (
     duplicate_of_id uuid,
     bathroom_target_id uuid,
     review_target_id uuid,
-    CONSTRAINT moderation_audit_target_fk_check CHECK (((((target_type)::text = 'BATHROOM'::text) AND (bathroom_target_id IS NOT NULL) AND (bathroom_target_id = target_id) AND (review_target_id IS NULL)) OR (((target_type)::text = 'REVIEW'::text) AND (review_target_id IS NOT NULL) AND (review_target_id = target_id) AND (bathroom_target_id IS NULL))))
+    CONSTRAINT moderation_audit_target_fk_check CHECK (((bathroom_target_id IS NOT NULL) AND (review_target_id IS NULL)) OR ((review_target_id IS NOT NULL) AND (bathroom_target_id IS NULL)))
 );
 
 
@@ -365,13 +363,6 @@ CREATE INDEX moderation_audit_bathroom_target_id_idx ON khki.moderation_audit US
 --
 
 CREATE INDEX moderation_audit_review_target_id_idx ON khki.moderation_audit USING btree (review_target_id);
-
-
---
--- Name: moderation_audit_target_idx; Type: INDEX; Schema: khki; Owner: -
---
-
-CREATE INDEX moderation_audit_target_idx ON khki.moderation_audit USING btree (target_type, target_id, created_at);
 
 
 --

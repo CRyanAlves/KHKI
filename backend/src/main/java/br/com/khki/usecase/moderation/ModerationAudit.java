@@ -16,22 +16,13 @@ public class ModerationAudit {
   @Id
   private UUID id = UUID.randomUUID();
 
-  @Enumerated(EnumType.STRING)
-  private TargetType targetType;
-
-  private UUID targetId;
-  @Column(name = "moderator_id")
-  private UUID moderatorId;
-  @Column(name = "duplicate_of_id")
-  private UUID duplicateOfId;
-
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "moderator_id", insertable = false, updatable = false)
+  @JoinColumn(name = "moderator_id", nullable = false)
   @com.fasterxml.jackson.annotation.JsonIgnore
   private User moderator;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "duplicate_of_id", insertable = false, updatable = false)
+  @JoinColumn(name = "duplicate_of_id")
   @com.fasterxml.jackson.annotation.JsonIgnore
   private Bathroom duplicateOf;
 
@@ -49,17 +40,11 @@ public class ModerationAudit {
   public UUID getId() { return id; }
   public void setId(UUID value) { id = value; }
 
-  public TargetType getTargetType() { return targetType; }
-  public void setTargetType(TargetType value) { targetType = value; }
+  @Transient
+  public TargetType getTargetType() { return reference.getTargetType(); }
 
-  public UUID getTargetId() { return targetId; }
-  public void setTargetId(UUID value) { targetId = value; }
-
-  public UUID getModeratorId() { return moderatorId; }
-  public void setModeratorId(UUID value) { moderatorId = value; }
-
-  public UUID getDuplicateOfId() { return duplicateOfId; }
-  public void setDuplicateOfId(UUID value) { duplicateOfId = value; }
+  @Transient
+  public UUID getTargetId() { return reference.getTargetId(); }
 
   public User getModerator() { return moderator; }
   public void setModerator(User value) { moderator = value; }

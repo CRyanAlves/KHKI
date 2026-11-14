@@ -10,29 +10,7 @@ import { IconComponent } from './icon.component';
     } @else {
       <app-icon name="User" [size]="22" />
     }`,
-  styles: `
-    :host {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: minmax(0, 1fr);
-      place-items: center;
-      width: 100%;
-      height: 100%;
-      border-radius: inherit;
-    }
-    .account-initials {
-      display: grid;
-      place-items: center;
-      width: 100%;
-      height: 100%;
-      border: var(--border-width) solid var(--color-accent);
-      border-radius: inherit;
-      background: var(--color-accent-soft);
-      color: var(--color-text);
-      font-size: var(--text-sm);
-      font-weight: var(--weight-bold);
-    }
-  `
+  styleUrl: './account-avatar.component.scss'
 })
 export class AccountAvatarComponent {
   private readonly auth = inject(AuthService);

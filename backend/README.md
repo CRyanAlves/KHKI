@@ -20,9 +20,11 @@ As entidades mantêm nomes do domínio em inglês: `User`, `Bathroom`, `Review`,
 
 Controllers delegam aos serviços do fluxo; serviços coordenam transações e consultam repositórios. Spring continua descobrindo os componentes abaixo de `KhkiApplication`. `BathroomService` e `ReviewService` reutilizam as regras de autoria e os DTOs de `ContributionService`; este depende somente dos repositórios, evitando uma dependência circular entre serviços.
 
+As associações JPA são as únicas responsáveis pelas chaves `author_id`, `bathroom_id`, `moderator_id`, `duplicate_of_id`, `bathroom_target_id` e `review_target_id`. Os serviços resolvem entidades existentes antes da gravação, mantêm carregamento `LAZY` e não propagam exclusões aos usuários ou banheiros associados. Em `ModerationAudit`, o destino é armazenado somente em `ContentReference`: `getTargetType()` e `getTargetId()` são propriedades derivadas, sem campos ou colunas próprios. `/api/admin/audit` e o histórico continuam retornando os mesmos DTOs, com `targetType` e `targetId` calculados pela referência. `Report` mantém seu contrato e mapeamento atuais.
+
 ## Imagens anexadas ao conteúdo
 
-Cada `Bathroom` e `Review` tem `imageUrls`, uma lista de URLs persistida diretamente na coluna JSONB `image_urls`. Não existem tabelas `photos`, `bathroom_images` ou `review_images`, nem entidade JPA Foto. Os arquivos ficam no R2 privado em produção; o banco guarda somente as URLs estáveis da API. A lista é um valor do conteúdo, não um recurso moderável independente.
+Cada `Bathroom` e `Review` herda de `BaseModeratedEntity` o atributo `imageUrls`, uma lista de URLs persistida diretamente na coluna JSONB `image_urls` de sua própria tabela. Não existem tabelas `photos`, `bathroom_images` ou `review_images`, nem entidade JPA Foto. Os arquivos ficam no R2 privado em produção; o banco guarda somente as URLs estáveis da API. A lista é um valor do conteúdo, não um recurso moderável independente.
 
 - Cadastro: o autor envia as fotos enquanto seu banheiro está pendente.
 - Avaliação: o autor envia as fotos enquanto sua avaliação está pendente e o banheiro está publicado.
@@ -41,15 +43,21 @@ V1–V13 permanecem imutáveis. A migração Java V14 move as URLs das tabelas a
 
 O esquema PostgreSQL completo está em `../database/schema.sql`. A arquitetura e o DDL não devem ser confundidos com o diagrama ilustrativo: uma URL não é um número inteiro, e imagens múltiplas exigem uma lista. Sessões, auditoria e restrições relacionais continuam preservadas. V15 remove `submission_receipts` e todo o controle de recibos/hash; V16 renomeia `app_users` para `user`.
 
+V17 remove `target_type` e `target_id` de `moderation_audit`, preservando as referências já preenchidas, IDs, decisões, datas e moderadores. A restrição exige exatamente uma FK de destino; os índices existentes das FKs são preservados para consultar o histórico. As migrações V1–V16 não foram alteradas. No diagrama de classes, retire `targetId` de `ModerationAudit` e sua ligação com `TargetType`; mantenha a composição com `ContentReference`, que aponta para banheiro ou avaliação. O enum continua necessário em `Report` e nos contratos HTTP.
+
 ## Validação
 
 Execute `mvn test` para os fluxos HTTP e as regras de segurança. Para testar contra PostgreSQL local isolado, configure `TEST_DATABASE_URL`, `TEST_DATABASE_USER` e `TEST_DATABASE_PASSWORD`. O teste `StandaloneSchemaTest` requer PostgreSQL e verifica que a API inicia contra o DDL independente, com Hibernate em modo de validação e Flyway desativado. Os testes não alteram o Supabase ou o R2 de produção.
 
 Verificação histórica da V14: 36 testes no PostgreSQL 17, sem falhas; suíte H2 sem falhas (o teste de DDL independente exige PostgreSQL). O backup de produção foi restaurado e migrado em banco local isolado: 21 banheiros, 72 avaliações com nota e 41 URLs preservadas, sem tabelas de imagens. As mesmas 33 imagens públicas foram lidas e as 8 privadas retornaram 404; nomes, notas, contagens e conjuntos de fotos públicas foram comparados com o baseline. O build Angular passou com os avisos de orçamento já existentes. Esta validação não representa publicação da V14 em produção.
 
+## Reaproveitamento de regras
+
+`GeographicDistance` centraliza a distância em linha reta usada na busca de duplicados e na verificação de proximidade. A montagem de `BathroomView` consulta as avaliações aprovadas uma única vez e reaproveita o resultado para nota, contagem e imagens; registros legados sem nota continuam contribuindo apenas com suas imagens. A moderação reutiliza o mesmo banheiro detalhado na resposta, uma única montagem de auditoria e as entidades já carregadas. Os contratos HTTP, as permissões, as regras de transição e as migrações históricas permanecem preservados.
+
 ## Remoção de recibos e nome da tabela de usuários
 
-V15 remove `submission_receipts`, e V16 renomeia `app_users` para `"user"`, preservando dados, FKs e RLS. As migrações anteriores permanecem imutáveis para bancos antigos continuarem migrando. O Hibernate usa o nome delimitado de `user`. O DDL independente já representa a versão 16.
+V15 remove `submission_receipts`, e V16 renomeia `app_users` para `"user"`, preservando dados, FKs e RLS. As migrações anteriores permanecem imutáveis para bancos antigos continuarem migrando. O Hibernate usa o nome delimitado de `user`. O DDL independente já representa a versão 17.
 
 O contrato `submissionId` e a rota `/api/me/submissions/{id}` foram removidos. Cadastro e upload não calculam hashes nem guardam recibos. O frontend compartilha a requisição em andamento, bloqueia o botão e mantém o ID de um cadastro cuja resposta foi confirmada. Fotos confirmadas não são reenviadas. Se a resposta se perder, o formulário bloqueia a repetição automática e orienta conferir Minhas contribuições. Isso não garante idempotência entre abas, recargas ou requisições independentes.
 
