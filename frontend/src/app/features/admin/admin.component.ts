@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiService } from '../../core/api.service';
-import { Bathroom, Review, ModerationDetail, Status, STATUS_LABELS, TargetType, ACCESS_LABELS, ITEM_LABELS, REPORT_LABELS, TYPE_LABELS } from '../../core/models';
+import { Bathroom, Review, ModerationDetail, Status, STATUS_LABELS, ACCESS_LABELS, ITEM_LABELS, REPORT_LABELS, TYPE_LABELS } from '../../core/models';
 import { IconComponent } from '../../shared/icon.component';
 import { MapComponent } from '../../shared/map.component';
 import { ModerationAudit, ModerationCategory, ModerationQueueItem, ModerationReport, NearbyCandidate, NearbyResult, QueueRow } from './admin.models';

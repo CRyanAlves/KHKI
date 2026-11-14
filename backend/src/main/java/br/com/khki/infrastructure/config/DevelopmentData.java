@@ -56,7 +56,7 @@ public class DevelopmentData implements CommandLineRunner {
 
   private void seed(User author, String name, String address, String category, double latitude, double longitude, AccessType access, Boolean accessible, String hours) {
     var bathroom = new Bathroom();
-    bathroom.setAuthorId(author.getId());
+    bathroom.setAuthor(author);
     bathroom.setName(name);
     bathroom.setAddress(address);
     bathroom.setCategory(category);

@@ -8,6 +8,7 @@ import { ConfirmationService } from '../../core/confirmation.service';
 import { MapsService } from '../../core/maps.service';
 import { Bathroom, BathroomDetails, BathroomInput, ITEM_LABELS, Location, NearbyResult, ACCESS_LABELS } from '../../core/models';
 import { IconComponent } from '../../shared/icon.component';
+import { validPoint } from '../../core/navigation-geometry';
 import { validatePhoto } from '../../shared/photo-validation';
 import { emptyBathroomDetails, legacyAccess, bathroomDetailRows, OBSERVED_ACCESSIBILITY, BATHROOM_TYPE_LABELS, triStateLabel } from '../../core/bathroom-details';
 import { RegistrationHours } from './registration-hours';
@@ -156,7 +157,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
     if (this.point) this.nearbyTimer = setTimeout(() => void this.checkNearby(), 350);
   }
   moved(point: Location, resolveAddress = true): void {
-    if (this.locked || !Number.isFinite(point.lat) || Math.abs(point.lat) > 90 || !Number.isFinite(point.lng) || Math.abs(point.lng) > 180) return;
+    if (this.locked || !validPoint(point)) return;
     this.cancelAddressLookup();
     if (this.pickingAddress) this.cancelAddressSelection();
     ++this.locationSequence;
@@ -290,7 +291,7 @@ export class RegisterComponent implements OnInit, OnDestroy {
     if (!this.form.name.trim()) this.errors['name'] = 'Informe o nome do local.';
     if (!this.form.category.trim()) this.errors['category'] = 'Selecione a categoria do local.';
     if (!this.form.address.trim()) this.errors['address'] = 'Informe o endereço do banheiro.';
-    if (!this.point || !Number.isFinite(this.form.latitude) || !Number.isFinite(this.form.longitude) || Math.abs(this.form.latitude!) > 90 || Math.abs(this.form.longitude!) > 180) this.errors['location'] = 'Busque um endereço ou escolha um ponto válido no mapa.';
+    if (!this.point || this.form.latitude === null || this.form.longitude === null || !validPoint({ lat: this.form.latitude, lng: this.form.longitude })) this.errors['location'] = 'Busque um endereço ou escolha um ponto válido no mapa.';
     else if (this.addressChanged) this.errors['location'] = 'O endereço mudou. Busque novamente ou confirme que este ponto corresponde ao endereço informado.';
     return !Object.keys(this.errors).length;
   }

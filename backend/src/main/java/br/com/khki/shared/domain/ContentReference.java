@@ -9,39 +9,38 @@ import java.util.UUID;
 /** Chaves tipadas permitem ao banco validar os destinos das denúncias e decisões. */
 @Embeddable
 public class ContentReference {
-  @Column(name = "bathroom_target_id")
-  private UUID bathroomTargetId;
-  @Column(name = "review_target_id")
-  private UUID reviewTargetId;
-
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "bathroom_target_id", insertable = false, updatable = false)
+  @JoinColumn(name = "bathroom_target_id")
   @JsonIgnore
   private Bathroom bathroom;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "review_target_id", insertable = false, updatable = false)
+  @JoinColumn(name = "review_target_id")
   @JsonIgnore
   private Review review;
 
-  public static ContentReference of(TargetType type, UUID id) {
-    var value = new ContentReference();
-    switch (type) {
-      case BATHROOM -> value.bathroomTargetId = id;
-      case REVIEW -> value.reviewTargetId = id;
-    }
-    return value;
+  public static ContentReference of(BaseModeratedEntity target) {
+    var reference = new ContentReference();
+    if (target instanceof Bathroom bathroom) reference.setBathroom(bathroom);
+    else if (target instanceof Review review) reference.setReview(review);
+    else throw new IllegalArgumentException("Referência de conteúdo inválida.");
+    return reference;
   }
-
-  public UUID getBathroomTargetId() { return bathroomTargetId; }
-  public void setBathroomTargetId(UUID value) { bathroomTargetId = value; }
-
-  public UUID getReviewTargetId() { return reviewTargetId; }
-  public void setReviewTargetId(UUID value) { reviewTargetId = value; }
 
   public Bathroom getBathroom() { return bathroom; }
   public void setBathroom(Bathroom value) { bathroom = value; }
 
   public Review getReview() { return review; }
   public void setReview(Review value) { review = value; }
+
+  @Transient
+  public TargetType getTargetType() { return target() instanceof Bathroom ? TargetType.BATHROOM : TargetType.REVIEW; }
+
+  @Transient
+  public UUID getTargetId() { return target().getId(); }
+
+  private BaseModeratedEntity target() {
+    if ((bathroom == null) == (review == null)) throw new IllegalStateException("A referência deve apontar para exatamente um banheiro ou uma avaliação.");
+    return bathroom != null ? bathroom : review;
+  }
 }

@@ -29,18 +29,18 @@ public class ReviewService {
   public List<ReviewView> publicReviews(UUID id) {
     bathrooms.approved(id);
     return reviews
-      .findByBathroomIdAndStatusOrderByCreatedAtDesc(id, Status.APPROVED)
+      .findByBathroom_IdAndStatusOrderByCreatedAtDesc(id, Status.APPROVED)
       .stream()
       .filter(review -> !review.getPhotoOnly())
-      .map(review -> new ReviewView(review.getId(), users.findById(review.getAuthorId()).orElseThrow().getName(), review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt()))
+      .map(review -> new ReviewView(review.getId(), review.getAuthor().getName(), review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt()))
       .toList();
   }
 
   public ContributionView createReview(UUID bathroomId, ReviewInput input, UUID authorId) {
-    bathrooms.approved(bathroomId);
+    var bathroom = bathrooms.approved(bathroomId);
     var review = new Review();
-    review.setAuthorId(authorId);
-    review.setBathroomId(bathroomId);
+    review.setAuthor(users.findById(authorId).orElseThrow(ApiException::missing));
+    review.setBathroom(bathroom);
     applyReview(review, input);
     return contributions.contribution(reviews.save(review));
   }
@@ -54,7 +54,7 @@ public class ReviewService {
   public ContributionView reviseReview(UUID id, ReviewInput input, UUID authorId) {
     var review = reviews.findById(id).orElseThrow(ApiException::missing);
     contributions.editable(review, authorId);
-    bathrooms.approved(review.getBathroomId());
+    bathrooms.approved(review.getBathroom().getId());
     review.setPhotoOnly(false);
     applyReview(review, input);
     review.setStatus(Status.PENDING);

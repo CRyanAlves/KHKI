@@ -1,6 +1,6 @@
 package br.com.khki.usecase.bathroom;
 
-import br.com.khki.shared.domain.ModeratedContent;
+import br.com.khki.shared.domain.BaseModeratedEntity;
 import br.com.khki.usecase.review.Review;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -9,7 +9,7 @@ import java.util.*;
 
 @Entity
 @Table(name = "bathrooms")
-public class Bathroom extends ModeratedContent {
+public class Bathroom extends BaseModeratedEntity {
 
   @Column(nullable = false, length = 120)
   private String name;
@@ -68,10 +68,6 @@ public class Bathroom extends ModeratedContent {
   @OneToMany(mappedBy = "bathroom", fetch = FetchType.LAZY)
   @com.fasterxml.jackson.annotation.JsonIgnore
   private Set<Review> reviews = new HashSet<>();
-
-  @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
-  @Column(name = "image_urls", nullable = false, columnDefinition = "jsonb")
-  private List<String> imageUrls = new ArrayList<>();
 
   public String getName() { return name; }
   public void setName(String value) { name = value; }
@@ -138,7 +134,4 @@ public class Bathroom extends ModeratedContent {
 
   public Set<Review> getReviews() { return reviews; }
   public void setReviews(Set<Review> value) { reviews = value; }
-
-  public List<String> getImageUrls() { return imageUrls; }
-  public void setImageUrls(List<String> value) { imageUrls = value; }
 }

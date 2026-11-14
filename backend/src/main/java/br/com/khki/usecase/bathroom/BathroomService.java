@@ -3,7 +3,9 @@ package br.com.khki.usecase.bathroom;
 import br.com.khki.shared.api.ApiException;
 import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.shared.domain.Status;
+import br.com.khki.shared.domain.GeographicDistance;
 import br.com.khki.usecase.contribution.ContributionService;
+import br.com.khki.usecase.account.UserRepository;
 import br.com.khki.usecase.image.ImageUrls;
 import br.com.khki.usecase.review.ReviewRepository;
 import java.text.Normalizer;
@@ -17,11 +19,13 @@ public class BathroomService {
 
   private final BathroomRepository bathrooms;
   private final ReviewRepository reviews;
+  private final UserRepository users;
   private final ContributionService contributions;
 
-  public BathroomService(BathroomRepository bathrooms, ReviewRepository reviews, ContributionService contributions) {
+  public BathroomService(BathroomRepository bathrooms, ReviewRepository reviews, ContributionService contributions, UserRepository users) {
     this.bathrooms = bathrooms;
     this.reviews = reviews;
+    this.users = users;
     this.contributions = contributions;
   }
 
@@ -34,10 +38,6 @@ public class BathroomService {
 
   private String normalize(String value) {
     return Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
-  }
-
-  public List<BathroomView> search(String query, AccessType access, Boolean accessible) {
-    return search(query, access, accessible, 0);
   }
 
   public List<BathroomView> search(String query, AccessType access, Boolean accessible, int offset) {
@@ -57,7 +57,8 @@ public class BathroomService {
 
   public BathroomView view(Bathroom bathroom) {
     bathroom = bathrooms.findById(bathroom.getId()).orElseThrow(ApiException::missing);
-    var approvedReviews = reviews.findByBathroomIdAndStatusOrderByCreatedAtDesc(bathroom.getId(), Status.APPROVED).stream().filter(review -> !review.getPhotoOnly()).toList();
+    var publicReviews = reviews.findByBathroom_IdAndStatusOrderByCreatedAtDesc(bathroom.getId(), Status.APPROVED);
+    var approvedReviews = publicReviews.stream().filter(review -> !review.getPhotoOnly()).toList();
     Double average = approvedReviews.isEmpty()
       ? null
       : approvedReviews
@@ -79,7 +80,7 @@ public class BathroomService {
       List.copyOf(bathroom.getItems()),
       average,
       approvedReviews.size(),
-      java.util.stream.Stream.concat(bathroom.getImageUrls().stream(), reviews.findByBathroomIdAndStatusOrderByCreatedAtDesc(bathroom.getId(), Status.APPROVED).stream().flatMap(review -> review.getImageUrls().stream())).map(ImageUrls::id).distinct().toList(),
+      java.util.stream.Stream.concat(bathroom.getImageUrls().stream(), publicReviews.stream().flatMap(review -> review.getImageUrls().stream())).map(ImageUrls::id).distinct().toList(),
       bathroom.getDemo(),
       bathroom.getComplement(),
       BathroomDetailsMapper.view(bathroom)
@@ -88,7 +89,7 @@ public class BathroomService {
 
   public ContributionView createBathroom(BathroomInput input, UUID authorId) {
     var bathroom = new Bathroom();
-    bathroom.setAuthorId(authorId);
+    bathroom.setAuthor(users.findById(authorId).orElseThrow(ApiException::missing));
     apply(bathroom, input);
     bathrooms.save(bathroom);
     return contributions.contribution(bathroom);
@@ -123,16 +124,9 @@ public class BathroomService {
     return bathrooms
       .findByStatus(Status.APPROVED)
       .stream()
-      .filter(value -> distance(latitude, longitude, value.getLatitude(), value.getLongitude()) < 150 && normalize(value.getName()).contains(normalize(name)))
+      .filter(value -> GeographicDistance.meters(latitude, longitude, value.getLatitude(), value.getLongitude()) < 150 && normalize(value.getName()).contains(normalize(name)))
       .limit(5)
       .map(this::view)
       .toList();
-  }
-
-  private double distance(double latitude, double longitude, double otherLatitude, double otherLongitude) {
-    double deltaLatitude = Math.toRadians(otherLatitude - latitude),
-      deltaLongitude = Math.toRadians(otherLongitude - longitude);
-    double haversine = Math.pow(Math.sin(deltaLatitude / 2), 2) + Math.cos(Math.toRadians(latitude)) * Math.cos(Math.toRadians(otherLatitude)) * Math.pow(Math.sin(deltaLongitude / 2), 2);
-    return 6371000 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
   }
 }
