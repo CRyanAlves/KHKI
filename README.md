@@ -67,8 +67,11 @@ Configure `GEOAPIFY_API_KEY` no ambiente ou no `.env`. O comando de configuraç�
 | Área                       | Arquivos                                   | Motivo                                                               |
 | -------------------------- | ------------------------------------------ | -------------------------------------------------------------------- |
 | Páginas                    | `frontend/src/app/features/`               | Fluxos separados, carregados sob demanda pelo router                 |
-| HTTP, sessão e mapa        | `frontend/src/app/core/`                   | Centraliza contrato, comunicação, autenticação e integração externa  |
-| Componentes compartilhados | `frontend/src/app/shared/`                 | Reutiliza ícones, cards, mapa, login e denúncia                      |
+| HTTP, sessão e preferências | `frontend/src/app/core/`                  | Infraestrutura HTTP, sessão autenticada, guards e tema                |
+| Modelos de domínio         | `frontend/src/app/domain/`                 | Tipos de banheiro, avaliação, usuário, moderação e localização        |
+| Layout persistente         | `frontend/src/app/layout/`                 | Mantém mapa, painéis e navegação mobile entre os casos de uso          |
+| Integração de mapas         | `frontend/src/app/integrations/maps/`      | MapLibre, Geoapify e seletor de endereço compartilhado                |
+| Componentes compartilhados | `frontend/src/app/shared/`                 | Controles genéricos, diretivas, validações e utilitários               |
 | Design system              | `frontend/src/styles/`                     | Temas e componentes usando tokens compartilhados                     |
 | Controllers/DTOs           | `backend/.../api/`                         | Entrada validada e retorno explícito, sem expor usuários ou senhas   |
 | Regras                     | `backend/.../service/`                     | Publicação, média, privacidade e transições no servidor              |

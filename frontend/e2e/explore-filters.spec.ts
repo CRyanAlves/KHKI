@@ -1,5 +1,5 @@
 import { expect, Page, test } from '@playwright/test';
-import type { Bathroom, BathroomDetails } from '../src/app/core/models';
+import type { Bathroom, BathroomDetails } from '../src/app/domain/bathrooms/bathroom.model';
 
 const details = (audience: BathroomDetails['audience'], charge: BathroomDetails['charge'], stepFreeAccess: boolean | null, adaptedCabin: boolean | null, grabBars: boolean | null): BathroomDetails => ({ audience, charge, stepFreeAccess, adaptedCabin, grabBars, elevator: null, feeAmount: null, bathroomTypes: [], lastVisited: null });
 const bathroom = (id: string, value: BathroomDetails, longitude: number, accessible: boolean | null, items: string[], category = 'Biblioteca'): Bathroom => ({

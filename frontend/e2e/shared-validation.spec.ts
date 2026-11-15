@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { jsonObject } from '../src/app/core/json-object';
-import { distanceMeters, validPoint } from '../src/app/core/navigation-geometry';
+import { jsonObject } from '../src/app/shared/utils/json-object';
+import { distanceMeters, validPoint } from '../src/app/shared/geo/navigation-geometry';
 
 test('shared JSON object reader rejects malformed shapes without inventing fields', () => {
   for (const value of [null, undefined, [], 'text', 7, true]) expect(jsonObject(value)).toEqual({});

@@ -1,20 +1,20 @@
 import { Component, inject, signal } from '@angular/core';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationSkipped, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { ThemeService } from './core/theme.service';
-import { AuthService } from './core/auth.service';
-import { ApiService } from './core/api.service';
-import { IconComponent } from './shared/icon.component';
-import { LoginComponent } from './shared/login.component';
+import { ThemeService } from './core/preferences/theme.service';
+import { AuthService } from './core/session/auth.service';
+import { ApiService } from './core/http/api.service';
+import { IconComponent } from './shared/ui/icon/icon.component';
+import { AuthenticationComponent } from './features/authentication/authentication.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { SkeletonComponent, SkeletonVariant } from './shared/skeleton.component';
-import { MobileUiService } from './core/mobile-ui.service';
-import { MobileAccountComponent } from './shared/mobile-account.component';
-import { AccountAvatarComponent } from './shared/account-avatar.component';
-import { ExploreFilterPanelComponent } from './features/explore/explore-filter-panel.component';
-import { ConfirmationComponent } from './shared/confirmation.component';
-import { MobileNavMotionDirective } from './shared/mobile-nav-motion.directive';
+import { SkeletonComponent, SkeletonVariant } from './shared/ui/skeleton/skeleton.component';
+import { MobileUiService } from './layout/mobile/mobile-ui.service';
+import { MobileAccountComponent } from './features/authentication/account-menu/mobile-account.component';
+import { AccountAvatarComponent } from './shared/ui/account-avatar/account-avatar.component';
+import { ExploreFilterPanelComponent } from './features/explore-bathrooms/explore-filter-panel.component';
+import { ConfirmationComponent } from './shared/ui/confirmation/confirmation.component';
+import { MobileNavMotionDirective } from './layout/mobile-navbar/mobile-nav-motion.directive';
 
-@Component({ selector: 'app-root', imports: [MobileNavMotionDirective, ExploreFilterPanelComponent, ConfirmationComponent, MobileAccountComponent, AccountAvatarComponent, SkeletonComponent, RouterOutlet, RouterLink, RouterLinkActive, IconComponent, LoginComponent], templateUrl: './app.html', styleUrl: './app.scss' })
+@Component({ selector: 'app-root', imports: [MobileNavMotionDirective, ExploreFilterPanelComponent, ConfirmationComponent, MobileAccountComponent, AccountAvatarComponent, SkeletonComponent, RouterOutlet, RouterLink, RouterLinkActive, IconComponent, AuthenticationComponent], templateUrl: './app.html', styleUrl: './app.scss' })
 export class App {
   readonly navigation = [
     { path: '/', label: 'Explorar', icon: 'Search' },
