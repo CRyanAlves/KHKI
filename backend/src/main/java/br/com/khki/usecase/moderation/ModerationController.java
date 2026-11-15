@@ -1,12 +1,18 @@
 package br.com.khki.usecase.moderation;
 
-import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.shared.domain.Status;
 import br.com.khki.shared.domain.TargetType;
 import br.com.khki.usecase.account.AccountService;
 import br.com.khki.usecase.bathroom.Bathroom;
 import br.com.khki.usecase.bathroom.DuplicateService;
+import br.com.khki.usecase.bathroom.dto.NearbyResult;
 import br.com.khki.usecase.contribution.ContributionService;
+import br.com.khki.usecase.contribution.dto.ContributionView;
+import br.com.khki.usecase.moderation.dto.AuditEntryView;
+import br.com.khki.usecase.moderation.dto.AuditView;
+import br.com.khki.usecase.moderation.dto.Decision;
+import br.com.khki.usecase.moderation.dto.ModerationQueueItem;
+import br.com.khki.usecase.report.dto.ReportView;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.security.Principal;

@@ -1,6 +1,6 @@
 package br.com.khki.usecase.report;
 
-import br.com.khki.shared.api.Contracts.*;
+import br.com.khki.usecase.report.dto.ReportInput;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;

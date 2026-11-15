@@ -2,14 +2,13 @@ package br.com.khki.usecase.image;
 
 import br.com.khki.infrastructure.storage.ImageStorage;
 import br.com.khki.shared.api.ApiException;
-import br.com.khki.shared.api.Contracts.*;
-import br.com.khki.shared.domain.Status;
 import br.com.khki.shared.domain.BaseModeratedEntity;
+import br.com.khki.shared.domain.Status;
 import br.com.khki.usecase.account.User;
 import br.com.khki.usecase.bathroom.BathroomRepository;
 import br.com.khki.usecase.contribution.ContributionService;
+import br.com.khki.usecase.contribution.dto.ContributionView;
 import br.com.khki.usecase.review.ReviewRepository;
-import org.springframework.transaction.support.*;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import java.awt.image.BufferedImage;
@@ -19,6 +18,7 @@ import javax.imageio.ImageIO;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
@@ -59,12 +59,14 @@ public class ImageService {
     entityManager.lock(parent, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
     UUID imageId = UUID.randomUUID();
     storage.put(imageId, data);
-    if (TransactionSynchronizationManager.isSynchronizationActive()) TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-      @Override
-      public void afterCompletion(int status) {
-        if (status != STATUS_COMMITTED) storage.delete(imageId);
+    if (TransactionSynchronizationManager.isSynchronizationActive()) TransactionSynchronizationManager.registerSynchronization(
+      new TransactionSynchronization() {
+        @Override
+        public void afterCompletion(int status) {
+          if (status != STATUS_COMMITTED) storage.delete(imageId);
+        }
       }
-    });
+    );
     urls.add(ImageUrls.url(imageId));
     return content.contribution(parent);
   }
@@ -118,6 +120,6 @@ public class ImageService {
 
   private boolean visible(BaseModeratedEntity parent, User user, boolean parentApproved) {
     if (parent.getStatus() == Status.REMOVED) return false;
-    return parentApproved && parent.getStatus() == Status.APPROVED || user != null && (user.getRole().equals("ADMIN") || user.getId().equals(parent.getAuthor().getId()));
+    return (parentApproved && parent.getStatus() == Status.APPROVED) || (user != null && (user.getRole().equals("ADMIN") || user.getId().equals(parent.getAuthor().getId())));
   }
 }
