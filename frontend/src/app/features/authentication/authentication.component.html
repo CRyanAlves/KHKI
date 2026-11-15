@@ -1,0 +1,24 @@
+<div class="modal-backdrop login-backdrop" [class.login-compact]="compact()" [style.--login-viewport-height]="viewportHeight() + 'px'" [style.--login-viewport-top]="viewportTop() + 'px'" (click)="close()">
+  <section class="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-title" appDialogFocus [dialogInitialFocus]="mobile ? '[data-login-close]' : ''" (dialogEscape)="close()" (click)="$event.stopPropagation()">
+    <div class="login-header">
+      <img class="login-brand" [src]="theme.mode() === 'dark' ? 'assets/brand/khki-logo-dark.png' : 'assets/brand/khki-logo.png'" alt="KHKI" width="1983" height="793" />
+      <button type="button" class="icon-button modal-close" data-login-close aria-label="Fechar" [disabled]="busy" (click)="close()"><app-icon name="X" /></button>
+    </div>
+    <div class="login-story">
+      <div class="city-illustration" aria-hidden="true"><img [src]="theme.mode() === 'dark' ? 'assets/brand/khki-login-dark.png' : 'assets/brand/khki-login.png'" alt="" width="1577" height="997" /></div>
+      <span class="eyebrow">UMA CIDADE MAIS ACOLHEDORA</span>
+      <h2 id="login-title">
+        Entre para<br />
+        contribuir<span class="accent">.</span>
+      </h2>
+      <p class="login-desktop-support">Um lugar de confiança começa com a ajuda de cada pessoa.</p>
+      <p class="login-mobile-support">Cadastre banheiros, avalie e ajude quem vem depois.</p>
+      <div class="story-note"><app-icon name="Heart" [size]="17" /> Pequenas contribuições. Grandes alívios.</div>
+    </div>
+    @if (register) {
+      <app-register-user-form [fields]="fields" (busyChange)="busy = $event" (modeChange)="switchMode()" (dismiss)="close()" />
+    } @else {
+      <app-login-form [fields]="fields" (busyChange)="busy = $event" (modeChange)="switchMode()" (dismiss)="close()" />
+    }
+  </section>
+</div>

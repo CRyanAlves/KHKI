@@ -1,7 +1,7 @@
 import { expect, Page, test } from '@playwright/test';
 import type { Map as LibreMap } from 'maplibre-gl';
-import type { NavigationService } from '../src/app/core/navigation.service';
-import type { TravelRoute } from '../src/app/core/maps.service';
+import type { NavigationService } from '../src/app/features/navigation/navigation.service';
+import type { TravelRoute } from '../src/app/integrations/maps/maps.service';
 
 interface MapRuntime {
   map: LibreMap;

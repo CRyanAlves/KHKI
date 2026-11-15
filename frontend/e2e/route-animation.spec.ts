@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import type { TravelRoute } from '../src/app/core/maps.service';
+import type { TravelRoute } from '../src/app/integrations/maps/maps.service';
 import type { Map } from 'maplibre-gl';
 
 interface MapRuntime {
