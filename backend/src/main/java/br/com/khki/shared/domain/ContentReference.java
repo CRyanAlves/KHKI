@@ -9,6 +9,7 @@ import java.util.UUID;
 /** Chaves tipadas permitem ao banco validar os destinos das denúncias e decisões. */
 @Embeddable
 public class ContentReference {
+
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "bathroom_target_id")
   @JsonIgnore
@@ -27,17 +28,31 @@ public class ContentReference {
     return reference;
   }
 
-  public Bathroom getBathroom() { return bathroom; }
-  public void setBathroom(Bathroom value) { bathroom = value; }
+  public Bathroom getBathroom() {
+    return bathroom;
+  }
 
-  public Review getReview() { return review; }
-  public void setReview(Review value) { review = value; }
+  public void setBathroom(Bathroom value) {
+    bathroom = value;
+  }
+
+  public Review getReview() {
+    return review;
+  }
+
+  public void setReview(Review value) {
+    review = value;
+  }
 
   @Transient
-  public TargetType getTargetType() { return target() instanceof Bathroom ? TargetType.BATHROOM : TargetType.REVIEW; }
+  public TargetType getTargetType() {
+    return target() instanceof Bathroom ? TargetType.BATHROOM : TargetType.REVIEW;
+  }
 
   @Transient
-  public UUID getTargetId() { return target().getId(); }
+  public UUID getTargetId() {
+    return target().getId();
+  }
 
   private BaseModeratedEntity target() {
     if ((bathroom == null) == (review == null)) throw new IllegalStateException("A referência deve apontar para exatamente um banheiro ou uma avaliação.");

@@ -33,24 +33,59 @@ public abstract class BaseModeratedEntity {
   @Version
   private long version;
 
-  public UUID getId() { return id; }
-  public void setId(UUID value) { id = value; }
+  public UUID getId() {
+    return id;
+  }
 
-  public User getAuthor() { return author; }
-  public void setAuthor(User value) { author = value; }
+  public void setId(UUID value) {
+    id = value;
+  }
 
-  public Status getStatus() { return status; }
-  public void setStatus(Status value) { status = value; }
+  public User getAuthor() {
+    return author;
+  }
 
-  public String getReason() { return reason; }
-  public void setReason(String value) { reason = value; }
+  public void setAuthor(User value) {
+    author = value;
+  }
 
-  public Instant getCreatedAt() { return createdAt; }
-  public void setCreatedAt(Instant value) { createdAt = value; }
+  public Status getStatus() {
+    return status;
+  }
 
-  public List<String> getImageUrls() { return imageUrls; }
-  public void setImageUrls(List<String> value) { imageUrls = value; }
+  public void setStatus(Status value) {
+    status = value;
+  }
 
-  public long getVersion() { return version; }
-  public void setVersion(long value) { version = value; }
+  public String getReason() {
+    return reason;
+  }
+
+  public void setReason(String value) {
+    reason = value;
+  }
+
+  public Instant getCreatedAt() {
+    return createdAt;
+  }
+
+  public void setCreatedAt(Instant value) {
+    createdAt = value;
+  }
+
+  public List<String> getImageUrls() {
+    return imageUrls;
+  }
+
+  public void setImageUrls(List<String> value) {
+    imageUrls = value;
+  }
+
+  public long getVersion() {
+    return version;
+  }
+
+  public void setVersion(long value) {
+    version = value;
+  }
 }

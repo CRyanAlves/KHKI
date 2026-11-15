@@ -12,6 +12,7 @@ import org.springframework.transaction.support.*;
 @Service
 @EnableScheduling
 public class ImageCleanupService {
+
   private static final Logger logger = LoggerFactory.getLogger(ImageCleanupService.class);
   private final JdbcTemplate jdbc;
   private final ImageStorage storage;
@@ -26,10 +27,14 @@ public class ImageCleanupService {
 
   public void enqueue(UUID id) {
     jdbc.update("INSERT INTO " + table + " (image_id) VALUES (?)", id);
-    if (TransactionSynchronizationManager.isSynchronizationActive()) TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-      @Override
-      public void afterCommit() { remove(id); }
-    });
+    if (TransactionSynchronizationManager.isSynchronizationActive()) TransactionSynchronizationManager.registerSynchronization(
+      new TransactionSynchronization() {
+        @Override
+        public void afterCommit() {
+          remove(id);
+        }
+      }
+    );
   }
 
   @Scheduled(fixedDelay = 60000, initialDelay = 60000)

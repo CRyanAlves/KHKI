@@ -259,7 +259,8 @@
           } @else if (step === 1) {
             <button type="button" class="button secondary" [disabled]="busy" (click)="goTo(0)"><app-icon name="ArrowLeft" />Voltar</button><button class="button primary" [disabled]="busy || resolvingAddress">Continuar<app-icon name="ArrowRight" /></button>
           } @else {
-            <button type="button" class="button secondary" [disabled]="busy" (click)="goTo(1)"><app-icon name="ArrowLeft" />Voltar</button><button class="button primary" [disabled]="busy || resolvingAddress || submission.uncertain || submission.uncertainUploads" [attr.aria-busy]="busy">{{ busy ? 'Enviando…' : submission.createdId ? 'Tentar enviar fotos restantes' : 'Enviar para análise' }}<app-icon name="ArrowRight" /></button>
+            <button type="button" class="button secondary" [disabled]="busy" (click)="goTo(1)"><app-icon name="ArrowLeft" />Voltar</button
+            ><button class="button primary" [disabled]="busy || resolvingAddress || submission.uncertain || submission.uncertainUploads" [attr.aria-busy]="busy">{{ busy ? 'Enviando…' : submission.createdId ? 'Tentar enviar fotos restantes' : 'Enviar para análise' }}<app-icon name="ArrowRight" /></button>
           }
         </footer>
       }
