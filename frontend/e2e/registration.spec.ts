@@ -129,14 +129,22 @@ test('submission stays disabled while pending and an unconfirmed response is not
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   let requests = 0;
   let release!: () => void;
-  const waiting = new Promise<void>((resolve) => { release = resolve; });
-  await page.route((url) => url.pathname === '/api/bathrooms', async (route) => {
-    if (route.request().method() !== 'POST') { await route.continue(); return; }
-    requests++;
-    await route.fetch();
-    await waiting;
-    await route.abort('failed');
+  const waiting = new Promise<void>((resolve) => {
+    release = resolve;
   });
+  await page.route(
+    (url) => url.pathname === '/api/bathrooms',
+    async (route) => {
+      if (route.request().method() !== 'POST') {
+        await route.continue();
+        return;
+      }
+      requests++;
+      await route.fetch();
+      await waiting;
+      await route.abort('failed');
+    }
+  );
   await page.getByRole('button', { name: 'Enviar para análise', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Enviando…', exact: true })).toBeDisabled();
   await page.locator('.registration-form').evaluate((form) => (form as HTMLFormElement).requestSubmit());
@@ -155,11 +163,14 @@ test('partial photo upload retries only files with a confirmed rejection', async
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   await page.getByLabel('Fotos do banheiro', { exact: true }).setInputFiles(['../data/demo-regional/images/anexo-01.jpg', '../data/demo-regional/images/anexo-02.jpg']);
   let requests = 0;
-  await page.route((url) => /\/api\/bathrooms\/[^/]+\/photos$/.test(url.pathname), async (route) => {
-    requests++;
-    if (requests === 1) await route.fulfill({ status: 400, json: { detail: 'Envio recusado antes de salvar.' } });
-    else await route.continue();
-  });
+  await page.route(
+    (url) => /\/api\/bathrooms\/[^/]+\/photos$/.test(url.pathname),
+    async (route) => {
+      requests++;
+      if (requests === 1) await route.fulfill({ status: 400, json: { detail: 'Envio recusado antes de salvar.' } });
+      else await route.continue();
+    }
+  );
   await page.getByRole('button', { name: 'Enviar para análise', exact: true }).click();
   await expect(page.getByText(/O cadastro já foi salvo em análise/)).toBeVisible();
   await page.getByRole('button', { name: 'Tentar enviar fotos restantes', exact: true }).click();

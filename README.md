@@ -64,21 +64,21 @@ Configure `GEOAPIFY_API_KEY` no ambiente ou no `.env`. O comando de configuraç�
 
 ## Estrutura do projeto
 
-| Área                       | Arquivos                                   | Motivo                                                               |
-| -------------------------- | ------------------------------------------ | -------------------------------------------------------------------- |
-| Páginas                    | `frontend/src/app/features/`               | Fluxos separados, carregados sob demanda pelo router                 |
-| HTTP, sessão e preferências | `frontend/src/app/core/`                  | Infraestrutura HTTP, sessão autenticada, guards e tema                |
-| Modelos de domínio         | `frontend/src/app/domain/`                 | Tipos de banheiro, avaliação, usuário, moderação e localização        |
-| Layout persistente         | `frontend/src/app/layout/`                 | Mantém mapa, painéis e navegação mobile entre os casos de uso          |
-| Integração de mapas         | `frontend/src/app/integrations/maps/`      | MapLibre, Geoapify e seletor de endereço compartilhado                |
-| Componentes compartilhados | `frontend/src/app/shared/`                 | Controles genéricos, diretivas, validações e utilitários               |
-| Design system              | `frontend/src/styles/`                     | Temas e componentes usando tokens compartilhados                     |
-| Controllers/DTOs           | `backend/.../api/`                         | Entrada validada e retorno explícito, sem expor usuários ou senhas   |
-| Regras                     | `backend/.../service/`                     | Publicação, média, privacidade e transições no servidor              |
-| Persistência               | `backend/.../domain/`, `repository/`       | Entidades JPA e repositórios injetados por construtor                |
-| Segurança                  | `backend/.../security/`                    | Sessão HttpOnly, CSRF, BCrypt, CORS, perfis e limite básico de POSTs |
-| Migração                   | `backend/src/main/resources/db/migration/` | Schema versionado pelo Flyway                                        |
-| Testes de interface        | `frontend/e2e/`                            | Fluxos públicos, autenticados, moderação, cadastro e navegação       |
+| Área                        | Arquivos                                   | Motivo                                                               |
+| --------------------------- | ------------------------------------------ | -------------------------------------------------------------------- |
+| Páginas                     | `frontend/src/app/features/`               | Fluxos separados, carregados sob demanda pelo router                 |
+| HTTP, sessão e preferências | `frontend/src/app/core/`                   | Infraestrutura HTTP, sessão autenticada, guards e tema               |
+| Modelos de domínio          | `frontend/src/app/domain/`                 | Tipos de banheiro, avaliação, usuário, moderação e localização       |
+| Layout persistente          | `frontend/src/app/layout/`                 | Mantém mapa, painéis e navegação mobile entre os casos de uso        |
+| Integração de mapas         | `frontend/src/app/integrations/maps/`      | MapLibre, Geoapify e seletor de endereço compartilhado               |
+| Componentes compartilhados  | `frontend/src/app/shared/`                 | Controles genéricos, diretivas, validações e utilitários             |
+| Design system               | `frontend/src/styles/`                     | Temas e componentes usando tokens compartilhados                     |
+| Controllers/DTOs            | `backend/.../api/`                         | Entrada validada e retorno explícito, sem expor usuários ou senhas   |
+| Regras                      | `backend/.../service/`                     | Publicação, média, privacidade e transições no servidor              |
+| Persistência                | `backend/.../domain/`, `repository/`       | Entidades JPA e repositórios injetados por construtor                |
+| Segurança                   | `backend/.../security/`                    | Sessão HttpOnly, CSRF, BCrypt, CORS, perfis e limite básico de POSTs |
+| Migração                    | `backend/src/main/resources/db/migration/` | Schema versionado pelo Flyway                                        |
+| Testes de interface         | `frontend/e2e/`                            | Fluxos públicos, autenticados, moderação, cadastro e navegação       |
 
 Fotos são arquivos privados, locais no desenvolvimento e no Cloudflare R2 em produção. O PostgreSQL guarda listas de URLs diretamente em colunas JSONB do banheiro e da avaliação, sem entidade ou tabela de foto. Novos envios avulsos não são permitidos: fotos só podem acompanhar um cadastro ou uma avaliação. Denúncias e moderação têm somente banheiro ou avaliação como alvo. O backend continua validando tamanho, formato e resolução, regravando JPEG sem metadados. Aprovação, rejeição e denúncias são humanas. A remoção física usa uma fila persistente de tentativas, preservando o histórico da moderação. O [guia do banco](database/README.md) explica configuração, SQL independente, relações e migração sem perda dos bytes antigos. A produção exige um bucket R2 configurado antes da publicação desta versão.
 

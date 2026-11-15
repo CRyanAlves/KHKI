@@ -7,7 +7,8 @@ import javax.sql.DataSource;
 
 /** Copia e verifica os arquivos antes que a migração SQL retire a coluna BYTEA. */
 public final class LegacyImageExporter {
-  private LegacyImageExporter() { }
+
+  private LegacyImageExporter() {}
 
   public static int export(DataSource dataSource, String schema, ImageStorage storage, boolean allowed) throws SQLException {
     if (schema == null || schema.isBlank()) schema = "public";

@@ -9,6 +9,7 @@ import software.amazon.awssdk.services.s3.model.*;
 
 /** Bucket privado: o navegador recebe somente a URL da API, que valida a moderação. */
 public final class R2ImageStorage implements ImageStorage, AutoCloseable {
+
   private final S3Client client;
   private final String bucket;
 
@@ -47,7 +48,9 @@ public final class R2ImageStorage implements ImageStorage, AutoCloseable {
     }
   }
 
-  public void close() { client.close(); }
+  public void close() {
+    client.close();
+  }
 
   private ApiException unavailable() {
     return new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "Armazenamento de imagens indisponível. Tente novamente.");

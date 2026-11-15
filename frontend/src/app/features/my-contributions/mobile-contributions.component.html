@@ -61,7 +61,7 @@
               }
             </div>
           }
-          @if ((item.status === 'REJECTED' || item.status === 'NEEDS_INFORMATION')) {
+          @if (item.status === 'REJECTED' || item.status === 'NEEDS_INFORMATION') {
             <a class="text-button contributions-correct" [routerLink]="item.type === 'BATHROOM' ? ['/cadastrar'] : ['/banheiros', item.bathroomId, 'avaliar']" [queryParams]="{ edit: item.id }">Corrigir e reenviar<app-icon name="ArrowRight" [size]="16" /></a>
           }
         </article>

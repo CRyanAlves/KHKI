@@ -22,7 +22,9 @@ export class RegistrationSubmissionService {
   uncertainUploads = false;
   send(form: BathroomInput, editId: string, photos: PhotoDraft[]): Promise<boolean> {
     if (this.request) return this.request;
-    this.request = this.perform(form, editId, photos).finally(() => { this.request = null; });
+    this.request = this.perform(form, editId, photos).finally(() => {
+      this.request = null;
+    });
     return this.request;
   }
   private async perform(form: BathroomInput, editId: string, photos: PhotoDraft[]): Promise<boolean> {

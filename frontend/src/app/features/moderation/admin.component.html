@@ -218,14 +218,14 @@
               }
               @if (reviewDetail; as review) {
                 @if (review.cleanliness && review.structure) {
-                <div class="review-ratings">
-                  <p>
-                    <app-icon name="Star" /><strong>Limpeza: {{ review.cleanliness }}/5</strong>
-                  </p>
-                  <p>
-                    <app-icon name="Star" /><strong>Estrutura: {{ review.structure }}/5</strong>
-                  </p>
-                </div>
+                  <div class="review-ratings">
+                    <p>
+                      <app-icon name="Star" /><strong>Limpeza: {{ review.cleanliness }}/5</strong>
+                    </p>
+                    <p>
+                      <app-icon name="Star" /><strong>Estrutura: {{ review.structure }}/5</strong>
+                    </p>
+                  </div>
                 } @else {
                   <p class="muted">Avaliação histórica sem nota. As fotos são analisadas junto com este registro.</p>
                 }
@@ -233,23 +233,21 @@
                 <p class="muted">Uma avaliação negativa e respeitosa pode ser aprovada.</p>
               }
 
-
-                <section class="review-photos">
-                  <h3>Fotos enviadas ({{ detail.photos.length }})</h3>
-                  <div class="review-photo-grid">
-                    @for (photo of detail.photos; track photo.id) {
-                      <div class="review-photo-entry">
-                        <button class="photo-expand" (click)="picture(photo.id)" [attr.aria-label]="'Ampliar foto anexada'">
-                          <img [src]="'/api/photos/' + photo.id" alt="Foto enviada para análise" loading="lazy" />
-                        </button>
-
-                      </div>
-                    } @empty {
-                      <p class="muted">Nenhuma foto enviada. As fotos são opcionais.</p>
-                    }
-                  </div>
-                  <small class="muted">Confira todas as fotos anexadas. Ao aprovar este conteúdo, todas as suas fotos serão publicadas. A decisão é aplicada ao cadastro ou à avaliação completa.</small>
-                </section>
+              <section class="review-photos">
+                <h3>Fotos enviadas ({{ detail.photos.length }})</h3>
+                <div class="review-photo-grid">
+                  @for (photo of detail.photos; track photo.id) {
+                    <div class="review-photo-entry">
+                      <button class="photo-expand" (click)="picture(photo.id)" [attr.aria-label]="'Ampliar foto anexada'">
+                        <img [src]="'/api/photos/' + photo.id" alt="Foto enviada para análise" loading="lazy" />
+                      </button>
+                    </div>
+                  } @empty {
+                    <p class="muted">Nenhuma foto enviada. As fotos são opcionais.</p>
+                  }
+                </div>
+                <small class="muted">Confira todas as fotos anexadas. Ao aprovar este conteúdo, todas as suas fotos serão publicadas. A decisão é aplicada ao cadastro ou à avaliação completa.</small>
+              </section>
 
               @if (detail.contribution.reason) {
                 <p class="review-notice"><strong>Última decisão:</strong> {{ detail.contribution.reason }}</p>

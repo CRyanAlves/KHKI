@@ -1,10 +1,12 @@
 package br.com.khki;
 
-import br.com.khki.shared.domain.GeographicDistance;
 import static org.assertj.core.api.Assertions.*;
+
+import br.com.khki.shared.domain.GeographicDistance;
 import org.junit.jupiter.api.Test;
 
 class GeographicDistanceTest {
+
   @Test
   void usesMetersAndPreservesSymmetryAndCoincidentPoints() {
     assertThat(GeographicDistance.meters(-23.1, -47.2, -23.1, -47.2)).isZero();
@@ -15,7 +17,9 @@ class GeographicDistanceTest {
   @Test
   void handlesAntipodalPointsWithoutRoundingIntoNan() {
     for (double latitude : new double[] { 0, 23.1, 45, 89.99 }) {
-      assertThat(GeographicDistance.meters(latitude, 0, -latitude, 180)).isFinite().isCloseTo(Math.PI * 6371000, within(0.2));
+      assertThat(GeographicDistance.meters(latitude, 0, -latitude, 180))
+        .isFinite()
+        .isCloseTo(Math.PI * 6371000, within(0.2));
     }
   }
 }

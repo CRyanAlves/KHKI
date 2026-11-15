@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 
 /** Arquivos privados locais para desenvolvimento; IDs UUID impedem navegação de diretórios. */
 public final class FileImageStorage implements ImageStorage {
+
   private final Path directory;
 
   public FileImageStorage(Path directory) {
@@ -32,7 +33,9 @@ public final class FileImageStorage implements ImageStorage {
     } catch (IOException exception) {
       throw unavailable();
     } finally {
-      if (temporary != null) try { Files.deleteIfExists(temporary); } catch (IOException ignored) { }
+      if (temporary != null) try {
+        Files.deleteIfExists(temporary);
+      } catch (IOException ignored) {}
     }
   }
 

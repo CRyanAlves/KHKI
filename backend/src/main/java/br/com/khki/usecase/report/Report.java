@@ -28,31 +28,72 @@ public class Report {
 
   @Version
   private long version;
+
   @Embedded
   @com.fasterxml.jackson.annotation.JsonIgnore
   private ContentReference reference;
 
-  public UUID getId() { return id; }
-  public void setId(UUID value) { id = value; }
+  public UUID getId() {
+    return id;
+  }
 
-  public TargetType getTargetType() { return targetType; }
-  public void setTargetType(TargetType value) { targetType = value; }
+  public void setId(UUID value) {
+    id = value;
+  }
 
-  public UUID getTargetId() { return targetId; }
-  public void setTargetId(UUID value) { targetId = value; }
+  public TargetType getTargetType() {
+    return targetType;
+  }
 
-  public String getReason() { return reason; }
-  public void setReason(String value) { reason = value; }
+  public void setTargetType(TargetType value) {
+    targetType = value;
+  }
 
-  public Instant getCreatedAt() { return createdAt; }
-  public void setCreatedAt(Instant value) { createdAt = value; }
+  public UUID getTargetId() {
+    return targetId;
+  }
 
-  public boolean getResolved() { return resolved; }
-  public void setResolved(boolean value) { resolved = value; }
+  public void setTargetId(UUID value) {
+    targetId = value;
+  }
 
-  public long getVersion() { return version; }
-  public void setVersion(long value) { version = value; }
+  public String getReason() {
+    return reason;
+  }
 
-  public ContentReference getReference() { return reference; }
-  public void setReference(ContentReference value) { reference = value; }
+  public void setReason(String value) {
+    reason = value;
+  }
+
+  public Instant getCreatedAt() {
+    return createdAt;
+  }
+
+  public void setCreatedAt(Instant value) {
+    createdAt = value;
+  }
+
+  public boolean getResolved() {
+    return resolved;
+  }
+
+  public void setResolved(boolean value) {
+    resolved = value;
+  }
+
+  public long getVersion() {
+    return version;
+  }
+
+  public void setVersion(long value) {
+    version = value;
+  }
+
+  public ContentReference getReference() {
+    return reference;
+  }
+
+  public void setReference(ContentReference value) {
+    reference = value;
+  }
 }

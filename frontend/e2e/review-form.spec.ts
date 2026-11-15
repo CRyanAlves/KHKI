@@ -69,7 +69,9 @@ test('failure preserves fields and photo, in-flight submission is locked and ret
   await page.locator('app-review input[type=file]').setInputFiles(photo);
   let requests = 0;
   let release!: () => void;
-  const pending = new Promise<void>((resolve) => { release = resolve; });
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
   await page.route('**/api/bathrooms/review-form/reviews', async (route) => {
     requests++;
     expect(route.request().postDataJSON()).toEqual({ cleanliness: 4, structure: 3, comment: 'Limpo, com itens conservados.' });
@@ -79,7 +81,10 @@ test('failure preserves fields and photo, in-flight submission is locked and ret
     } else await route.fulfill({ json: { id: 'saved-review', status: 'PENDING' } });
   });
   let uploads = 0;
-  await page.route('**/api/bathrooms/review-form/photos?reviewId=saved-review', (route) => { uploads++; return route.fulfill({ json: {} }); });
+  await page.route('**/api/bathrooms/review-form/photos?reviewId=saved-review', (route) => {
+    uploads++;
+    return route.fulfill({ json: {} });
+  });
   await page.getByRole('button', { name: 'Enviar avaliação', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Enviando…' })).toBeDisabled();
   await expect(page.getByRole('textbox', { name: 'Sua experiência' })).toBeDisabled();
@@ -98,7 +103,10 @@ test('empty optional fields submit without upload and partial upload failure kee
   await prepare(page);
   await rate(page);
   let body: unknown;
-  await page.route('**/api/bathrooms/review-form/reviews', (route) => { body = route.request().postDataJSON(); return route.fulfill({ json: { id: 'saved-review', status: 'PENDING' } }); });
+  await page.route('**/api/bathrooms/review-form/reviews', (route) => {
+    body = route.request().postDataJSON();
+    return route.fulfill({ json: { id: 'saved-review', status: 'PENDING' } });
+  });
   await page.getByRole('button', { name: 'Enviar avaliação', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Avaliação em análise' })).toBeVisible();
   expect(body).toEqual({ cleanliness: 4, structure: 3, comment: '' });
@@ -117,7 +125,9 @@ test('mobile small viewport, enlarged fonts and themes keep the form scrollable 
   await prepare(page);
   await rate(page);
   for (const theme of ['dark', 'light']) {
-    await page.evaluate((value) => { document.documentElement.dataset['theme'] = value; }, theme);
+    await page.evaluate((value) => {
+      document.documentElement.dataset['theme'] = value;
+    }, theme);
     await page.addStyleTag({ content: 'html { font-size: 20px; }' });
     await page.getByRole('textbox', { name: 'Sua experiência' }).fill('Comentário em tela pequena.');
     await page.getByRole('button', { name: 'Enviar avaliação', exact: true }).scrollIntoViewIfNeeded();
@@ -133,10 +143,16 @@ test('mobile small viewport, enlarged fonts and themes keep the form scrollable 
 
 test('desktop and mobile retain the side panel with a single surface and complete title', async ({ page }) => {
   await prepare(page);
-  for (const viewport of [{ width: 1440, height: 1000 }, { width: 393, height: 852 }, { width: 852, height: 393 }]) {
+  for (const viewport of [
+    { width: 1440, height: 1000 },
+    { width: 393, height: 852 },
+    { width: 852, height: 393 }
+  ]) {
     await page.setViewportSize(viewport);
     for (const theme of ['light', 'dark']) {
-      await page.evaluate((value) => { document.documentElement.dataset['theme'] = value; }, theme);
+      await page.evaluate((value) => {
+        document.documentElement.dataset['theme'] = value;
+      }, theme);
       await page.getByRole('link', { name: 'Voltar ao banheiro', exact: true }).scrollIntoViewIfNeeded();
       await expect(page.locator('app-review .surface')).toHaveCount(0);
       await expect(page.locator('.review-heading p')).toHaveText(bathroom.name);

@@ -22,19 +22,43 @@ public class Review extends BaseModeratedEntity {
   @Column(length = 1500)
   private String comment;
 
-  public Bathroom getBathroom() { return bathroom; }
-  public void setBathroom(Bathroom value) { bathroom = value; }
+  public Bathroom getBathroom() {
+    return bathroom;
+  }
 
-  public Integer getCleanliness() { return cleanliness; }
-  public void setCleanliness(Integer value) { cleanliness = value; }
+  public void setBathroom(Bathroom value) {
+    bathroom = value;
+  }
 
-  public Integer getStructure() { return structure; }
-  public void setStructure(Integer value) { structure = value; }
+  public Integer getCleanliness() {
+    return cleanliness;
+  }
 
-  public boolean getPhotoOnly() { return photoOnly; }
-  public void setPhotoOnly(boolean value) { photoOnly = value; }
+  public void setCleanliness(Integer value) {
+    cleanliness = value;
+  }
 
+  public Integer getStructure() {
+    return structure;
+  }
 
-  public String getComment() { return comment; }
-  public void setComment(String value) { comment = value; }
+  public void setStructure(Integer value) {
+    structure = value;
+  }
+
+  public boolean getPhotoOnly() {
+    return photoOnly;
+  }
+
+  public void setPhotoOnly(boolean value) {
+    photoOnly = value;
+  }
+
+  public String getComment() {
+    return comment;
+  }
+
+  public void setComment(String value) {
+    comment = value;
+  }
 }

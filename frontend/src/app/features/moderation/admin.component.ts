@@ -123,15 +123,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   }
   can(status: Status): boolean {
     const current = this.detail?.contribution.status;
-    return status === 'APPROVED'
-      ? ['PENDING', 'NEEDS_INFORMATION', 'HIDDEN'].includes(current || '')
-      : status === 'REJECTED'
-        ? ['PENDING', 'NEEDS_INFORMATION'].includes(current || '')
-        : status === 'NEEDS_INFORMATION'
-          ? ['PENDING', 'NEEDS_INFORMATION'].includes(current || '')
-          : status === 'HIDDEN'
-            ? current === 'APPROVED'
-            : ['APPROVED', 'HIDDEN', 'REJECTED'].includes(current || '');
+    return status === 'APPROVED' ? ['PENDING', 'NEEDS_INFORMATION', 'HIDDEN'].includes(current || '') : status === 'REJECTED' ? ['PENDING', 'NEEDS_INFORMATION'].includes(current || '') : status === 'NEEDS_INFORMATION' ? ['PENDING', 'NEEDS_INFORMATION'].includes(current || '') : status === 'HIDDEN' ? current === 'APPROVED' : ['APPROVED', 'HIDDEN', 'REJECTED'].includes(current || '');
   }
   async load(): Promise<void> {
     const sequence = ++this.loadSequence;

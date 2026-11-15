@@ -8,6 +8,7 @@ import org.springframework.context.annotation.*;
 
 @Configuration
 public class DatabaseMigrationConfiguration {
+
   @Bean
   public FlywayMigrationStrategy verifiedImageMigration(ImageStorage storage, @Value("${khki.storage.migrate-legacy:false}") boolean allowed) {
     return flyway -> {
