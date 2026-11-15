@@ -1,7 +1,8 @@
 package br.com.khki.usecase.account;
 
 import br.com.khki.shared.api.ApiException;
-import br.com.khki.shared.api.Contracts.*;
+import br.com.khki.usecase.account.dto.RegisterRequest;
+import br.com.khki.usecase.account.dto.UserView;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.Locale;
@@ -29,7 +30,7 @@ public class AccountService {
     return new UserView(user.getId(), user.getName(), user.getRole());
   }
 
-  public UserView register(Register input) {
+  public UserView register(RegisterRequest input) {
     if (input.password().getBytes(StandardCharsets.UTF_8).length > 72) throw new ApiException(HttpStatus.BAD_REQUEST, "A senha deve ter no máximo 72 bytes.");
     String email = input.email().strip().toLowerCase(Locale.ROOT);
     if (users.findByEmail(email).isPresent()) throw new ApiException(HttpStatus.CONFLICT, "Não foi possível cadastrar com os dados informados.");

@@ -1,7 +1,11 @@
 package br.com.khki;
 
+import static org.assertj.core.api.Assertions.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import br.com.khki.infrastructure.security.AbuseGuard;
-import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.shared.domain.ContentReference;
 import br.com.khki.shared.domain.Status;
 import br.com.khki.shared.domain.TargetType;
@@ -14,10 +18,6 @@ import br.com.khki.usecase.moderation.ModerationAuditRepository;
 import br.com.khki.usecase.report.Report;
 import br.com.khki.usecase.report.ReportRepository;
 import br.com.khki.usecase.review.ReviewRepository;
-import static org.assertj.core.api.Assertions.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import com.fasterxml.jackson.databind.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -85,7 +85,11 @@ class WorkflowTest {
     statistics.setStatisticsEnabled(true);
     statistics.clear();
     try {
-      mvc.perform(get("/api/bathrooms/" + bathroom.getId())).andExpect(status().isOk()).andExpect(jsonPath("$.reviewCount").value(1)).andExpect(jsonPath("$.rating").value(3.5));
+      mvc
+        .perform(get("/api/bathrooms/" + bathroom.getId()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.reviewCount").value(1))
+        .andExpect(jsonPath("$.rating").value(3.5));
       assertThat(statistics.getQueryExecutionCount()).isEqualTo(1);
     } finally {
       statistics.setStatisticsEnabled(wasEnabled);
@@ -110,16 +114,41 @@ class WorkflowTest {
       entityManager.clear();
       assertThat(entityManager.find(Bathroom.class, bathroom.getId()).getAuthor().getName()).isEqualTo(alternate.getName());
       assertThat(entityManager.find(br.com.khki.usecase.review.Review.class, reviewId).getAuthor().getName()).isEqualTo(alternate.getName());
-      assertThat(bathrooms.findByAuthor_IdOrderByCreatedAtDesc(alternate.getId())).extracting(value -> value.getId()).containsExactly(bathroom.getId());
-      assertThat(reviews.findByAuthor_IdOrderByCreatedAtDesc(alternate.getId())).extracting(value -> value.getId()).containsExactly(reviewId);
+      assertThat(bathrooms.findByAuthor_IdOrderByCreatedAtDesc(alternate.getId()))
+        .extracting(value -> value.getId())
+        .containsExactly(bathroom.getId());
+      assertThat(reviews.findByAuthor_IdOrderByCreatedAtDesc(alternate.getId()))
+        .extracting(value -> value.getId())
+        .containsExactly(reviewId);
     });
     assertThat(jdbc.queryForObject("SELECT author_id FROM bathrooms WHERE id = ?", UUID.class, bathroom.getId())).isEqualTo(alternate.getId());
     assertThat(jdbc.queryForObject("SELECT author_id FROM reviews WHERE id = ?", UUID.class, reviewId)).isEqualTo(alternate.getId());
     mvc.perform(get("/api/me/contributions/REVIEW/" + reviewId).with(user("admin@khki.test").roles("ADMIN"))).andExpect(status().isNotFound());
-    mvc.perform(get("/api/me/contributions/REVIEW/" + reviewId).with(user(alternate.getEmail()))).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(reviewId.toString())).andExpect(jsonPath("$.author").value("Sua avaliação"));
+    mvc
+      .perform(get("/api/me/contributions/REVIEW/" + reviewId).with(user(alternate.getEmail())))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.id").value(reviewId.toString()))
+      .andExpect(jsonPath("$.author").value("Sua avaliação"));
     String input = "{\"cleanliness\":2,\"structure\":3,\"comment\":\"Correção do autor\"}";
-    mvc.perform(put("/api/reviews/" + reviewId).with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(input)).andExpect(status().isForbidden());
-    mvc.perform(put("/api/reviews/" + reviewId).with(user(alternate.getEmail())).with(csrf()).contentType("application/json").content(input)).andExpect(status().isOk()).andExpect(jsonPath("$.bathroomId").value(bathroom.getId().toString()));
+    mvc
+      .perform(
+        put("/api/reviews/" + reviewId)
+          .with(user("admin@khki.test").roles("ADMIN"))
+          .with(csrf())
+          .contentType("application/json")
+          .content(input)
+      )
+      .andExpect(status().isForbidden());
+    mvc
+      .perform(
+        put("/api/reviews/" + reviewId)
+          .with(user(alternate.getEmail()))
+          .with(csrf())
+          .contentType("application/json")
+          .content(input)
+      )
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.bathroomId").value(bathroom.getId().toString()));
   }
 
   @Test
@@ -130,12 +159,28 @@ class WorkflowTest {
     UUID reviewId = pendingReview(bathroom.getId());
     decide("REVIEW", reviewId, "APPROVED");
     var pending = moderationBathroom("Referência duplicada", Status.PENDING, null, -23.1);
-    mvc.perform(post("/api/admin/content/BATHROOM/" + pending.getId() + "/decision").with(user(moderator.getEmail()).roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"status\":\"REJECTED\",\"reason\":\"Duplicado confirmado\",\"duplicateOfId\":\"" + bathroom.getId() + "\"}")).andExpect(status().isOk());
+    mvc
+      .perform(
+        post("/api/admin/content/BATHROOM/" + pending.getId() + "/decision")
+          .with(user(moderator.getEmail()).roles("ADMIN"))
+          .with(csrf())
+          .contentType("application/json")
+          .content("{\"status\":\"REJECTED\",\"reason\":\"Duplicado confirmado\",\"duplicateOfId\":\"" + bathroom.getId() + "\"}")
+      )
+      .andExpect(status().isOk());
     var audit = audits.findByReference_Bathroom_IdOrderByCreatedAtDesc(pending.getId()).get(0);
     assertThat(jdbc.queryForObject("SELECT moderator_id FROM moderation_audit WHERE id = ?", UUID.class, audit.getId())).isEqualTo(moderator.getId());
     assertThat(jdbc.queryForObject("SELECT duplicate_of_id FROM moderation_audit WHERE id = ?", UUID.class, audit.getId())).isEqualTo(bathroom.getId());
     for (var target : java.util.Map.of("BATHROOM", bathroom.getId(), "REVIEW", reviewId).entrySet()) {
-      mvc.perform(post("/api/reports").with(user(moderator.getEmail()).roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"targetType\":\"" + target.getKey() + "\",\"targetId\":\"" + target.getValue() + "\",\"reason\":\"INCORRECT\"}")).andExpect(status().isAccepted());
+      mvc
+        .perform(
+          post("/api/reports")
+            .with(user(moderator.getEmail()).roles("ADMIN"))
+            .with(csrf())
+            .contentType("application/json")
+            .content("{\"targetType\":\"" + target.getKey() + "\",\"targetId\":\"" + target.getValue() + "\",\"reason\":\"INCORRECT\"}")
+        )
+        .andExpect(status().isAccepted());
     }
     UUID reportId = jdbc.queryForObject("SELECT id FROM reports WHERE target_id = ?", UUID.class, bathroom.getId());
     UUID reviewReportId = jdbc.queryForObject("SELECT id FROM reports WHERE target_id = ?", UUID.class, reviewId);
@@ -170,10 +215,24 @@ class WorkflowTest {
     assertThat(jdbc.queryForObject("SELECT review_target_id FROM reports WHERE id = ?", UUID.class, reportId)).isEqualTo(reviewId);
     assertThat(jdbc.queryForObject("SELECT review_target_id FROM moderation_audit WHERE id = ?", UUID.class, audit.getId())).isEqualTo(reviewId);
     assertThat(audits.findByReference_Bathroom_IdOrderByCreatedAtDesc(pending.getId())).isEmpty();
-    assertThat(audits.findByReference_Review_IdOrderByCreatedAtDesc(reviewId)).extracting(value -> value.getId()).contains(audit.getId());
-    mvc.perform(get("/api/admin/content/REVIEW/" + reviewId + "/history").with(user(moderator.getEmail()).roles("ADMIN"))).andExpect(status().isOk()).andExpect(jsonPath("$[0].targetType").value("REVIEW")).andExpect(jsonPath("$[0].targetId").value(reviewId.toString()));
-    var response = body(mvc.perform(get("/api/admin/audit").with(user(moderator.getEmail()).roles("ADMIN"))).andExpect(status().isOk()).andReturn());
-    var entry = java.util.stream.StreamSupport.stream(response.spliterator(), false).filter(value -> value.get("id").asText().equals(audit.getId().toString())).findFirst().orElseThrow();
+    assertThat(audits.findByReference_Review_IdOrderByCreatedAtDesc(reviewId))
+      .extracting(value -> value.getId())
+      .contains(audit.getId());
+    mvc
+      .perform(get("/api/admin/content/REVIEW/" + reviewId + "/history").with(user(moderator.getEmail()).roles("ADMIN")))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$[0].targetType").value("REVIEW"))
+      .andExpect(jsonPath("$[0].targetId").value(reviewId.toString()));
+    var response = body(
+      mvc
+        .perform(get("/api/admin/audit").with(user(moderator.getEmail()).roles("ADMIN")))
+        .andExpect(status().isOk())
+        .andReturn()
+    );
+    var entry = java.util.stream.StreamSupport.stream(response.spliterator(), false)
+      .filter(value -> value.get("id").asText().equals(audit.getId().toString()))
+      .findFirst()
+      .orElseThrow();
     assertThat(entry.size()).isEqualTo(8);
     assertThat(entry.get("targetType").asText()).isEqualTo("REVIEW");
     assertThat(entry.get("targetId").asText()).isEqualTo(reviewId.toString());
@@ -211,8 +270,16 @@ class WorkflowTest {
     var replacement = locations.get(1);
     UUID reviewId = pendingReview(original.getId());
     assertThat(jdbc.queryForObject("SELECT bathroom_id FROM reviews WHERE id = ?", UUID.class, reviewId)).isEqualTo(original.getId());
-    var contributions = body(mvc.perform(get("/api/me/contributions").with(user(author.getEmail()).roles("ADMIN"))).andExpect(status().isOk()).andReturn());
-    var contribution = java.util.stream.StreamSupport.stream(contributions.spliterator(), false).filter(value -> value.get("id").asText().equals(reviewId.toString())).findFirst().orElseThrow();
+    var contributions = body(
+      mvc
+        .perform(get("/api/me/contributions").with(user(author.getEmail()).roles("ADMIN")))
+        .andExpect(status().isOk())
+        .andReturn()
+    );
+    var contribution = java.util.stream.StreamSupport.stream(contributions.spliterator(), false)
+      .filter(value -> value.get("id").asText().equals(reviewId.toString()))
+      .findFirst()
+      .orElseThrow();
     assertThat(contribution.get("bathroomId").asText()).isEqualTo(original.getId().toString());
     new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
       var review = entityManager.find(br.com.khki.usecase.review.Review.class, reviewId);
@@ -225,10 +292,16 @@ class WorkflowTest {
       var reloaded = entityManager.find(br.com.khki.usecase.review.Review.class, reviewId);
       assertThat(reloaded.getBathroom().getName()).isEqualTo(replacement.getName());
       assertThat(reviews.findByBathroom_IdAndStatusOrderByCreatedAtDesc(original.getId(), Status.APPROVED)).isEmpty();
-      assertThat(reviews.findByBathroom_IdAndStatusOrderByCreatedAtDesc(replacement.getId(), Status.APPROVED)).extracting(value -> value.getId()).containsExactly(reviewId);
+      assertThat(reviews.findByBathroom_IdAndStatusOrderByCreatedAtDesc(replacement.getId(), Status.APPROVED))
+        .extracting(value -> value.getId())
+        .containsExactly(reviewId);
     });
     assertThat(jdbc.queryForObject("SELECT bathroom_id FROM reviews WHERE id = ?", UUID.class, reviewId)).isEqualTo(replacement.getId());
-    mvc.perform(get("/api/bathrooms/" + replacement.getId() + "/reviews")).andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(reviewId.toString())).andExpect(jsonPath("$[0].bathroom").doesNotExist());
+    mvc
+      .perform(get("/api/bathrooms/" + replacement.getId() + "/reviews"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$[0].id").value(reviewId.toString()))
+      .andExpect(jsonPath("$[0].bathroom").doesNotExist());
   }
 
   @Test
@@ -337,7 +410,15 @@ class WorkflowTest {
     var image = new ByteArrayOutputStream();
     ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB), "png", image);
     var upload = new MockMultipartFile("file", "banheiro.png", "image/png", image.toByteArray());
-    mvc.perform(multipart("/api/bathrooms/" + bathroomId + "/photos").file(upload).param("registrationAttachment", "true").cookie(session).with(csrf())).andExpect(status().isCreated());
+    mvc
+      .perform(
+        multipart("/api/bathrooms/" + bathroomId + "/photos")
+          .file(upload)
+          .param("registrationAttachment", "true")
+          .cookie(session)
+          .with(csrf())
+      )
+      .andExpect(status().isCreated());
     UUID photoId = imageId("bathrooms", bathroomId);
     mvc.perform(get("/api/photos/" + photoId)).andExpect(status().isNotFound());
     mvc
@@ -750,7 +831,7 @@ class WorkflowTest {
       .andExpect(jsonPath("$.details.charge").value("UNKNOWN"))
       .andExpect(jsonPath("$.details.stepFreeAccess").isEmpty())
       .andExpect(jsonPath("$.details.bathroomTypes").isEmpty());
-    var legacy = json.readValue(json.writeValueAsString(input), br.com.khki.shared.api.Contracts.BathroomInput.class);
+    var legacy = json.readValue(json.writeValueAsString(input), br.com.khki.usecase.bathroom.dto.BathroomInput.class);
     assertThat(json.readTree(json.writeValueAsString(legacy)).has("details")).isFalse();
   }
 
@@ -843,7 +924,12 @@ class WorkflowTest {
   private UUID imageId(String table, UUID id) throws Exception {
     if (!java.util.Set.of("bathrooms", "reviews").contains(table)) throw new IllegalArgumentException();
     var urls = json.readTree(jdbc.queryForObject("SELECT image_urls::text FROM " + table + " WHERE id = ?", String.class, id));
-    return UUID.fromString(urls.get(urls.size() - 1).asText().substring("/api/photos/".length()));
+    return UUID.fromString(
+      urls
+        .get(urls.size() - 1)
+        .asText()
+        .substring("/api/photos/".length())
+    );
   }
 
   @Test
@@ -851,7 +937,15 @@ class WorkflowTest {
     var bathroom = moderationBathroom("Fotos no cadastro", Status.PENDING, null, -26.9);
     UUID photo = attachmentUpload(bathroom.getId(), null, true);
     mvc.perform(get("/api/photos/" + photo)).andExpect(status().isNotFound());
-    mvc.perform(post("/api/reports").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"targetType\":\"PHOTO\",\"targetId\":\"" + photo + "\",\"reason\":\"PRIVACY\"}")).andExpect(status().isBadRequest());
+    mvc
+      .perform(
+        post("/api/reports")
+          .with(user("admin@khki.test").roles("ADMIN"))
+          .with(csrf())
+          .contentType("application/json")
+          .content("{\"targetType\":\"PHOTO\",\"targetId\":\"" + photo + "\",\"reason\":\"PRIVACY\"}")
+      )
+      .andExpect(status().isBadRequest());
     mvc.perform(get("/api/admin/content/PHOTO/" + photo).with(user("admin@khki.test").roles("ADMIN"))).andExpect(status().isBadRequest());
     decide("BATHROOM", bathroom.getId(), "APPROVED");
     mvc.perform(get("/api/photos/" + photo)).andExpect(status().isOk());
@@ -872,7 +966,14 @@ class WorkflowTest {
     var bytes = new ByteArrayOutputStream();
     ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB), "png", bytes);
     long count = reviews.count();
-    mvc.perform(multipart("/api/bathrooms/" + bathroom.getId() + "/photos").file(new MockMultipartFile("file", "foto.png", "image/png", bytes.toByteArray())).with(user("admin@khki.test").roles("ADMIN")).with(csrf())).andExpect(status().isBadRequest());
+    mvc
+      .perform(
+        multipart("/api/bathrooms/" + bathroom.getId() + "/photos")
+          .file(new MockMultipartFile("file", "foto.png", "image/png", bytes.toByteArray()))
+          .with(user("admin@khki.test").roles("ADMIN"))
+          .with(csrf())
+      )
+      .andExpect(status().isBadRequest());
     assertThat(reviews.count()).isEqualTo(count);
     assertThat(bathrooms.findById(bathroom.getId()).orElseThrow().getImageUrls()).isEmpty();
   }
@@ -881,7 +982,10 @@ class WorkflowTest {
   void userTableAndContributionsWorkWithoutSubmissionReceipts() throws Exception {
     assertThat(jdbc.queryForObject("SELECT count(*) FROM information_schema.tables WHERE table_name = 'submission_receipts'", Integer.class)).isZero();
     assertThat(jdbc.queryForObject("SELECT count(*) FROM \"user\"", Integer.class)).isPositive();
-    var result = mvc.perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(bathroomInput("Cadastro sem recibo"))).andExpect(status().isCreated()).andReturn();
+    var result = mvc
+      .perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(bathroomInput("Cadastro sem recibo")))
+      .andExpect(status().isCreated())
+      .andReturn();
     UUID id = UUID.fromString(body(result).get("id").asText());
     assertThat(bathrooms.findById(id).orElseThrow().getAuthor().getId()).isEqualTo(users.findByEmail("admin@khki.test").orElseThrow().getId());
     mvc.perform(get("/api/me/submissions/" + UUID.randomUUID()).with(user("admin@khki.test").roles("ADMIN"))).andExpect(status().isNotFound());

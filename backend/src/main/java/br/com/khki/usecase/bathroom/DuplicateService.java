@@ -1,8 +1,9 @@
 package br.com.khki.usecase.bathroom;
 
-import br.com.khki.shared.api.Contracts.*;
-import br.com.khki.shared.domain.Status;
 import br.com.khki.shared.domain.GeographicDistance;
+import br.com.khki.shared.domain.Status;
+import br.com.khki.usecase.bathroom.dto.NearbyCandidate;
+import br.com.khki.usecase.bathroom.dto.NearbyResult;
 import java.text.Normalizer;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Value;

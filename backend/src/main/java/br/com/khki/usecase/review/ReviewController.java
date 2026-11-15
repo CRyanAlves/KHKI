@@ -1,7 +1,9 @@
 package br.com.khki.usecase.review;
 
-import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.usecase.account.AccountService;
+import br.com.khki.usecase.contribution.dto.ContributionView;
+import br.com.khki.usecase.review.dto.ReviewInput;
+import br.com.khki.usecase.review.dto.ReviewView;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.security.Principal;

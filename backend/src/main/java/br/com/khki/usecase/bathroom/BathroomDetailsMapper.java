@@ -1,7 +1,7 @@
 package br.com.khki.usecase.bathroom;
 
 import br.com.khki.shared.api.ApiException;
-import br.com.khki.shared.api.Contracts.*;
+import br.com.khki.usecase.bathroom.dto.BathroomDetails;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.TreeSet;

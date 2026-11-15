@@ -2,21 +2,29 @@ package br.com.khki.usecase.moderation;
 
 import br.com.khki.infrastructure.storage.ImageCleanupService;
 import br.com.khki.shared.api.ApiException;
-import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.shared.domain.BaseModeratedEntity;
 import br.com.khki.shared.domain.ContentReference;
 import br.com.khki.shared.domain.Status;
 import br.com.khki.shared.domain.TargetType;
-import br.com.khki.usecase.bathroom.Bathroom;
 import br.com.khki.usecase.account.UserRepository;
+import br.com.khki.usecase.bathroom.Bathroom;
 import br.com.khki.usecase.bathroom.BathroomRepository;
 import br.com.khki.usecase.bathroom.BathroomService;
 import br.com.khki.usecase.contribution.ContributionService;
+import br.com.khki.usecase.contribution.dto.ContributionView;
 import br.com.khki.usecase.image.ImageUrls;
+import br.com.khki.usecase.image.dto.ImageView;
+import br.com.khki.usecase.moderation.dto.AuditEntryView;
+import br.com.khki.usecase.moderation.dto.AuditView;
+import br.com.khki.usecase.moderation.dto.Decision;
+import br.com.khki.usecase.moderation.dto.ModerationDetail;
+import br.com.khki.usecase.moderation.dto.ModerationQueueItem;
 import br.com.khki.usecase.report.Report;
 import br.com.khki.usecase.report.ReportRepository;
+import br.com.khki.usecase.report.dto.ReportView;
 import br.com.khki.usecase.review.Review;
 import br.com.khki.usecase.review.ReviewRepository;
+import br.com.khki.usecase.review.dto.ReviewView;
 import java.util.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -150,7 +158,11 @@ public class ModerationService {
   }
 
   public List<AuditEntryView> audit() {
-    return audits.findAllByOrderByCreatedAtDesc().stream().map(value -> new AuditEntryView(value.getId(), value.getTargetType(), value.getTargetId(), value.getModerator().getId(), value.getDuplicateOf() == null ? null : value.getDuplicateOf().getId(), value.getDecision(), value.getReason(), value.getCreatedAt())).toList();
+    return audits
+      .findAllByOrderByCreatedAtDesc()
+      .stream()
+      .map(value -> new AuditEntryView(value.getId(), value.getTargetType(), value.getTargetId(), value.getModerator().getId(), value.getDuplicateOf() == null ? null : value.getDuplicateOf().getId(), value.getDecision(), value.getReason(), value.getCreatedAt()))
+      .toList();
   }
 
   public List<AuditView> history(TargetType type, UUID id) {
