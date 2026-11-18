@@ -1,6 +1,6 @@
 package br.com.khki.usecase.bathroom.dto;
 
-import br.com.khki.usecase.bathroom.AccessType;
+import br.com.khki.usecase.bathroom.model.AccessType;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
