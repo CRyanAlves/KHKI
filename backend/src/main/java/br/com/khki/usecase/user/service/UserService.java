@@ -1,8 +1,8 @@
 package br.com.khki.usecase.user.service;
 
 import br.com.khki.shared.api.ApiException;
-import br.com.khki.usecase.user.dto.RegisterRequest;
-import br.com.khki.usecase.user.dto.UserView;
+import br.com.khki.usecase.user.dto.RegisterDTO;
+import br.com.khki.usecase.user.dto.UserDTO;
 import br.com.khki.usecase.user.model.User;
 import br.com.khki.usecase.user.model.repository.UserRepository;
 import java.nio.charset.StandardCharsets;
@@ -28,11 +28,11 @@ public class UserService {
     return users.findByEmail(principal.getName()).orElseThrow(ApiException::missing);
   }
 
-  public UserView view(User user) {
-    return new UserView(user.getId(), user.getName(), user.getRole());
+  public UserDTO view(User user) {
+    return new UserDTO(user.getId(), user.getName(), user.getRole());
   }
 
-  public UserView register(RegisterRequest input) {
+  public UserDTO register(RegisterDTO input) {
     if (input.password().getBytes(StandardCharsets.UTF_8).length > 72) throw new ApiException(HttpStatus.BAD_REQUEST, "A senha deve ter no máximo 72 bytes.");
     String email = input.email().strip().toLowerCase(Locale.ROOT);
     if (users.findByEmail(email).isPresent()) throw new ApiException(HttpStatus.CONFLICT, "Não foi possível cadastrar com os dados informados.");

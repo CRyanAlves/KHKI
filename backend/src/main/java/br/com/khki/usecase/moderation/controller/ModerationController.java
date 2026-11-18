@@ -2,17 +2,17 @@ package br.com.khki.usecase.moderation.controller;
 
 import br.com.khki.shared.domain.Status;
 import br.com.khki.shared.domain.TargetType;
-import br.com.khki.usecase.bathroom.dto.NearbyResult;
+import br.com.khki.usecase.bathroom.dto.NearbyResultDTO;
 import br.com.khki.usecase.bathroom.model.Bathroom;
 import br.com.khki.usecase.bathroom.service.DuplicateService;
-import br.com.khki.usecase.contribution.dto.ContributionView;
+import br.com.khki.usecase.contribution.dto.ContributionDTO;
 import br.com.khki.usecase.contribution.service.ContributionService;
-import br.com.khki.usecase.moderation.dto.AuditEntryView;
-import br.com.khki.usecase.moderation.dto.AuditView;
-import br.com.khki.usecase.moderation.dto.Decision;
-import br.com.khki.usecase.moderation.dto.ModerationQueueItem;
+import br.com.khki.usecase.moderation.dto.AuditDTO;
+import br.com.khki.usecase.moderation.dto.AuditEntryDTO;
+import br.com.khki.usecase.moderation.dto.DecisionDTO;
+import br.com.khki.usecase.moderation.dto.ModerationQueueItemDTO;
 import br.com.khki.usecase.moderation.service.ModerationService;
-import br.com.khki.usecase.report.dto.ReportView;
+import br.com.khki.usecase.report.dto.ReportDTO;
 import br.com.khki.usecase.user.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -39,22 +39,22 @@ public class ModerationController {
   }
 
   @GetMapping("/queue")
-  public List<ContributionView> queue(@RequestParam(defaultValue = "PENDING") Status status) {
+  public List<ContributionDTO> queue(@RequestParam(defaultValue = "PENDING") Status status) {
     return moderation.queue(status);
   }
 
   @GetMapping("/queue/details")
-  public List<ModerationQueueItem> queueDetails(@RequestParam(defaultValue = "PENDING") Status status) {
+  public List<ModerationQueueItemDTO> queueDetails(@RequestParam(defaultValue = "PENDING") Status status) {
     return moderation.queueDetails(status);
   }
 
   @GetMapping("/content/{type}/{id}/history")
-  public List<AuditView> history(@PathVariable TargetType type, @PathVariable UUID id) {
+  public List<AuditDTO> history(@PathVariable TargetType type, @PathVariable UUID id) {
     return moderation.history(type, id);
   }
 
   @GetMapping("/bathrooms/{id}/nearby")
-  public NearbyResult nearby(@PathVariable UUID id, @RequestParam(required = false) @DecimalMin("25") @DecimalMax("1000") Double radiusMeters) {
+  public NearbyResultDTO nearby(@PathVariable UUID id, @RequestParam(required = false) @DecimalMin("25") @DecimalMax("1000") Double radiusMeters) {
     return duplicates.nearby((Bathroom) content.target(TargetType.BATHROOM, id), radiusMeters);
   }
 
@@ -64,17 +64,17 @@ public class ModerationController {
   }
 
   @PostMapping("/content/{type}/{id}/decision")
-  public void decide(@PathVariable TargetType type, @PathVariable UUID id, @Valid @RequestBody Decision input, Principal principal) {
+  public void decide(@PathVariable TargetType type, @PathVariable UUID id, @Valid @RequestBody DecisionDTO input, Principal principal) {
     moderation.decide(type, id, input, accounts.current(principal).getId());
   }
 
   @GetMapping("/reports")
-  public List<ReportView> reports(@RequestParam(defaultValue = "false") boolean resolved) {
+  public List<ReportDTO> reports(@RequestParam(defaultValue = "false") boolean resolved) {
     return moderation.reports(resolved);
   }
 
   @GetMapping("/reports/{id}")
-  public ReportView report(@PathVariable UUID id) {
+  public ReportDTO report(@PathVariable UUID id) {
     return moderation.report(id);
   }
 
@@ -86,7 +86,7 @@ public class ModerationController {
   }
 
   @GetMapping("/audit")
-  public List<AuditEntryView> audit() {
+  public List<AuditEntryDTO> audit() {
     return moderation.audit();
   }
 }

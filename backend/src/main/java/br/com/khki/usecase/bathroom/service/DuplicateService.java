@@ -2,8 +2,8 @@ package br.com.khki.usecase.bathroom.service;
 
 import br.com.khki.shared.domain.GeographicDistance;
 import br.com.khki.shared.domain.Status;
-import br.com.khki.usecase.bathroom.dto.NearbyCandidate;
-import br.com.khki.usecase.bathroom.dto.NearbyResult;
+import br.com.khki.usecase.bathroom.dto.NearbyCandidateDTO;
+import br.com.khki.usecase.bathroom.dto.NearbyResultDTO;
 import br.com.khki.usecase.bathroom.model.Bathroom;
 import br.com.khki.usecase.bathroom.model.repository.BathroomRepository;
 import java.text.Normalizer;
@@ -33,12 +33,12 @@ public class DuplicateService {
     this.addressSimilarity = addressSimilarity;
   }
 
-  public NearbyResult nearby(Bathroom target, Double requestedRadius) {
+  public NearbyResultDTO nearby(Bathroom target, Double requestedRadius) {
     return find(target, requestedRadius);
   }
 
   @PreAuthorize("isAuthenticated()")
-  public NearbyResult preview(String name, String address, String complement, double latitude, double longitude, Double radius) {
+  public NearbyResultDTO preview(String name, String address, String complement, double latitude, double longitude, Double radius) {
     var target = new Bathroom();
     target.setName(name);
     target.setAddress(address);
@@ -48,7 +48,7 @@ public class DuplicateService {
     return find(target, radius);
   }
 
-  private NearbyResult find(Bathroom target, Double requestedRadius) {
+  private NearbyResultDTO find(Bathroom target, Double requestedRadius) {
     double radius = requestedRadius == null ? defaultRadius : requestedRadius;
     double latitudeDelta = radius / 110000;
     var candidates = bathrooms
@@ -59,12 +59,12 @@ public class DuplicateService {
         double distance = GeographicDistance.meters(target.getLatitude(), target.getLongitude(), value.getLatitude(), value.getLongitude());
         boolean differentComplement = !normalize(target.getComplement()).isBlank() && !normalize(value.getComplement()).isBlank() && !normalize(target.getComplement()).equals(normalize(value.getComplement()));
         boolean similar = similarity(target.getName(), value.getName()) >= nameSimilarity || similarity(target.getAddress(), value.getAddress()) >= addressSimilarity;
-        return new NearbyCandidate(content.view(value), Math.round(distance * 10) / 10.0, similar, differentComplement);
+        return new NearbyCandidateDTO(content.view(value), Math.round(distance * 10) / 10.0, similar, differentComplement);
       })
       .filter(value -> value.distanceMeters() <= radius)
-      .sorted(Comparator.comparingDouble(NearbyCandidate::distanceMeters))
+      .sorted(Comparator.comparingDouble(NearbyCandidateDTO::distanceMeters))
       .toList();
-    return new NearbyResult(radius, candidates);
+    return new NearbyResultDTO(radius, candidates);
   }
 
   private String normalize(String text) {

@@ -1,8 +1,8 @@
 package br.com.khki.usecase.review.controller;
 
-import br.com.khki.usecase.contribution.dto.ContributionView;
-import br.com.khki.usecase.review.dto.ReviewInput;
-import br.com.khki.usecase.review.dto.ReviewView;
+import br.com.khki.usecase.contribution.dto.ContributionDTO;
+import br.com.khki.usecase.review.dto.ReviewDTO;
+import br.com.khki.usecase.review.dto.ReviewInputDTO;
 import br.com.khki.usecase.review.service.ReviewService;
 import br.com.khki.usecase.user.service.UserService;
 import jakarta.validation.Valid;
@@ -27,18 +27,18 @@ public class ReviewController {
   }
 
   @GetMapping("/bathrooms/{id}/reviews")
-  public List<ReviewView> reviews(@PathVariable UUID id) {
+  public List<ReviewDTO> reviews(@PathVariable UUID id) {
     return reviewService.publicReviews(id);
   }
 
   @PostMapping("/bathrooms/{id}/reviews")
   @ResponseStatus(HttpStatus.CREATED)
-  public ContributionView review(@PathVariable UUID id, @Valid @RequestBody ReviewInput input, Principal principal) {
+  public ContributionDTO review(@PathVariable UUID id, @Valid @RequestBody ReviewInputDTO input, Principal principal) {
     return reviewService.createReview(id, input, accounts.current(principal).getId());
   }
 
   @PutMapping("/reviews/{id}")
-  public ContributionView reviseReview(@PathVariable UUID id, @Valid @RequestBody ReviewInput input, Principal principal) {
+  public ContributionDTO reviseReview(@PathVariable UUID id, @Valid @RequestBody ReviewInputDTO input, Principal principal) {
     return reviewService.reviseReview(id, input, accounts.current(principal).getId());
   }
 }

@@ -1,6 +1,6 @@
 package br.com.khki.usecase.report.controller;
 
-import br.com.khki.usecase.report.dto.ReportInput;
+import br.com.khki.usecase.report.dto.ReportInputDTO;
 import br.com.khki.usecase.report.service.ReportService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -23,7 +23,7 @@ public class ReportController {
 
   @PostMapping("/reports")
   @ResponseStatus(HttpStatus.ACCEPTED)
-  public Map<String, String> report(@Valid @RequestBody ReportInput input, HttpServletRequest request) {
+  public Map<String, String> report(@Valid @RequestBody ReportInputDTO input, HttpServletRequest request) {
     reports.report(input, request.getRemoteAddr());
     return Map.of("message", "Denúncia recebida para análise.");
   }

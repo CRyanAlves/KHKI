@@ -1,7 +1,7 @@
 package br.com.khki.usecase.user.controller;
 
-import br.com.khki.usecase.user.dto.RegisterRequest;
-import br.com.khki.usecase.user.dto.UserView;
+import br.com.khki.usecase.user.dto.RegisterDTO;
+import br.com.khki.usecase.user.dto.UserDTO;
 import br.com.khki.usecase.user.service.UserService;
 import jakarta.validation.Valid;
 import java.security.Principal;
@@ -20,12 +20,12 @@ public class UserController {
 
   @PostMapping("/auth/register")
   @ResponseStatus(HttpStatus.CREATED)
-  public UserView register(@Valid @RequestBody RegisterRequest input) {
+  public UserDTO register(@Valid @RequestBody RegisterDTO input) {
     return userService.register(input);
   }
 
   @GetMapping("/auth/me")
-  public UserView me(Principal principal) {
+  public UserDTO me(Principal principal) {
     return userService.view(userService.current(principal));
   }
 }

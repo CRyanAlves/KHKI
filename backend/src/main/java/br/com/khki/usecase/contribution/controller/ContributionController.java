@@ -4,9 +4,9 @@ import br.com.khki.shared.api.ApiException;
 import br.com.khki.shared.domain.TargetType;
 import br.com.khki.usecase.bathroom.model.Bathroom;
 import br.com.khki.usecase.bathroom.service.BathroomService;
-import br.com.khki.usecase.contribution.dto.ContributionView;
+import br.com.khki.usecase.contribution.dto.ContributionDTO;
 import br.com.khki.usecase.contribution.service.ContributionService;
-import br.com.khki.usecase.review.dto.ReviewView;
+import br.com.khki.usecase.review.dto.ReviewDTO;
 import br.com.khki.usecase.review.model.Review;
 import br.com.khki.usecase.user.service.UserService;
 import jakarta.validation.constraints.*;
@@ -32,7 +32,7 @@ public class ContributionController {
   }
 
   @GetMapping("/me/contributions")
-  public List<ContributionView> mine(Principal principal) {
+  public List<ContributionDTO> mine(Principal principal) {
     return contributionService.mine(accounts.current(principal).getId());
   }
 
@@ -41,7 +41,7 @@ public class ContributionController {
     var target = contributionService.target(type, id);
     if (!target.getAuthor().getId().equals(accounts.current(principal).getId())) throw ApiException.missing();
     if (target instanceof Bathroom bathroom) return bathrooms.view(bathroom);
-    if (target instanceof Review review) return new ReviewView(review.getId(), "Sua avaliação", review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt());
+    if (target instanceof Review review) return new ReviewDTO(review.getId(), "Sua avaliação", review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt());
     return contributionService.contribution(target);
   }
 }

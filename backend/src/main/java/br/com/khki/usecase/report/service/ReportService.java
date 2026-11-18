@@ -3,7 +3,7 @@ package br.com.khki.usecase.report.service;
 import br.com.khki.infrastructure.security.AbuseGuard;
 import br.com.khki.shared.domain.ContentReference;
 import br.com.khki.usecase.contribution.service.ContributionService;
-import br.com.khki.usecase.report.dto.ReportInput;
+import br.com.khki.usecase.report.dto.ReportInputDTO;
 import br.com.khki.usecase.report.model.Report;
 import br.com.khki.usecase.report.model.repository.ReportRepository;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ public class ReportService {
     this.abuse = abuse;
   }
 
-  public void report(ReportInput input, String remoteAddress) {
+  public void report(ReportInputDTO input, String remoteAddress) {
     var target = contributions.requirePublic(input.targetType(), input.targetId());
     abuse.check("report:" + remoteAddress + ":" + input.targetId(), 1, 600);
     var report = new Report();

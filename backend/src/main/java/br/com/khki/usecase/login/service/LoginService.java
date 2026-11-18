@@ -2,8 +2,8 @@ package br.com.khki.usecase.login.service;
 
 import br.com.khki.infrastructure.security.SessionAuthenticationService;
 import br.com.khki.shared.api.ApiException;
-import br.com.khki.usecase.login.dto.LoginRequest;
-import br.com.khki.usecase.user.dto.UserView;
+import br.com.khki.usecase.login.dto.LoginDTO;
+import br.com.khki.usecase.user.dto.UserDTO;
 import br.com.khki.usecase.user.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -30,7 +30,7 @@ public class LoginService {
     this.sessionAuthenticationService = sessionAuthenticationService;
   }
 
-  public UserView login(LoginRequest input, HttpServletRequest request, HttpServletResponse response) {
+  public UserDTO login(LoginDTO input, HttpServletRequest request, HttpServletResponse response) {
     if (input.password().getBytes(StandardCharsets.UTF_8).length > 72) throw invalidCredentials();
     Authentication authentication;
     try {

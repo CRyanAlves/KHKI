@@ -1,6 +1,6 @@
 package br.com.khki.usecase.image.controller;
 
-import br.com.khki.usecase.contribution.dto.ContributionView;
+import br.com.khki.usecase.contribution.dto.ContributionDTO;
 import br.com.khki.usecase.image.service.ImageService;
 import br.com.khki.usecase.user.service.UserService;
 import jakarta.validation.constraints.*;
@@ -26,7 +26,7 @@ public class ImageController {
 
   @PostMapping(value = "/bathrooms/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @ResponseStatus(HttpStatus.CREATED)
-  public ContributionView upload(@PathVariable UUID id, @RequestParam(required = false) UUID reviewId, @RequestParam(defaultValue = "false") boolean registrationAttachment, @RequestPart MultipartFile file, Principal principal) {
+  public ContributionDTO upload(@PathVariable UUID id, @RequestParam(required = false) UUID reviewId, @RequestParam(defaultValue = "false") boolean registrationAttachment, @RequestPart MultipartFile file, Principal principal) {
     return imageService.upload(id, reviewId, accounts.current(principal).getId(), file, registrationAttachment);
   }
 

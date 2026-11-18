@@ -5,4 +5,4 @@ import br.com.khki.shared.domain.TargetType;
 import java.time.Instant;
 import java.util.UUID;
 
-public record ContributionView(UUID id, TargetType type, String title, Status status, String reason, Instant createdAt, UUID bathroomId) {}
+public record ContributionDTO(UUID id, TargetType type, String title, Status status, String reason, Instant createdAt, UUID bathroomId) {}

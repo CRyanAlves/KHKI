@@ -1,7 +1,7 @@
 package br.com.khki.usecase.bathroom.service;
 
 import br.com.khki.shared.api.ApiException;
-import br.com.khki.usecase.bathroom.dto.BathroomDetails;
+import br.com.khki.usecase.bathroom.dto.BathroomDetailsDTO;
 import br.com.khki.usecase.bathroom.model.AccessType;
 import br.com.khki.usecase.bathroom.model.Bathroom;
 import java.time.LocalDate;
@@ -17,8 +17,8 @@ public final class BathroomDetailsMapper {
     return access == AccessType.FREE ? "PUBLIC" : access == AccessType.CUSTOMERS ? "CUSTOMERS" : access == AccessType.OTHER ? "OTHER" : "UNKNOWN";
   }
 
-  public static BathroomDetails view(Bathroom bathroom) {
-    return new BathroomDetails(
+  public static BathroomDetailsDTO view(Bathroom bathroom) {
+    return new BathroomDetailsDTO(
       bathroom.getUsageRestriction() == null ? legacyAudience(bathroom.getAccess()) : bathroom.getUsageRestriction(),
       bathroom.getCharging() == null ? (bathroom.getAccess() == AccessType.PAID ? "YES" : "UNKNOWN") : bathroom.getCharging(),
       bathroom.getFeeAmount(),
@@ -31,7 +31,7 @@ public final class BathroomDetailsMapper {
     );
   }
 
-  public static void apply(Bathroom bathroom, BathroomDetails details) {
+  public static void apply(Bathroom bathroom, BathroomDetailsDTO details) {
     if (details == null) return;
     String audience = details.audience() == null ? "UNKNOWN" : details.audience();
     String charge = details.charge() == null ? "UNKNOWN" : details.charge();

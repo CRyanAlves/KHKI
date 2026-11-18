@@ -831,7 +831,7 @@ class WorkflowTest {
       .andExpect(jsonPath("$.details.charge").value("UNKNOWN"))
       .andExpect(jsonPath("$.details.stepFreeAccess").isEmpty())
       .andExpect(jsonPath("$.details.bathroomTypes").isEmpty());
-    var legacy = json.readValue(json.writeValueAsString(input), br.com.khki.usecase.bathroom.dto.BathroomInput.class);
+    var legacy = json.readValue(json.writeValueAsString(input), br.com.khki.usecase.bathroom.dto.BathroomInputDTO.class);
     assertThat(json.readTree(json.writeValueAsString(legacy)).has("details")).isFalse();
   }
 
