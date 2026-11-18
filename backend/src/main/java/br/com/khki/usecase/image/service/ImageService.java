@@ -5,7 +5,7 @@ import br.com.khki.shared.api.ApiException;
 import br.com.khki.shared.domain.BaseModeratedEntity;
 import br.com.khki.shared.domain.Status;
 import br.com.khki.usecase.bathroom.model.repository.BathroomRepository;
-import br.com.khki.usecase.contribution.dto.ContributionView;
+import br.com.khki.usecase.contribution.dto.ContributionDTO;
 import br.com.khki.usecase.contribution.service.ContributionService;
 import br.com.khki.usecase.review.model.repository.ReviewRepository;
 import br.com.khki.usecase.user.model.User;
@@ -39,7 +39,7 @@ public class ImageService {
     this.storage = storage;
   }
 
-  public ContributionView upload(UUID bathroomId, UUID reviewId, UUID authorId, MultipartFile file, boolean registrationAttachment) {
+  public ContributionDTO upload(UUID bathroomId, UUID reviewId, UUID authorId, MultipartFile file, boolean registrationAttachment) {
     if (registrationAttachment && reviewId != null) throw new ApiException(HttpStatus.BAD_REQUEST, "Escolha apenas um vínculo para a foto.");
     var bathroom = bathrooms.findById(bathroomId).orElseThrow(ApiException::missing);
     BaseModeratedEntity parent;

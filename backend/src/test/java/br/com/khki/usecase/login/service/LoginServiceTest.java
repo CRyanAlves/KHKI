@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 
 import br.com.khki.infrastructure.security.SessionAuthenticationService;
 import br.com.khki.shared.api.ApiException;
-import br.com.khki.usecase.login.dto.LoginRequest;
+import br.com.khki.usecase.login.dto.LoginDTO;
 import br.com.khki.usecase.user.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -27,13 +27,13 @@ class LoginServiceTest {
   void infrastructureFailuresAreNotReportedAsInvalidCredentialsAndDoNotStartSessions() {
     var failure = new InternalAuthenticationServiceException("Falha interna de teste");
     when(authenticationManager.authenticate(any())).thenThrow(failure);
-    assertThatThrownBy(() -> loginService.login(new LoginRequest("conta@khki.test", "Test-password-123", false), new MockHttpServletRequest(), new MockHttpServletResponse())).isSameAs(failure);
+    assertThatThrownBy(() -> loginService.login(new LoginDTO("conta@khki.test", "Test-password-123", false), new MockHttpServletRequest(), new MockHttpServletResponse())).isSameAs(failure);
     verifyNoInteractions(userService, sessionAuthenticationService);
   }
 
   @Test
   void multibytePasswordsAboveTheBcryptLimitCannotBeTruncatedAndAuthenticated() {
-    assertThatThrownBy(() -> loginService.login(new LoginRequest("conta@khki.test", "á".repeat(40), false), new MockHttpServletRequest(), new MockHttpServletResponse()))
+    assertThatThrownBy(() -> loginService.login(new LoginDTO("conta@khki.test", "á".repeat(40), false), new MockHttpServletRequest(), new MockHttpServletResponse()))
       .isInstanceOf(ApiException.class)
       .hasMessage("E-mail ou senha inválidos.");
     verifyNoInteractions(authenticationManager, userService, sessionAuthenticationService);

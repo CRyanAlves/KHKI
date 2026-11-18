@@ -10,7 +10,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Set;
 
-public record BathroomDetails(
+public record BathroomDetailsDTO(
   @Pattern(regexp = "PUBLIC|CUSTOMERS|AUTHORIZATION|OTHER|UNKNOWN") String audience,
   @Pattern(regexp = "YES|NO|UNKNOWN") String charge,
   @DecimalMin("0.01") @Digits(integer = 6, fraction = 2) BigDecimal feeAmount,

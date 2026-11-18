@@ -3,12 +3,12 @@ package br.com.khki.usecase.bathroom.service;
 import br.com.khki.shared.api.ApiException;
 import br.com.khki.shared.domain.GeographicDistance;
 import br.com.khki.shared.domain.Status;
-import br.com.khki.usecase.bathroom.dto.BathroomInput;
-import br.com.khki.usecase.bathroom.dto.BathroomView;
+import br.com.khki.usecase.bathroom.dto.BathroomDTO;
+import br.com.khki.usecase.bathroom.dto.BathroomInputDTO;
 import br.com.khki.usecase.bathroom.model.AccessType;
 import br.com.khki.usecase.bathroom.model.Bathroom;
 import br.com.khki.usecase.bathroom.model.repository.BathroomRepository;
-import br.com.khki.usecase.contribution.dto.ContributionView;
+import br.com.khki.usecase.contribution.dto.ContributionDTO;
 import br.com.khki.usecase.contribution.service.ContributionService;
 import br.com.khki.usecase.image.service.ImageUrls;
 import br.com.khki.usecase.review.model.repository.ReviewRepository;
@@ -45,7 +45,7 @@ public class BathroomService {
     return Normalizer.normalize(value, Normalizer.Form.NFD).replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT);
   }
 
-  public List<BathroomView> search(String query, AccessType access, Boolean accessible, int offset) {
+  public List<BathroomDTO> search(String query, AccessType access, Boolean accessible, int offset) {
     String term = normalize(query);
     return bathrooms
       .findByStatus(Status.APPROVED)
@@ -60,7 +60,7 @@ public class BathroomService {
       .toList();
   }
 
-  public BathroomView view(Bathroom bathroom) {
+  public BathroomDTO view(Bathroom bathroom) {
     bathroom = bathrooms.findById(bathroom.getId()).orElseThrow(ApiException::missing);
     var publicReviews = reviews.findByBathroom_IdAndStatusOrderByCreatedAtDesc(bathroom.getId(), Status.APPROVED);
     var approvedReviews = publicReviews
@@ -74,7 +74,7 @@ public class BathroomService {
           .mapToDouble(review -> (review.getCleanliness() + review.getStructure()) / 2.0)
           .average()
           .orElseThrow();
-    return new BathroomView(
+    return new BathroomDTO(
       bathroom.getId(),
       bathroom.getName(),
       bathroom.getAddress(),
@@ -98,7 +98,7 @@ public class BathroomService {
     );
   }
 
-  public ContributionView createBathroom(BathroomInput input, UUID authorId) {
+  public ContributionDTO createBathroom(BathroomInputDTO input, UUID authorId) {
     var bathroom = new Bathroom();
     bathroom.setAuthor(users.findById(authorId).orElseThrow(ApiException::missing));
     apply(bathroom, input);
@@ -106,7 +106,7 @@ public class BathroomService {
     return contributions.contribution(bathroom);
   }
 
-  public ContributionView reviseBathroom(UUID id, BathroomInput input, UUID authorId) {
+  public ContributionDTO reviseBathroom(UUID id, BathroomInputDTO input, UUID authorId) {
     var bathroom = bathrooms.findById(id).orElseThrow(ApiException::missing);
     contributions.editable(bathroom, authorId);
     apply(bathroom, input);
@@ -116,7 +116,7 @@ public class BathroomService {
     return contributions.contribution(bathroom);
   }
 
-  private void apply(Bathroom bathroom, BathroomInput input) {
+  private void apply(Bathroom bathroom, BathroomInputDTO input) {
     bathroom.setName(input.name().strip());
     bathroom.setAddress(input.address().strip());
     bathroom.setComplement(input.complement() == null ? null : input.complement().strip());
@@ -131,7 +131,7 @@ public class BathroomService {
     BathroomDetailsMapper.apply(bathroom, input.details());
   }
 
-  public List<BathroomView> duplicates(String name, double latitude, double longitude) {
+  public List<BathroomDTO> duplicates(String name, double latitude, double longitude) {
     return bathrooms
       .findByStatus(Status.APPROVED)
       .stream()

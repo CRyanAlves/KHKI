@@ -1,8 +1,8 @@
 package br.com.khki.usecase.login.controller;
 
-import br.com.khki.usecase.login.dto.LoginRequest;
+import br.com.khki.usecase.login.dto.LoginDTO;
 import br.com.khki.usecase.login.service.LoginService;
-import br.com.khki.usecase.user.dto.UserView;
+import br.com.khki.usecase.user.dto.UserDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -26,7 +26,7 @@ public class LoginController {
   }
 
   @PostMapping("/auth/login")
-  public UserView login(@Valid @RequestBody LoginRequest input, HttpServletRequest request, HttpServletResponse response) {
+  public UserDTO login(@Valid @RequestBody LoginDTO input, HttpServletRequest request, HttpServletResponse response) {
     return loginService.login(input, request, response);
   }
 }

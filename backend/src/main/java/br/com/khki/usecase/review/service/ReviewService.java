@@ -3,10 +3,10 @@ package br.com.khki.usecase.review.service;
 import br.com.khki.shared.api.ApiException;
 import br.com.khki.shared.domain.Status;
 import br.com.khki.usecase.bathroom.service.BathroomService;
-import br.com.khki.usecase.contribution.dto.ContributionView;
+import br.com.khki.usecase.contribution.dto.ContributionDTO;
 import br.com.khki.usecase.contribution.service.ContributionService;
-import br.com.khki.usecase.review.dto.ReviewInput;
-import br.com.khki.usecase.review.dto.ReviewView;
+import br.com.khki.usecase.review.dto.ReviewDTO;
+import br.com.khki.usecase.review.dto.ReviewInputDTO;
 import br.com.khki.usecase.review.model.Review;
 import br.com.khki.usecase.review.model.repository.ReviewRepository;
 import br.com.khki.usecase.user.model.repository.UserRepository;
@@ -30,17 +30,17 @@ public class ReviewService {
     this.contributions = contributions;
   }
 
-  public List<ReviewView> publicReviews(UUID id) {
+  public List<ReviewDTO> publicReviews(UUID id) {
     bathrooms.approved(id);
     return reviews
       .findByBathroom_IdAndStatusOrderByCreatedAtDesc(id, Status.APPROVED)
       .stream()
       .filter(review -> !review.getPhotoOnly())
-      .map(review -> new ReviewView(review.getId(), review.getAuthor().getName(), review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt()))
+      .map(review -> new ReviewDTO(review.getId(), review.getAuthor().getName(), review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt()))
       .toList();
   }
 
-  public ContributionView createReview(UUID bathroomId, ReviewInput input, UUID authorId) {
+  public ContributionDTO createReview(UUID bathroomId, ReviewInputDTO input, UUID authorId) {
     var bathroom = bathrooms.approved(bathroomId);
     var review = new Review();
     review.setAuthor(users.findById(authorId).orElseThrow(ApiException::missing));
@@ -49,13 +49,13 @@ public class ReviewService {
     return contributions.contribution(reviews.save(review));
   }
 
-  private void applyReview(Review review, ReviewInput input) {
+  private void applyReview(Review review, ReviewInputDTO input) {
     review.setCleanliness(input.cleanliness());
     review.setStructure(input.structure());
     review.setComment(input.comment());
   }
 
-  public ContributionView reviseReview(UUID id, ReviewInput input, UUID authorId) {
+  public ContributionDTO reviseReview(UUID id, ReviewInputDTO input, UUID authorId) {
     var review = reviews.findById(id).orElseThrow(ApiException::missing);
     contributions.editable(review, authorId);
     bathrooms.approved(review.getBathroom().getId());

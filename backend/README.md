@@ -28,7 +28,7 @@
 | `image.dto`         | Identificação dos anexos, sem criar entidade ou moderação independente de foto       |
 | `moderation.dto`    | Decisão, inspeção, fila e histórico de auditoria                                     |
 
-Um DTO reutilizado mantém uma única definição no caso de uso responsável. Por exemplo, `ModerationDetail` referencia `BathroomView`, `ContributionView` e `ImageView` dos respectivos pacotes. A mudança dos tipos Java não altera nomes de campos JSON, validações, endpoints ou regras de negócio; o frontend e as coleções HTTP continuam usando os mesmos contratos.
+Um DTO reutilizado mantém uma única definição no caso de uso responsável. Por exemplo, `ModerationDetailDTO` referencia `BathroomDTO`, `ContributionDTO` e `ImageDTO` dos respectivos pacotes. A mudança dos tipos Java não altera nomes de campos JSON, validações, endpoints ou regras de negócio; o frontend e as coleções HTTP continuam usando os mesmos contratos.
 
 ## Estrutura interna dos módulos
 
@@ -63,7 +63,7 @@ A rastreabilidade com o Astah preserva os casos de uso existentes. Visualizar ma
 
 `SessionAuthenticationService` renova o identificador da sessão existente e salva o contexto autenticado pelo `SecurityContextRepository` compartilhado com a cadeia de filtros. `SessionPolicy`, `SessionExpiryFilter` e `SessionConfiguration` continuam separados: definem os prazos, rejeitam sessões vencidas e configuram o cookie. As credenciais são apagadas pelo `ProviderManager` antes da persistência do contexto.
 
-`LoginRequest` pertence a `login.dto`; `RegisterRequest` e `UserView` pertencem a `user.dto`. A resposta pública de usuário é reutilizada pelo login, sem duplicar o DTO. Os endpoints `/api/auth/csrf`, `/api/auth/login`, `/api/auth/register`, `/api/auth/me` e `/api/auth/logout`, os campos JSON e as respostas permanecem iguais. A autenticação continua por sessão HTTP com CSRF e cookie HttpOnly; não foram introduzidos JWT ou refresh token. O limite de 72 bytes do BCrypt, as mensagens de credenciais inválidas, as permissões, a limitação de tentativas e a opção de manter conectado são preservados. Falhas internas de autenticação continuam sendo tratadas como falhas do servidor, sem serem confundidas com senha incorreta.
+`LoginDTO` pertence a `login.dto`; `RegisterDTO` e `UserDTO` pertencem a `user.dto`. A resposta pública de usuário é reutilizada pelo login, sem duplicar o DTO. Os endpoints `/api/auth/csrf`, `/api/auth/login`, `/api/auth/register`, `/api/auth/me` e `/api/auth/logout`, os campos JSON e as respostas permanecem iguais. A autenticação continua por sessão HTTP com CSRF e cookie HttpOnly; não foram introduzidos JWT ou refresh token. O limite de 72 bytes do BCrypt, as mensagens de credenciais inválidas, as permissões, a limitação de tentativas e a opção de manter conectado são preservados. Falhas internas de autenticação continuam sendo tratadas como falhas do servidor, sem serem confundidas com senha incorreta.
 
 As entidades mantêm nomes do domínio em inglês: `User`, `Bathroom`, `Review`, `Report` e `ModerationAudit`. `AppUser` foi renomeada para `User`, `AppUserRepository` para `UserRepository`, `Access` para `AccessType` e `AdminController` para `ModerationController`. A entidade `User` está mapeada na tabela `user`, entre aspas no SQL por ser uma palavra reservada. V16 renomeia `app_users` preservando seus registros e relações. O `User` do Spring Security é referenciado explicitamente para não confundir os dois modelos.
 
@@ -102,7 +102,7 @@ Verificação histórica da V14: 36 testes no PostgreSQL 17, sem falhas; suíte 
 
 ## Reaproveitamento de regras
 
-`GeographicDistance` centraliza a distância em linha reta usada na busca de duplicados e na verificação de proximidade. A montagem de `BathroomView` consulta as avaliações aprovadas uma única vez e reaproveita o resultado para nota, contagem e imagens; registros legados sem nota continuam contribuindo apenas com suas imagens. A moderação reutiliza o mesmo banheiro detalhado na resposta, uma única montagem de auditoria e as entidades já carregadas. Os contratos HTTP, as permissões, as regras de transição e as migrações históricas permanecem preservados.
+`GeographicDistance` centraliza a distância em linha reta usada na busca de duplicados e na verificação de proximidade. A montagem de `BathroomDTO` consulta as avaliações aprovadas uma única vez e reaproveita o resultado para nota, contagem e imagens; registros legados sem nota continuam contribuindo apenas com suas imagens. A moderação reutiliza o mesmo banheiro detalhado na resposta, uma única montagem de auditoria e as entidades já carregadas. Os contratos HTTP, as permissões, as regras de transição e as migrações históricas permanecem preservados.
 
 ## Remoção de recibos e nome da tabela de usuários
 

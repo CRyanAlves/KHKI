@@ -7,4 +7,4 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
-public record Decision(@NotNull Status status, @NotBlank @Size(max = 500) String reason, @PositiveOrZero Long expectedVersion, UUID duplicateOfId) {}
+public record DecisionDTO(@NotNull Status status, @NotBlank @Size(max = 500) String reason, @PositiveOrZero Long expectedVersion, UUID duplicateOfId) {}

@@ -6,7 +6,7 @@ import br.com.khki.shared.domain.Status;
 import br.com.khki.shared.domain.TargetType;
 import br.com.khki.usecase.bathroom.model.Bathroom;
 import br.com.khki.usecase.bathroom.model.repository.BathroomRepository;
-import br.com.khki.usecase.contribution.dto.ContributionView;
+import br.com.khki.usecase.contribution.dto.ContributionDTO;
 import br.com.khki.usecase.review.model.Review;
 import br.com.khki.usecase.review.model.repository.ReviewRepository;
 import java.util.*;
@@ -30,19 +30,19 @@ public class ContributionService {
     if (!content.getAuthor().getId().equals(authorId) || (content.getStatus() != Status.REJECTED && content.getStatus() != Status.NEEDS_INFORMATION)) throw new ApiException(HttpStatus.FORBIDDEN, "Somente o autor pode reenviar uma contribuição rejeitada ou com solicitação de informações.");
   }
 
-  public ContributionView contribution(BaseModeratedEntity content) {
+  public ContributionDTO contribution(BaseModeratedEntity content) {
     TargetType type = content instanceof Bathroom ? TargetType.BATHROOM : TargetType.REVIEW;
     var bathroom = bathroom(content);
     UUID bathroomId = bathroom.getId();
     String title = content instanceof Bathroom ? bathroom.getName() : "Avaliação: " + bathroom.getName();
-    return new ContributionView(content.getId(), type, title, content.getStatus(), content.getReason(), content.getCreatedAt(), bathroomId);
+    return new ContributionDTO(content.getId(), type, title, content.getStatus(), content.getReason(), content.getCreatedAt(), bathroomId);
   }
 
-  public List<ContributionView> mine(UUID authorId) {
-    var result = new ArrayList<ContributionView>();
+  public List<ContributionDTO> mine(UUID authorId) {
+    var result = new ArrayList<ContributionDTO>();
     bathrooms.findByAuthor_IdOrderByCreatedAtDesc(authorId).forEach(value -> result.add(contribution(value)));
     reviews.findByAuthor_IdOrderByCreatedAtDesc(authorId).forEach(value -> result.add(contribution(value)));
-    result.sort(Comparator.comparing(ContributionView::createdAt).reversed());
+    result.sort(Comparator.comparing(ContributionDTO::createdAt).reversed());
     return result;
   }
 

@@ -5,4 +5,4 @@ import br.com.khki.shared.domain.TargetType;
 import java.time.Instant;
 import java.util.UUID;
 
-public record AuditView(UUID id, TargetType targetType, UUID targetId, UUID moderatorId, String moderator, Status decision, String reason, Instant createdAt, UUID duplicateOfId) {}
+public record AuditEntryDTO(UUID id, TargetType targetType, UUID targetId, UUID moderatorId, UUID duplicateOfId, Status decision, String reason, Instant createdAt) {}

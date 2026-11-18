@@ -9,21 +9,21 @@ import br.com.khki.shared.domain.TargetType;
 import br.com.khki.usecase.bathroom.model.Bathroom;
 import br.com.khki.usecase.bathroom.model.repository.BathroomRepository;
 import br.com.khki.usecase.bathroom.service.BathroomService;
-import br.com.khki.usecase.contribution.dto.ContributionView;
+import br.com.khki.usecase.contribution.dto.ContributionDTO;
 import br.com.khki.usecase.contribution.service.ContributionService;
-import br.com.khki.usecase.image.dto.ImageView;
+import br.com.khki.usecase.image.dto.ImageDTO;
 import br.com.khki.usecase.image.service.ImageUrls;
-import br.com.khki.usecase.moderation.dto.AuditEntryView;
-import br.com.khki.usecase.moderation.dto.AuditView;
-import br.com.khki.usecase.moderation.dto.Decision;
-import br.com.khki.usecase.moderation.dto.ModerationDetail;
-import br.com.khki.usecase.moderation.dto.ModerationQueueItem;
+import br.com.khki.usecase.moderation.dto.AuditDTO;
+import br.com.khki.usecase.moderation.dto.AuditEntryDTO;
+import br.com.khki.usecase.moderation.dto.DecisionDTO;
+import br.com.khki.usecase.moderation.dto.ModerationDetailDTO;
+import br.com.khki.usecase.moderation.dto.ModerationQueueItemDTO;
 import br.com.khki.usecase.moderation.model.ModerationAudit;
 import br.com.khki.usecase.moderation.model.repository.ModerationAuditRepository;
-import br.com.khki.usecase.report.dto.ReportView;
+import br.com.khki.usecase.report.dto.ReportDTO;
 import br.com.khki.usecase.report.model.Report;
 import br.com.khki.usecase.report.model.repository.ReportRepository;
-import br.com.khki.usecase.review.dto.ReviewView;
+import br.com.khki.usecase.review.dto.ReviewDTO;
 import br.com.khki.usecase.review.model.Review;
 import br.com.khki.usecase.review.model.repository.ReviewRepository;
 import br.com.khki.usecase.user.model.repository.UserRepository;
@@ -66,32 +66,32 @@ public class ModerationService {
     return result;
   }
 
-  public List<ContributionView> queue(Status status) {
+  public List<ContributionDTO> queue(Status status) {
     return contents(status).stream().map(content::contribution).toList();
   }
 
-  public ModerationDetail inspect(TargetType type, UUID id) {
+  public ModerationDetailDTO inspect(TargetType type, UUID id) {
     var target = content.target(type, id);
     var contribution = content.contribution(target);
     var bathroomView = bathroomQueries.view(content.bathroom(target));
-    Object details = target instanceof Bathroom ? bathroomView : target instanceof Review review ? new ReviewView(review.getId(), review.getAuthor().getName(), review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt()) : contribution;
-    var pictures = target.getImageUrls().stream().map(ImageUrls::id).map(ImageView::new).toList();
-    return new ModerationDetail(contribution, details, target.getAuthor().getName(), target.getVersion(), bathroomView, pictures);
+    Object details = target instanceof Bathroom ? bathroomView : target instanceof Review review ? new ReviewDTO(review.getId(), review.getAuthor().getName(), review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt()) : contribution;
+    var pictures = target.getImageUrls().stream().map(ImageUrls::id).map(ImageDTO::new).toList();
+    return new ModerationDetailDTO(contribution, details, target.getAuthor().getName(), target.getVersion(), bathroomView, pictures);
   }
 
-  public List<ModerationQueueItem> queueDetails(Status status) {
+  public List<ModerationQueueItemDTO> queueDetails(Status status) {
     return contents(status)
       .stream()
       .map(target -> {
         var item = content.contribution(target);
         var bathroom = content.bathroom(target);
         UUID thumbnail = target.getImageUrls().stream().map(ImageUrls::id).findFirst().orElse(null);
-        return new ModerationQueueItem(item, target.getAuthor().getName(), bathroom.getAddress(), bathroom.getComplement(), bathroom.getCategory(), thumbnail, target.getVersion());
+        return new ModerationQueueItemDTO(item, target.getAuthor().getName(), bathroom.getAddress(), bathroom.getComplement(), bathroom.getCategory(), thumbnail, target.getVersion());
       })
       .toList();
   }
 
-  public void decide(TargetType type, UUID id, Decision input, UUID moderatorId) {
+  public void decide(TargetType type, UUID id, DecisionDTO input, UUID moderatorId) {
     var target = content.target(type, id);
     checkVersion(input.expectedVersion(), target.getVersion());
     boolean valid = switch (target.getStatus()) {
@@ -130,19 +130,19 @@ public class ModerationService {
     if (expected != null && expected != actual) throw new ApiException(HttpStatus.CONFLICT, "Outro administrador ou o autor alterou este item. Atualize a análise antes de decidir.");
   }
 
-  public List<ReportView> reports(boolean resolved) {
+  public List<ReportDTO> reports(boolean resolved) {
     return reports.findByResolvedOrderByCreatedAtDesc(resolved).stream().map(this::reportView).toList();
   }
 
-  public ReportView report(UUID id) {
+  public ReportDTO report(UUID id) {
     return reportView(reports.findById(id).orElseThrow(ApiException::missing));
   }
 
-  private ReportView reportView(Report report) {
+  private ReportDTO reportView(Report report) {
     var target = content.target(report.getTargetType(), report.getTargetId());
     var contribution = content.contribution(target);
     var bathroom = content.bathroom(target);
-    return new ReportView(report.getId(), report.getTargetType(), report.getTargetId(), report.getReason(), report.getCreatedAt(), report.getResolved(), report.getVersion(), contribution.title(), bathroom.getAddress());
+    return new ReportDTO(report.getId(), report.getTargetType(), report.getTargetId(), report.getReason(), report.getCreatedAt(), report.getResolved(), report.getVersion(), contribution.title(), bathroom.getAddress());
   }
 
   public void resolve(UUID id, String reason, UUID moderatorId, Long expectedVersion, Status status, Long contentVersion) {
@@ -153,21 +153,21 @@ public class ModerationService {
     checkVersion(contentVersion, target.getVersion());
     if (status != null) {
       if (status != Status.HIDDEN && status != Status.REMOVED) throw new ApiException(HttpStatus.BAD_REQUEST, "Escolha manter, ocultar ou remover o conteúdo.");
-      decide(report.getTargetType(), report.getTargetId(), new Decision(status, reason, contentVersion, null), moderatorId);
+      decide(report.getTargetType(), report.getTargetId(), new DecisionDTO(status, reason, contentVersion, null), moderatorId);
     }
     report.setResolved(true);
     recordDecision(target, moderatorId, "Denúncia " + id + " encerrada: " + reason.strip(), null);
   }
 
-  public List<AuditEntryView> audit() {
+  public List<AuditEntryDTO> audit() {
     return audits
       .findAllByOrderByCreatedAtDesc()
       .stream()
-      .map(value -> new AuditEntryView(value.getId(), value.getTargetType(), value.getTargetId(), value.getModerator().getId(), value.getDuplicateOf() == null ? null : value.getDuplicateOf().getId(), value.getDecision(), value.getReason(), value.getCreatedAt()))
+      .map(value -> new AuditEntryDTO(value.getId(), value.getTargetType(), value.getTargetId(), value.getModerator().getId(), value.getDuplicateOf() == null ? null : value.getDuplicateOf().getId(), value.getDecision(), value.getReason(), value.getCreatedAt()))
       .toList();
   }
 
-  public List<AuditView> history(TargetType type, UUID id) {
+  public List<AuditDTO> history(TargetType type, UUID id) {
     content.target(type, id);
     var history = switch (type) {
       case BATHROOM -> audits.findByReference_Bathroom_IdOrderByCreatedAtDesc(id);
@@ -175,7 +175,7 @@ public class ModerationService {
     };
     return history
       .stream()
-      .map(value -> new AuditView(value.getId(), value.getTargetType(), value.getTargetId(), value.getModerator().getId(), value.getModerator().getName(), value.getDecision(), value.getReason(), value.getCreatedAt(), value.getDuplicateOf() == null ? null : value.getDuplicateOf().getId()))
+      .map(value -> new AuditDTO(value.getId(), value.getTargetType(), value.getTargetId(), value.getModerator().getId(), value.getModerator().getName(), value.getDecision(), value.getReason(), value.getCreatedAt(), value.getDuplicateOf() == null ? null : value.getDuplicateOf().getId()))
       .toList();
   }
 }
