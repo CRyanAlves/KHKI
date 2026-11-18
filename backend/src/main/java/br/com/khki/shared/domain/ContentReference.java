@@ -1,7 +1,7 @@
 package br.com.khki.shared.domain;
 
-import br.com.khki.usecase.bathroom.Bathroom;
-import br.com.khki.usecase.review.Review;
+import br.com.khki.usecase.bathroom.model.Bathroom;
+import br.com.khki.usecase.review.model.Review;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.util.UUID;

@@ -1,6 +1,6 @@
 package br.com.khki.usecase.bathroom.dto;
 
-import br.com.khki.usecase.bathroom.AccessType;
+import br.com.khki.usecase.bathroom.model.AccessType;
 import java.util.List;
 import java.util.UUID;
 

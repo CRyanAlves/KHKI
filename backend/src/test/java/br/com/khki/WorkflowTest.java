@@ -9,15 +9,15 @@ import br.com.khki.infrastructure.security.AbuseGuard;
 import br.com.khki.shared.domain.ContentReference;
 import br.com.khki.shared.domain.Status;
 import br.com.khki.shared.domain.TargetType;
-import br.com.khki.usecase.account.User;
-import br.com.khki.usecase.account.UserRepository;
-import br.com.khki.usecase.bathroom.AccessType;
-import br.com.khki.usecase.bathroom.Bathroom;
-import br.com.khki.usecase.bathroom.BathroomRepository;
-import br.com.khki.usecase.moderation.ModerationAuditRepository;
-import br.com.khki.usecase.report.Report;
-import br.com.khki.usecase.report.ReportRepository;
-import br.com.khki.usecase.review.ReviewRepository;
+import br.com.khki.usecase.bathroom.model.AccessType;
+import br.com.khki.usecase.bathroom.model.Bathroom;
+import br.com.khki.usecase.bathroom.model.repository.BathroomRepository;
+import br.com.khki.usecase.moderation.model.repository.ModerationAuditRepository;
+import br.com.khki.usecase.report.model.Report;
+import br.com.khki.usecase.report.model.repository.ReportRepository;
+import br.com.khki.usecase.review.model.repository.ReviewRepository;
+import br.com.khki.usecase.user.model.User;
+import br.com.khki.usecase.user.model.repository.UserRepository;
 import com.fasterxml.jackson.databind.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -103,7 +103,7 @@ class WorkflowTest {
     UUID reviewId = pendingReview(bathroom.getId());
     new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
       var persistedBathroom = entityManager.find(Bathroom.class, bathroom.getId());
-      var persistedReview = entityManager.find(br.com.khki.usecase.review.Review.class, reviewId);
+      var persistedReview = entityManager.find(br.com.khki.usecase.review.model.Review.class, reviewId);
       assertThat(org.hibernate.Hibernate.isInitialized(persistedBathroom.getAuthor())).isFalse();
       assertThat(org.hibernate.Hibernate.isInitialized(persistedReview.getAuthor())).isFalse();
       var newAuthor = entityManager.getReference(User.class, alternate.getId());
@@ -113,7 +113,7 @@ class WorkflowTest {
       entityManager.flush();
       entityManager.clear();
       assertThat(entityManager.find(Bathroom.class, bathroom.getId()).getAuthor().getName()).isEqualTo(alternate.getName());
-      assertThat(entityManager.find(br.com.khki.usecase.review.Review.class, reviewId).getAuthor().getName()).isEqualTo(alternate.getName());
+      assertThat(entityManager.find(br.com.khki.usecase.review.model.Review.class, reviewId).getAuthor().getName()).isEqualTo(alternate.getName());
       assertThat(bathrooms.findByAuthor_IdOrderByCreatedAtDesc(alternate.getId()))
         .extracting(value -> value.getId())
         .containsExactly(bathroom.getId());
@@ -185,7 +185,7 @@ class WorkflowTest {
     UUID reportId = jdbc.queryForObject("SELECT id FROM reports WHERE target_id = ?", UUID.class, bathroom.getId());
     UUID reviewReportId = jdbc.queryForObject("SELECT id FROM reports WHERE target_id = ?", UUID.class, reviewId);
     new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
-      var persistedAudit = entityManager.find(br.com.khki.usecase.moderation.ModerationAudit.class, audit.getId());
+      var persistedAudit = entityManager.find(br.com.khki.usecase.moderation.model.ModerationAudit.class, audit.getId());
       assertThat(org.hibernate.Hibernate.isInitialized(persistedAudit.getModerator())).isFalse();
       assertThat(persistedAudit.getDuplicateOf().getId()).isEqualTo(bathroom.getId());
       assertThat(persistedAudit.getReference().getBathroom().getId()).isEqualTo(pending.getId());
@@ -198,7 +198,7 @@ class WorkflowTest {
       var reviewReport = entityManager.find(Report.class, reviewReportId);
       assertThat(reviewReport.getReference().getReview().getId()).isEqualTo(reviewId);
       assertThat(reviewReport.getReference().getBathroom()).isNull();
-      var review = entityManager.getReference(br.com.khki.usecase.review.Review.class, reviewId);
+      var review = entityManager.getReference(br.com.khki.usecase.review.model.Review.class, reviewId);
       persistedAudit.setModerator(entityManager.getReference(User.class, alternate.getId()));
       persistedAudit.setDuplicateOf(null);
       persistedAudit.setReference(ContentReference.of(review));
@@ -208,7 +208,7 @@ class WorkflowTest {
       entityManager.flush();
       entityManager.clear();
       assertThat(entityManager.find(Report.class, reportId).getReference().getReview().getId()).isEqualTo(reviewId);
-      assertThat(entityManager.find(br.com.khki.usecase.moderation.ModerationAudit.class, audit.getId()).getModerator().getName()).isEqualTo(alternate.getName());
+      assertThat(entityManager.find(br.com.khki.usecase.moderation.model.ModerationAudit.class, audit.getId()).getModerator().getName()).isEqualTo(alternate.getName());
     });
     assertThat(jdbc.queryForObject("SELECT moderator_id FROM moderation_audit WHERE id = ?", UUID.class, audit.getId())).isEqualTo(alternate.getId());
     assertThat(jdbc.queryForObject("SELECT duplicate_of_id FROM moderation_audit WHERE id = ?", UUID.class, audit.getId())).isNull();
@@ -282,14 +282,14 @@ class WorkflowTest {
       .orElseThrow();
     assertThat(contribution.get("bathroomId").asText()).isEqualTo(original.getId().toString());
     new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
-      var review = entityManager.find(br.com.khki.usecase.review.Review.class, reviewId);
+      var review = entityManager.find(br.com.khki.usecase.review.model.Review.class, reviewId);
       assertThat(org.hibernate.Hibernate.isInitialized(review.getBathroom())).isFalse();
       assertThat(review.getBathroom().getId()).isEqualTo(original.getId());
       review.setBathroom(entityManager.getReference(Bathroom.class, replacement.getId()));
       review.setStatus(Status.APPROVED);
       entityManager.flush();
       entityManager.clear();
-      var reloaded = entityManager.find(br.com.khki.usecase.review.Review.class, reviewId);
+      var reloaded = entityManager.find(br.com.khki.usecase.review.model.Review.class, reviewId);
       assertThat(reloaded.getBathroom().getName()).isEqualTo(replacement.getName());
       assertThat(reviews.findByBathroom_IdAndStatusOrderByCreatedAtDesc(original.getId(), Status.APPROVED)).isEmpty();
       assertThat(reviews.findByBathroom_IdAndStatusOrderByCreatedAtDesc(replacement.getId(), Status.APPROVED))

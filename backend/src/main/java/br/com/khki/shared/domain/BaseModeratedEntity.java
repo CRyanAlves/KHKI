@@ -1,6 +1,6 @@
 package br.com.khki.shared.domain;
 
-import br.com.khki.usecase.account.User;
+import br.com.khki.usecase.user.model.User;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.*;
