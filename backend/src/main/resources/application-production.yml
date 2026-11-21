@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 0
+      connection-timeout: 20000
+  jpa:
+    properties:
+      hibernate:
+        default_schema: khki
+  flyway:
+    default-schema: khki
+    schemas: khki
+    create-schemas: false
+    locations: classpath:db/migration,classpath:db/production
+server:
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        secure: true
