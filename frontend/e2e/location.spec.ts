@@ -12,7 +12,7 @@ test('granted geolocation restores a current map position after reload without s
   await expect.poll(point).toEqual({ lat: -23.09, lng: -47.21 });
   await context.setGeolocation({ latitude: -23.1, longitude: -47.22 }); await page.reload();
   await expect(page.locator('.map-position')).toBeVisible(); await expect.poll(point).toEqual({ lat: -23.1, lng: -47.22 });
-  await page.getByRole('link', { name: 'Sobre', exact: true }).click(); await page.getByRole('link', { name: 'Explorar', exact: true }).click(); await expect(page.locator('.map-position')).toBeVisible();
+  await page.locator('.bathroom-card').first().click(); await page.getByRole('link', { name: 'Voltar aos resultados', exact: true }).click(); await expect(page.locator('.map-position')).toBeVisible();
   expect(await page.evaluate(() => Object.entries(localStorage).concat(Object.entries(sessionStorage)).some(([key, value]) => /location|latitude|longitude|position/i.test(key) || /-23\.1|-47\.22/.test(value)))).toBe(false);
 });
 

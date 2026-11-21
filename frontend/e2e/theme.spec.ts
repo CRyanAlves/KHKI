@@ -4,7 +4,7 @@ test.beforeEach(async ({ page }) => { await page.route('**/config.js', route => 
 
 test('theme follows system until explicit choice, persists and applies to pages and dialogs', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
-  await page.goto('/');
+  await page.goto('/sobre'); await expect(page).toHaveURL(/\/$/); await expect(page.getByRole('link', { name: 'Sobre', exact: true })).toHaveCount(0);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.locator('.brand-tagline')).toHaveCount(0);
   const logo = await page.locator('.brand').boundingBox(); const navigation = await page.getByRole('navigation', { name: 'Navegação principal' }).boundingBox(); const actions = await page.locator('.header-actions').boundingBox();
@@ -25,7 +25,7 @@ test('theme follows system until explicit choice, persists and applies to pages 
   await expect(page.getByRole('dialog')).toHaveCSS('background-color', 'rgb(21, 39, 47)');
   await page.screenshot({ path: '../test-results/theme-dark-login.png', fullPage: true });
   await page.keyboard.press('Escape');
-  await page.getByRole('link', { name: 'Sobre', exact: true }).click();
+  await page.locator('.bathroom-card').first().click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.getByRole('button', { name: 'Ativar modo claro', exact: true }).click();
   await page.reload();
@@ -63,21 +63,21 @@ test('header tabs have readable selected and hover states in both themes and res
   await page.goto('/');
   for (const theme of ['light', 'dark'] as const) {
     if (await page.locator('html').getAttribute('data-theme') !== theme) await page.locator('.theme-toggle').click();
-    const tabs = page.locator('.main-nav > a'); await expect(tabs).toHaveCount(3);
+    const tabs = page.locator('.main-nav > a'); await expect(tabs).toHaveCount(2);
     const selected = page.getByRole('link', { name: 'Explorar', exact: true });
     await expect(selected).toHaveAttribute('aria-current', 'page');
     await expect(selected.locator('app-icon')).toBeVisible();
     await expect.poll(async () => { const colors = await selected.evaluate(element => ({ text: getComputedStyle(element).color, background: getComputedStyle(element, '::before').backgroundColor })); return contrast(colors.text, colors.background); }).toBeGreaterThanOrEqual(4.5);
-    const about = page.getByRole('link', { name: 'Sobre', exact: true }); await about.hover();
-    await expect.poll(() => about.evaluate(element => getComputedStyle(element, '::before').opacity)).toBe('1');
-    const hoverColors = await about.evaluate(element => ({ text: getComputedStyle(element).color, background: getComputedStyle(element, '::before').backgroundColor })); expect(contrast(hoverColors.text, hoverColors.background)).toBeGreaterThanOrEqual(4.5);
+    const registration = page.getByRole('link', { name: 'Cadastrar banheiro', exact: true }); await registration.hover();
+    await expect.poll(() => registration.evaluate(element => getComputedStyle(element, '::before').opacity)).toBe('1');
+    const hoverColors = await registration.evaluate(element => ({ text: getComputedStyle(element).color, background: getComputedStyle(element, '::before').backgroundColor })); expect(contrast(hoverColors.text, hoverColors.background)).toBeGreaterThanOrEqual(4.5);
     await page.locator('.site-header').screenshot({ path: '../test-results/header-tabs-' + theme + '.png' });
   }
-  await page.getByRole('link', { name: 'Sobre', exact: true }).click();
-  await expect(page.getByRole('link', { name: 'Sobre', exact: true })).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('link', { name: 'Explorar', exact: true })).not.toHaveClass(/active/);
+  await page.locator('.bathroom-card').first().click();
+  await expect(page.getByRole('link', { name: 'Explorar', exact: true })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('link', { name: 'Explorar', exact: true })).toHaveClass(/active/);
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  expect(await page.getByRole('link', { name: 'Sobre', exact: true }).evaluate(element => parseFloat(getComputedStyle(element, '::before').transitionDuration))).toBeLessThanOrEqual(0.001);
+  expect(await page.getByRole('link', { name: 'Cadastrar banheiro', exact: true }).evaluate(element => parseFloat(getComputedStyle(element, '::before').transitionDuration))).toBeLessThanOrEqual(0.001);
 });
 
 test('sidebar slides, rotates the same icon and preserves its content on desktop and mobile', async ({ page }) => {

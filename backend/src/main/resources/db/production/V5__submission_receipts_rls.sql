@@ -1,0 +1,1 @@
+ALTER TABLE khki.submission_receipts ENABLE ROW LEVEL SECURITY;

@@ -62,3 +62,6 @@
 
 :root .maplibregl-ctrl-bottom-left { bottom: 0; left: 0; max-width: calc(100% - 50px); }
 :root .maplibregl-ctrl.maplibregl-ctrl-attrib { margin: 0; padding: 1px 5px; font-size: 9px; line-height: 12px; border-radius: 0; }
+.map-marker.is-existing { border-radius: var(--radius-pill); outline: var(--space-1) solid var(--color-location); background: var(--color-surface); }
+.map-marker.is-reference { border-radius: var(--radius-pill); outline: var(--space-1) solid var(--color-accent); background: var(--color-accent-soft); }
+.map-marker.is-existing.is-selected { box-shadow: 0 0 0 var(--space-2) var(--color-location); }

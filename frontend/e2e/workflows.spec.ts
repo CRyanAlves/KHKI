@@ -49,14 +49,12 @@ test('registration preserves intent and submits a private contribution without p
   await page.getByRole('textbox', { name: 'Nome do local' }).fill('Banheiro do teste no navegador');
   await page.getByRole('textbox', { name: 'Endereço completo' }).fill('Rua de teste, 100 — São Paulo');
   await page.screenshot({ path: '../test-results/register-desktop.png', fullPage: true });
-  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  await page.getByText('Ajustar coordenadas manualmente', { exact: true }).click();
   await page.getByRole('spinbutton', { name: 'Latitude' }).fill('-23.58');
   await page.getByRole('spinbutton', { name: 'Longitude' }).fill('-46.69');
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   await page.getByLabel('Papel higiênico', { exact: true }).check();
-  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
-  await expect(page.getByText('As fotos são opcionais')).toBeVisible();
-  await page.getByRole('button', { name: 'Continuar', exact: true }).click();
+  await expect(page.getByRole('combobox', { name: 'Horário de funcionamento', exact: true })).toHaveValue('unknown');
   await page.getByRole('button', { name: 'Enviar para análise', exact: true }).click();
   await expect(page.getByRole('heading', { name: /Recebemos seu cadastro/ })).toBeVisible();
   await page.getByRole('link', { name: 'Ver minhas contribuições' }).click();
@@ -91,14 +89,16 @@ test('review and human moderation publish a negative review and preserve audit',
   await page.getByLabel('Senha', { exact: true }).fill(process.env['KHKI_TEST_ADMIN_PASSWORD']!);
   await page.getByRole('button', { name: 'Entrar', exact: true }).last().click();
   await page.getByRole('link', { name: 'Moderação', exact: true }).click();
-  await page.getByRole('button', { name: /Avaliação: Café do Centro/ }).click();
+  await page.getByRole('button', { name: /^Avaliações \(/ }).click();
+  await page.getByRole('button', { name: /Analisar Avaliação: Café do Centro/ }).click();
   await expect(page.getByText('Experiência negativa: limpeza e estrutura precisam melhorar.')).toBeVisible();
   await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Crítica negativa válida, sem violação das regras de conteúdo.');
   await page.screenshot({ path: '../test-results/admin-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Aprovar', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
   await expect(page.getByText('Decisão registrada com responsável, data e motivo.')).toBeVisible();
-  await page.getByText('Histórico de decisões (1)', { exact: true }).click();
-  await expect(page.getByRole('cell', { name: 'Crítica negativa válida, sem violação das regras de conteúdo.' })).toBeVisible();
+  await expect(page.locator('.review-history')).toContainText('Histórico deste cadastro (1)');
+  await expect(page.locator('.review-history')).toContainText('Crítica negativa válida, sem violação das regras de conteúdo.');
   await page.getByRole('link', { name: 'Explorar', exact: true }).click();
   await page.getByRole('link', { name: /Café do Centro/ }).click();
   await expect(page.getByText('Experiência negativa: limpeza e estrutura precisam melhorar.')).toBeVisible();
@@ -119,7 +119,7 @@ test('mobile layout, keyboard login and theme tokens', async ({ page }) => {
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.evaluate(() => document.documentElement.style.setProperty('--color-accent', 'rgb(220, 180, 90)'));
   await page.getByRole('button', { name: 'Abrir navegação' }).click();
-  expect(await page.getByRole('button', { name: 'Entrar', exact: true }).evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(220, 180, 90)');
+  await expect.poll(() => page.getByRole('button', { name: 'Entrar', exact: true }).evaluate(element => getComputedStyle(element).backgroundColor)).toBe('rgb(220, 180, 90)');
 });
 
 test('standalone photo upload stays private and can be rejected independently', async ({ page, browser, baseURL }) => {
@@ -142,12 +142,14 @@ test('standalone photo upload stays private and can be rejected independently', 
   expect((await visitor.request.get(`${baseURL}/api/photos/${photo.id}`)).status()).toBe(404);
   await visitor.close();
   await page.getByRole('link', { name: 'Moderação', exact: true }).click();
-  await page.getByRole('button', { name: /Foto: Café do Centro/ }).click();
+  await page.getByRole('button', { name: /^Fotos \(/ }).click();
+  await page.locator('.queue-table tbody tr').filter({ has: page.locator('img[src$="' + photo.id + '"]') }).getByRole('button', { name: 'Analisar Foto: Café do Centro', exact: true }).click();
   await expect(page.getByRole('img', { name: 'Foto privada para análise humana' })).toBeVisible();
   await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Imagem de teste de interface; não mostra um banheiro vazio.');
   await page.getByRole('button', { name: 'Rejeitar', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Confirmar rejeição', exact: true }).click();
   await expect(page.getByText('Decisão registrada com responsável, data e motivo.')).toBeVisible();
   await page.getByRole('link', { name: 'Minhas contribuições', exact: true }).click();
-  await expect(page.getByText('Rejeitado', { exact: true })).toBeVisible();
+  await expect(page.locator('.contribution-row').filter({ hasText: 'Imagem de teste de interface; não mostra um banheiro vazio.' }).getByText('Rejeitado', { exact: true })).toBeVisible();
   await expect(page.getByText('Motivo da decisão: Imagem de teste de interface; não mostra um banheiro vazio.')).toBeVisible();
 });

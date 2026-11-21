@@ -1,5 +1,8 @@
+@use './settings';
+
 /* Breakpoints: celular até 640px; tablet até 1024px; desktop acima de 1024px. */
 :root {
+  --breakpoint-mobile: #{settings.$breakpoint-mobile};
   color-scheme: light;
   --color-primary: #173b45;
   --color-primary-hover: #234f5b;
@@ -87,6 +90,16 @@
   --motion-route-steps: 28;
   --marker-size: 50px;
   --color-location: #258aff;
+  --moderation-queue-width: 260px;
+  --moderation-sidebar-width: 208px;
+  --moderation-sidebar-compact-width: calc(var(--control-size) + var(--space-5));
+  --moderation-review-min-width: 340px;
+  --moderation-map-height: clamp(300px, 38dvh, 420px);
+  --moderation-thumbnail-size: 64px;
+  --moderation-dialog-width: 560px;
+  --registration-panel-width: clamp(380px, 38vw, 560px);
+  --registration-mobile-map-height: clamp(180px, 32dvh, 300px);
+  --registration-photo-height: 100px;
 }
 
 :root[data-theme='dark'] {

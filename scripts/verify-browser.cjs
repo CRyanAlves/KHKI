@@ -32,7 +32,7 @@ async function stop(child) { if (child.exitCode !== null) return; await new Prom
     const frontend = launch('node node_modules/@angular/cli/bin/ng.js serve --host 127.0.0.1 --port 4202 --proxy-config proxy.e2e.json', 'frontend', 'browser-frontend.log');
     console.log('Iniciando API e frontend isolados nas portas 8082 e 4202, com banco em memória.');
     await wait('http://127.0.0.1:8082/api/health', api); await wait('http://127.0.0.1:4202', frontend); await wait('http://127.0.0.1:4900/geoapify/health', maps);
-    const result = await new Promise(resolve => { const tests = spawn(process.execPath, [path.join(root, 'frontend/node_modules/@playwright/test/cli.js'), 'test'], { cwd: path.join(root, 'frontend'), env: environment, stdio: 'inherit', windowsHide: true }); tests.once('exit', code => resolve(code)); });
+    const result = await new Promise(resolve => { const tests = spawn(process.execPath, [path.join(root, 'frontend/node_modules/@playwright/test/cli.js'), 'test', ...process.argv.slice(2)], { cwd: path.join(root, 'frontend'), env: environment, stdio: 'inherit', windowsHide: true }); tests.once('exit', code => resolve(code)); });
     process.exitCode = result || 0;
   } catch (error) { console.error(error.message); process.exitCode = 1; }
   finally { await Promise.all(children.map(stop)); }

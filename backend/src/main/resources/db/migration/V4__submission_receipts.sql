@@ -1,0 +1,2 @@
+CREATE TABLE submission_receipts (id UUID PRIMARY KEY, version BIGINT NOT NULL DEFAULT 0, author_id UUID NOT NULL REFERENCES app_users(id), operation VARCHAR(80) NOT NULL, fingerprint VARCHAR(64) NOT NULL, target_type VARCHAR(20) NOT NULL, target_id UUID NOT NULL, created_at TIMESTAMP WITH TIME ZONE NOT NULL);
+CREATE INDEX submission_receipts_author_idx ON submission_receipts(author_id);

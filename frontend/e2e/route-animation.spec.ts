@@ -31,5 +31,5 @@ test('route dashes animate without recreating the map or geometry and stop for r
   await page.locator('.panel-toggle').click(); const afterPanel = await pattern(); await expect.poll(pattern).not.toBe(afterPanel);
   await page.evaluate(() => { window.routeTest!.component.route = null; window.routeTest!.component.render(false); });
   expect(await page.evaluate(() => window.routeTest!.component.map.getLayer('walking-route'))).toBeUndefined();
-  await page.getByRole('link', { name: 'Sobre', exact: true }).click(); await expect(page.locator('app-map')).toHaveCount(0);
+  await page.goto('about:blank'); await expect(page.locator('app-map')).toHaveCount(0);
 });

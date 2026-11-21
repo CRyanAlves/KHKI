@@ -8,6 +8,7 @@ public class ModerationAudit {
     @Enumerated(EnumType.STRING) public TargetType targetType;
     public UUID targetId;
     public UUID moderatorId;
+    public UUID duplicateOfId;
     @Enumerated(EnumType.STRING) public Status decision;
     @Column(nullable = false, length = 500) public String reason;
     public Instant createdAt = Instant.now();

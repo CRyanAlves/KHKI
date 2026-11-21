@@ -10,4 +10,5 @@ public class Report {
     @Column(nullable = false, length = 40) public String reason;
     public Instant createdAt = Instant.now();
     public boolean resolved;
+    @Version public long version;
 }
