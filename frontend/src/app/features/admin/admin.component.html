@@ -147,27 +147,6 @@
         <button class="text-button" [disabled]="busy" (click)="close()"><app-icon name="ArrowLeft" />Voltar à fila</button><span class="muted">{{ filtered.length }} itens nos filtros atuais</span><button class="text-button" [disabled]="busy || detailLoading" (click)="inspect(selected)"><app-icon name="Clock" [size]="16" />Atualizar análise</button>
       </div>
       <div class="moderation-review" [class.with-map]="selected.type === 'BATHROOM'">
-        <aside class="review-queue" aria-label="Fila filtrada de contribuições">
-          <h2>{{ category === 'REPORT' ? 'Denúncias' : 'Contribuições' }} ({{ filtered.length }})</h2>
-          <div class="review-queue-scroll">
-            @for (row of filtered; track row.id) {
-              <button class="review-queue-item" [class.active]="selected.id === row.id" [attr.aria-current]="selected.id === row.id ? 'true' : null" [disabled]="busy" (click)="inspect(row)">
-                @if (row.thumbnailId) {
-                  <img [src]="'/api/photos/' + row.thumbnailId" alt="" loading="lazy" />
-                } @else {
-                  <span class="queue-thumbnail"><app-icon [name]="row.type === 'PHOTO' ? 'Camera' : row.type === 'REVIEW' ? 'Star' : 'MapPin'" /></span>
-                }
-                <span
-                  ><strong>{{ row.title }}</strong
-                  ><small>{{ row.address }}</small
-                  ><small>{{ row.createdAt | date: 'dd/MM/yyyy HH:mm' }}</small></span
-                ><app-icon name="ChevronRight" [size]="18" />
-              </button>
-            } @empty {
-              <p class="muted review-padding">A fila destes filtros está vazia. A decisão selecionada permanece disponível para consulta.</p>
-            }
-          </div>
-        </aside>
         <section class="review-content" aria-label="Revisão do conteúdo" [attr.aria-busy]="detailLoading">
           <h2>{{ selected.type === 'BATHROOM' ? 'Revisar cadastro' : selected.type === 'PHOTO' ? 'Revisar foto' : 'Revisar avaliação' }}</h2>
           @if (detailLoading) {

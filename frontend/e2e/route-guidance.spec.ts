@@ -165,6 +165,9 @@ test('GPS progress updates the next maneuver, ignores backward jitter and keeps 
   await prepare(page);
   const canvas = await page.locator('.maplibregl-canvas').elementHandle();
   await page.getByRole('button', { name: 'Iniciar navegação', exact: true }).click();
+  await expect(page.locator('.map-workspace')).toHaveClass(/panel-collapsed/);
+  await page.getByRole('button', { name: 'Reabrir painel', exact: true }).click();
+  await expect(page.locator('.map-workspace')).not.toHaveClass(/panel-collapsed/);
   const fix = async (index: number) =>
     page.locator('app-map').evaluate((element, index) => {
       const component = (window as unknown as { ng: { getComponent(element: Element): { route: { geometry: { geometry: { coordinates: number[][][] } } } } } }).ng.getComponent(element);
@@ -178,4 +181,5 @@ test('GPS progress updates the next maneuver, ignores backward jitter and keeps 
   await expect(page.locator('.navigation-direction').first()).toHaveAttribute('data-maneuver', 'Right');
   expect(await canvas!.evaluate((element) => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
   await page.locator('.navigation-hud').getByRole('button', { name: 'Encerrar navegação', exact: true }).click();
+  await expect(page.locator('.map-workspace')).not.toHaveClass(/panel-collapsed/);
 });

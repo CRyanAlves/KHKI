@@ -400,7 +400,7 @@ export class MapComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (updateViewport && !this.route && this.restoreCamera && this.searchCamera) {
       this.map.easeTo({ ...this.searchCamera, duration: this.motionDuration() });
       this.restoreCamera = false;
-    } else if (updateViewport && !this.route && selected && !this.fitAll) this.map.flyTo({ center: [selected.longitude, selected.latitude], offset: this.cameraOffset(), zoom: Math.max(this.map.getZoom(), 15), duration: this.motionDuration(), easing: (progress) => 1 - Math.pow(1 - progress, 3) });
+    } else if (updateViewport && !this.route && selected && !this.fitAll) this.map.flyTo({ center: [selected.longitude, selected.latitude], offset: this.cameraOffset(), zoom: Math.max(this.map.getZoom(), 15), pitch: 0, bearing: 0, duration: this.motionDuration(), easing: (progress) => 1 - Math.pow(1 - progress, 3) });
     else if (updateViewport && !this.route && this.point && focusPoint) {
       if (this.editable) this.map.flyTo({ center: [this.point.lng, this.point.lat], zoom: Math.max(18, this.map.getZoom()), offset: this.cameraOffset(), duration: this.motionDuration() });
       else this.map.panTo([this.point.lng, this.point.lat], { offset: this.cameraOffset(), duration: this.motionDuration() });

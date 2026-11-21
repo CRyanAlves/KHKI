@@ -94,6 +94,8 @@ export class RouteComponent implements OnInit, OnDestroy {
     this.mode = 'drive';
     const sequence = ++this.loadSequence;
     const draft = this.state.routeDrafts.get(id);
+    const startNavigation = draft?.startNavigation === true;
+    if (draft) delete draft.startNavigation;
     if (draft) {
       this.origin = draft.origin || (draft.position ? 'Minha localização' : '');
       this.position = draft.position;
@@ -110,8 +112,10 @@ export class RouteComponent implements OnInit, OnDestroy {
       const bathroom = await this.state.select(id);
       if (sequence !== this.loadSequence || this.destroyRef.destroyed) return;
       this.bathroom = bathroom;
-      if (this.route) this.navigation.prepare(this.route, this.mode);
-      else if (this.position && this.bathroom) void this.calculate();
+      if (this.route) {
+        this.navigation.prepare(this.route, this.mode);
+        if (startNavigation) this.navigation.start();
+      } else if (this.position && this.bathroom) void this.calculate();
     } catch (error) {
       if (sequence === this.loadSequence) this.error = this.api.error(error);
     } finally {

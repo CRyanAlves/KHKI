@@ -3,7 +3,7 @@
     <aside class="workspace-results" aria-label="Resultados da busca"><app-explore /></aside>
     <aside class="workspace-content" aria-label="Painel de exploração"><router-outlet #contentOutlet="outlet" (activate)="activatePanel($event, contentOutlet.activatedRoute.snapshot.routeConfig?.path)" (deactivate)="deactivatePanel($event)" /></aside>
   </div>
-  <section class="workspace-map" [class.registration-map]="state.scene() === 'registration'" [class.has-location-control]="state.scene() !== 'route'" aria-label="Mapa de banheiros">
+  <section class="workspace-map" [class.registration-map]="state.scene() === 'registration'" [class.has-location-control]="state.scene() !== 'route' || navigation.active()" aria-label="Mapa de banheiros">
     <app-map
       #routeMap
       [inert]="!!state.photoView()"
@@ -35,7 +35,10 @@
         <div class="route-picking-tools" role="status"><span>Clique no mapa para definir sua origem</span><button class="button secondary" type="button" (click)="routeMap.confirmOrigin()">Usar centro do mapa</button><button class="text-button" type="button" (click)="state.originPicking.set(false)">Cancelar seleção</button></div>
       }
       @if (maps.configured && state.scene() === 'search') {
-        <button class="button secondary search-area" (click)="searchArea()" [disabled]="state.loading() || !state.bounds()"><app-icon name="Search" [size]="17" />Buscar nesta área</button>
+        <button class="button primary search-area" (click)="urgent()" [disabled]="urgentBusy()" [attr.aria-busy]="urgentBusy()"><app-icon name="Navigation" [size]="17" />{{ urgentBusy() ? 'Preparando rota…' : 'Ta Urgente!' }}</button>
+      }
+      @if (navigation.active()) {
+        <button class="icon-button workspace-locate map-location" type="button" aria-label="Recentralizar" title="Recentralizar" (click)="navigation.recenter()"><app-icon name="LocateFixed" [size]="18" /></button>
       }
       @if (state.scene() !== 'route') {
         <button class="icon-button workspace-locate map-location" [attr.aria-label]="registration() ? 'Usar minha localização no mapa' : 'Usar minha localização'" title="Usar minha localização" [disabled]="!!registration() && (registration()!.locked || registration()!.locating || registration()!.success)" (click)="locate()"><app-icon name="LocateFixed" [size]="18" /></button>
@@ -46,10 +49,10 @@
       @if (state.scene() === 'route' && !state.originPicking()) {
         <app-navigation-tools [route]="state.path()" (occlusionChanged)="navigationBottomInset.set($event)" />
       }
-      @if (state.message()) {
+      @if (urgentError() || state.message()) {
         <div class="map-message" role="status">
-          <span>{{ state.message() }}</span
-          ><button class="icon-button" type="button" aria-label="Fechar aviso do mapa" (click)="state.dismissMessage()"><app-icon name="X" [size]="16" /></button>
+          <span>{{ urgentError() || state.message() }}</span
+          ><button class="icon-button" type="button" aria-label="Fechar aviso do mapa" (click)="urgentError.set(''); state.dismissMessage()"><app-icon name="X" [size]="16" /></button>
         </div>
       }
     }
