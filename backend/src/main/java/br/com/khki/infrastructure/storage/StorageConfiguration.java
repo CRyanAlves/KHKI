@@ -14,6 +14,7 @@ import software.amazon.awssdk.services.s3.S3Configuration;
 
 @Configuration
 public class StorageConfiguration {
+
   @Bean
   public ImageStorage imageStorage(Environment environment, @Value("${khki.storage.driver:local}") String driver, @Value("${khki.storage.directory:./data/images}") String directory) {
     if (driver.equals("local")) {
@@ -27,7 +28,14 @@ public class StorageConfiguration {
   private S3Client r2Client(Environment environment) {
     URI endpoint = URI.create(required(environment, "khki.storage.endpoint"));
     if (!"https".equals(endpoint.getScheme()) || endpoint.getUserInfo() != null || endpoint.getHost() == null || !endpoint.getHost().endsWith(".r2.cloudflarestorage.com") || endpoint.getQuery() != null || endpoint.getFragment() != null) throw new IllegalStateException("Endpoint R2 inválido.");
-    return S3Client.builder().endpointOverride(endpoint).region(Region.of("auto")).serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).chunkedEncodingEnabled(false).build()).credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(required(environment, "khki.storage.access-key"), required(environment, "khki.storage.secret-key")))).httpClientBuilder(UrlConnectionHttpClient.builder().connectionTimeout(Duration.ofSeconds(10)).socketTimeout(Duration.ofSeconds(30))).overrideConfiguration(config -> config.apiCallTimeout(Duration.ofSeconds(45))).build();
+    return S3Client.builder()
+      .endpointOverride(endpoint)
+      .region(Region.of("auto"))
+      .serviceConfiguration(S3Configuration.builder().pathStyleAccessEnabled(true).chunkedEncodingEnabled(false).build())
+      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(required(environment, "khki.storage.access-key"), required(environment, "khki.storage.secret-key"))))
+      .httpClientBuilder(UrlConnectionHttpClient.builder().connectionTimeout(Duration.ofSeconds(10)).socketTimeout(Duration.ofSeconds(30)))
+      .overrideConfiguration(config -> config.apiCallTimeout(Duration.ofSeconds(45)))
+      .build();
   }
 
   private String required(Environment environment, String name) {

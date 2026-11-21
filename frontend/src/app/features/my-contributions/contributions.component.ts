@@ -44,7 +44,7 @@ import { SkeletonComponent } from '../../shared/ui/skeleton/skeleton.component';
               @if (item.reason) {
                 <p class="decision-reason">Motivo da decisão: {{ item.reason }}</p>
               }
-              @if ((item.status === 'REJECTED' || item.status === 'NEEDS_INFORMATION')) {
+              @if (item.status === 'REJECTED' || item.status === 'NEEDS_INFORMATION') {
                 <a class="text-button" [routerLink]="item.type === 'BATHROOM' ? ['/cadastrar'] : ['/banheiros', item.bathroomId, 'avaliar']" [queryParams]="{ edit: item.id }">Corrigir e reenviar<app-icon name="ArrowRight" [size]="16" /></a>
               }
             </div>

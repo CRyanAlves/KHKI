@@ -1,6 +1,7 @@
 package br.com.khki;
 
 import static org.assertj.core.api.Assertions.*;
+
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
@@ -11,6 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 class AuditTargetMigrationTest {
+
   @Test
   void derivesAuditTargetsFromForeignKeysWithoutLosingHistory() {
     String schema = "audit_migration_" + UUID.randomUUID().toString().replace("-", "");
@@ -22,7 +24,11 @@ class AuditTargetMigrationTest {
     if (url.startsWith("jdbc:h2:")) source.setUrl(url + ";SCHEMA=" + schema);
     var jdbc = new JdbcTemplate(source);
     try {
-      UUID author = UUID.randomUUID(), bathroom = UUID.randomUUID(), review = UUID.randomUUID(), bathroomAudit = UUID.randomUUID(), reviewAudit = UUID.randomUUID();
+      UUID author = UUID.randomUUID(),
+        bathroom = UUID.randomUUID(),
+        review = UUID.randomUUID(),
+        bathroomAudit = UUID.randomUUID(),
+        reviewAudit = UUID.randomUUID();
       Instant created = Instant.parse("2026-11-14T12:00:00Z");
       jdbc.update("INSERT INTO \"user\" (id,name,email,password,role) VALUES (?,?,?,?,?)", author, "Moderador", "moderador@khki.test", "unused", "ADMIN");
       jdbc.update("INSERT INTO bathrooms (id,author_id,status,created_at,name,address,category,latitude,longitude,access) VALUES (?,?,?,?,?,?,?,?,?,?)", bathroom, author, "APPROVED", Timestamp.from(created), "Biblioteca", "Rua de teste", "Biblioteca", -23.1, -47.2, "FREE");

@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 class StandaloneSchemaTest {
+
   @Test
   void startsAgainstSqlOnlySchemaWithHibernateValidationAndFlywayDisabled() throws Exception {
     String url = System.getenv("TEST_DATABASE_URL");
@@ -24,8 +25,27 @@ class StandaloneSchemaTest {
     if (!Files.exists(script)) script = Path.of("database/schema.sql");
     try {
       jdbc.execute(Files.readString(script));
-      try (var application = (ServletWebServerApplicationContext) new SpringApplicationBuilder(KhkiApplication.class).run("--server.address=127.0.0.1", "--server.port=0", "--spring.datasource.url=" + url, "--spring.datasource.username=" + source.getUsername(), "--spring.datasource.password=" + source.getPassword(), "--spring.flyway.enabled=false", "--spring.jpa.properties.hibernate.default_schema=khki", "--spring.session.jdbc.table-name=khki.SPRING_SESSION", "--khki.admin-email=", "--khki.admin-password=", "--khki.demo=false")) {
-        var response = HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + application.getWebServer().getPort() + "/api/bathrooms")).GET().build(), HttpResponse.BodyHandlers.ofString());
+      try (
+        var application = (ServletWebServerApplicationContext) new SpringApplicationBuilder(KhkiApplication.class).run(
+          "--server.address=127.0.0.1",
+          "--server.port=0",
+          "--spring.datasource.url=" + url,
+          "--spring.datasource.username=" + source.getUsername(),
+          "--spring.datasource.password=" + source.getPassword(),
+          "--spring.flyway.enabled=false",
+          "--spring.jpa.properties.hibernate.default_schema=khki",
+          "--spring.session.jdbc.table-name=khki.SPRING_SESSION",
+          "--khki.admin-email=",
+          "--khki.admin-password=",
+          "--khki.demo=false"
+        )
+      ) {
+        var response = HttpClient.newHttpClient().send(
+          HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + application.getWebServer().getPort() + "/api/bathrooms"))
+            .GET()
+            .build(),
+          HttpResponse.BodyHandlers.ofString()
+        );
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isEqualTo("[]");
       }

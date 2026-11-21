@@ -33,34 +33,74 @@ public class ModerationAudit {
   private String reason;
 
   private Instant createdAt = Instant.now();
+
   @Embedded
   @com.fasterxml.jackson.annotation.JsonIgnore
   private ContentReference reference;
 
-  public UUID getId() { return id; }
-  public void setId(UUID value) { id = value; }
+  public UUID getId() {
+    return id;
+  }
+
+  public void setId(UUID value) {
+    id = value;
+  }
 
   @Transient
-  public TargetType getTargetType() { return reference.getTargetType(); }
+  public TargetType getTargetType() {
+    return reference.getTargetType();
+  }
 
   @Transient
-  public UUID getTargetId() { return reference.getTargetId(); }
+  public UUID getTargetId() {
+    return reference.getTargetId();
+  }
 
-  public User getModerator() { return moderator; }
-  public void setModerator(User value) { moderator = value; }
+  public User getModerator() {
+    return moderator;
+  }
 
-  public Bathroom getDuplicateOf() { return duplicateOf; }
-  public void setDuplicateOf(Bathroom value) { duplicateOf = value; }
+  public void setModerator(User value) {
+    moderator = value;
+  }
 
-  public Status getDecision() { return decision; }
-  public void setDecision(Status value) { decision = value; }
+  public Bathroom getDuplicateOf() {
+    return duplicateOf;
+  }
 
-  public String getReason() { return reason; }
-  public void setReason(String value) { reason = value; }
+  public void setDuplicateOf(Bathroom value) {
+    duplicateOf = value;
+  }
 
-  public Instant getCreatedAt() { return createdAt; }
-  public void setCreatedAt(Instant value) { createdAt = value; }
+  public Status getDecision() {
+    return decision;
+  }
 
-  public ContentReference getReference() { return reference; }
-  public void setReference(ContentReference value) { reference = value; }
+  public void setDecision(Status value) {
+    decision = value;
+  }
+
+  public String getReason() {
+    return reason;
+  }
+
+  public void setReason(String value) {
+    reason = value;
+  }
+
+  public Instant getCreatedAt() {
+    return createdAt;
+  }
+
+  public void setCreatedAt(Instant value) {
+    createdAt = value;
+  }
+
+  public ContentReference getReference() {
+    return reference;
+  }
+
+  public void setReference(ContentReference value) {
+    reference = value;
+  }
 }

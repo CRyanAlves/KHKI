@@ -57,14 +57,20 @@
         <p id="review-photo-help" class="photo-guidance"><app-icon name="Info" [size]="18" /><span>Fotografe o banheiro vazio, sem pessoas, reflexos ou dados pessoais.</span></p>
       </section>
       <footer class="review-footer">
-        <div class="moderation-guidance"><app-icon name="ShieldCheck" [size]="20" /><p><strong>Sua avaliação será analisada antes da publicação.</strong><span>Opiniões positivas e negativas são bem-vindas.</span></p></div>
+        <div class="moderation-guidance">
+          <app-icon name="ShieldCheck" [size]="20" />
+          <p><strong>Sua avaliação será analisada antes da publicação.</strong><span>Opiniões positivas e negativas são bem-vindas.</span></p>
+        </div>
         @if (!cleanliness || !structure) {
           <p class="score-guidance" id="review-score-help">Selecione as duas notas para enviar.</p>
         }
         @if (error) {
           <p role="alert" class="error-message">{{ error }}</p>
         }
-        <button class="button primary full" [disabled]="busy || !cleanliness || !structure" [attr.aria-describedby]="!cleanliness || !structure ? 'review-score-help' : null"><span>{{ busy ? 'Enviando…' : 'Enviar avaliação' }}</span><app-icon [name]="busy ? 'Clock' : 'ArrowRight'" [size]="20" /></button>
+        <button class="button primary full" [disabled]="busy || !cleanliness || !structure" [attr.aria-describedby]="!cleanliness || !structure ? 'review-score-help' : null">
+          <span>{{ busy ? 'Enviando…' : 'Enviar avaliação' }}</span
+          ><app-icon [name]="busy ? 'Clock' : 'ArrowRight'" [size]="20" />
+        </button>
       </footer>
     </form>
   }

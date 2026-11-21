@@ -8,6 +8,7 @@ import org.flywaydb.core.api.migration.Context;
 
 /** Move URLs para os conteúdos e redireciona o histórico, sem publicar anexos ainda não aprovados. */
 public class V14__images_belong_to_content extends BaseJavaMigration {
+
   private record Parent(String type, UUID id) {}
 
   @Override
@@ -80,6 +81,8 @@ public class V14__images_belong_to_content extends BaseJavaMigration {
   }
 
   private void execute(Connection connection, String sql) throws SQLException {
-    try (var statement = connection.createStatement()) { statement.execute(sql); }
+    try (var statement = connection.createStatement()) {
+      statement.execute(sql);
+    }
   }
 }

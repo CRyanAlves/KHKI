@@ -1,15 +1,16 @@
 package br.com.khki.usecase.report;
 
 import br.com.khki.infrastructure.security.AbuseGuard;
-import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.shared.domain.ContentReference;
 import br.com.khki.usecase.contribution.ContributionService;
+import br.com.khki.usecase.report.dto.ReportInput;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
 public class ReportService {
+
   private final ContributionService contributions;
   private final ReportRepository reports;
   private final AbuseGuard abuse;

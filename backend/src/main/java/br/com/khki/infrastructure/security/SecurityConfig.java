@@ -1,17 +1,21 @@
 package br.com.khki.infrastructure.security;
 
-import br.com.khki.usecase.account.UserRepository;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.*;
 import org.springframework.web.cors.*;
 
@@ -25,16 +29,19 @@ public class SecurityConfig {
   }
 
   @Bean
-  UserDetailsService userDetailsService(UserRepository users) {
-    return email ->
-      users
-        .findByEmail(email)
-        .map(user -> org.springframework.security.core.userdetails.User.withUsername(user.getEmail()).password(user.getPassword()).roles(user.getRole()).build())
-        .orElseThrow(() -> new UsernameNotFoundException("Credenciais inválidas."));
+  AuthenticationManager authenticationManager(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+    var provider = new DaoAuthenticationProvider(userDetailsService);
+    provider.setPasswordEncoder(passwordEncoder);
+    return new ProviderManager(provider);
   }
 
   @Bean
-  SecurityFilterChain filterChain(HttpSecurity http, SessionPolicy sessionPolicy, @Value("${khki.frontend-origin}") String origin) throws Exception {
+  SecurityContextRepository securityContextRepository() {
+    return new HttpSessionSecurityContextRepository();
+  }
+
+  @Bean
+  SecurityFilterChain filterChain(HttpSecurity http, SessionPolicy sessionPolicy, SecurityContextRepository securityContextRepository, AuthenticationManager authenticationManager, @Value("${khki.frontend-origin}") String origin) throws Exception {
     var cors = new CorsConfiguration();
     cors.setAllowedOrigins(List.of(origin));
     cors.setAllowedMethods(List.of("GET", "POST", "PUT", "OPTIONS"));
@@ -43,6 +50,8 @@ public class SecurityConfig {
     var source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/api/**", cors);
     return http
+      .authenticationManager(authenticationManager)
+      .securityContext(config -> config.securityContextRepository(securityContextRepository))
       .addFilterAfter(new SessionExpiryFilter(sessionPolicy), SecurityContextHolderFilter.class)
       .cors(config -> config.configurationSource(source))
       .csrf(config -> config.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()).csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))

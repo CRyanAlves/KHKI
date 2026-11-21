@@ -1,9 +1,10 @@
 package br.com.khki;
 
+import static org.assertj.core.api.Assertions.*;
+
 import br.com.khki.infrastructure.storage.FileImageStorage;
 import br.com.khki.infrastructure.storage.ImageStorage;
 import br.com.khki.infrastructure.storage.LegacyImageExporter;
-import static org.assertj.core.api.Assertions.*;
 import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -15,6 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 class RelationalMigrationTest {
+
   @TempDir
   Path files;
 
@@ -92,9 +94,13 @@ class RelationalMigrationTest {
   void blocksMigrationWhenExportIsNotAuthorizedOrCopyCannotBeVerified() {
     assertThatThrownBy(() -> LegacyImageExporter.export(dataSource, schema, new FileImageStorage(files), false)).isInstanceOf(IllegalStateException.class);
     ImageStorage broken = new ImageStorage() {
-      public void put(UUID id, byte[] bytes) { }
-      public byte[] read(UUID id) { return new byte[] { 99 }; }
-      public void delete(UUID id) { }
+      public void put(UUID id, byte[] bytes) {}
+
+      public byte[] read(UUID id) {
+        return new byte[] { 99 };
+      }
+
+      public void delete(UUID id) {}
     };
     assertThatThrownBy(() -> LegacyImageExporter.export(dataSource, schema, broken, true)).isInstanceOf(IllegalStateException.class);
     assertThat(jdbc.queryForObject("SELECT count(*) FROM photos", Integer.class)).isEqualTo(4);

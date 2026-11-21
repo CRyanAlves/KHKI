@@ -1,6 +1,7 @@
 package br.com.khki.shared.domain;
 
 public final class GeographicDistance {
+
   private static final double EARTH_RADIUS_METERS = 6371000;
 
   private GeographicDistance() {}

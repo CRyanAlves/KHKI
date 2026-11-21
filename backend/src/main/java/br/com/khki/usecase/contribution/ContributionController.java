@@ -1,12 +1,13 @@
 package br.com.khki.usecase.contribution;
 
 import br.com.khki.shared.api.ApiException;
-import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.shared.domain.TargetType;
 import br.com.khki.usecase.account.AccountService;
 import br.com.khki.usecase.bathroom.Bathroom;
 import br.com.khki.usecase.bathroom.BathroomService;
+import br.com.khki.usecase.contribution.dto.ContributionView;
 import br.com.khki.usecase.review.Review;
+import br.com.khki.usecase.review.dto.ReviewView;
 import jakarta.validation.constraints.*;
 import java.security.Principal;
 import java.util.*;

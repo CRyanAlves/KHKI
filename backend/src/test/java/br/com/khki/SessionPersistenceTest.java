@@ -1,11 +1,13 @@
 package br.com.khki;
 
-import br.com.khki.infrastructure.security.SessionPolicy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import br.com.khki.infrastructure.security.SessionPolicy;
 import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -164,5 +166,71 @@ class SessionPersistenceTest {
       .andExpect(status().isUnauthorized());
     var cookie = login(true).getResponse().getCookie("KHKI_SESSION");
     mvc.perform(post("/api/auth/logout").cookie(cookie)).andExpect(status().isForbidden());
+  }
+
+  @Test
+  void authenticationNormalizesEmailAndPersistsAuthoritiesWithoutCredentials() throws Exception {
+    var result = mvc.perform(post("/api/auth/login").with(csrf()).contentType("application/json").content("{\"email\":\"ADMIN@KHKI.TEST\",\"password\":\"Test-admin-password-123\"}")).andExpect(status().isOk()).andExpect(jsonPath("$.role").value("ADMIN")).andExpect(jsonPath("$.password").doesNotExist()).andReturn();
+    var cookie = result.getResponse().getCookie("KHKI_SESSION");
+    Session stored = sessions.findById(sessionId(cookie));
+    SecurityContext context = stored.getAttribute("SPRING_SECURITY_CONTEXT");
+    assertThat(context.getAuthentication().getCredentials()).isNull();
+    assertThat(context.getAuthentication().getPrincipal()).isInstanceOf(org.springframework.security.core.userdetails.UserDetails.class);
+    assertThat(((org.springframework.security.core.userdetails.UserDetails) context.getAuthentication().getPrincipal()).getPassword()).isNull();
+    assertThat(context.getAuthentication().getAuthorities()).extracting(org.springframework.security.core.GrantedAuthority::getAuthority).containsExactly("ROLE_ADMIN");
+    mvc.perform(get("/api/admin/queue").cookie(cookie)).andExpect(status().isOk());
+  }
+
+  @Test
+  void unknownAccountAndWrongPasswordHaveIdenticalPublicFailuresAndDoNotCreateSessions() throws Exception {
+    var wrongPassword = mvc.perform(post("/api/auth/login").with(csrf()).contentType("application/json").content("{\"email\":\"admin@khki.test\",\"password\":\"wrong-password\"}")).andExpect(status().isUnauthorized()).andReturn();
+    var unknownAccount = mvc.perform(post("/api/auth/login").with(csrf()).contentType("application/json").content("{\"email\":\"unknown@khki.test\",\"password\":\"wrong-password\"}")).andExpect(status().isUnauthorized()).andReturn();
+    assertThat(unknownAccount.getResponse().getContentAsString()).isEqualTo(wrongPassword.getResponse().getContentAsString());
+    assertThat(wrongPassword.getRequest().getSession(false)).isNull();
+    assertThat(unknownAccount.getRequest().getSession(false)).isNull();
+  }
+
+  @Test
+  void existingSessionsWithStringPrincipalsRemainUsable() throws Exception {
+    var cookie = login(true).getResponse().getCookie("KHKI_SESSION");
+    Session stored = sessions.findById(sessionId(cookie));
+    var context = org.springframework.security.core.context.SecurityContextHolder.createEmptyContext();
+    context.setAuthentication(org.springframework.security.authentication.UsernamePasswordAuthenticationToken.authenticated("admin@khki.test", null, java.util.List.of(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"))));
+    stored.setAttribute("SPRING_SECURITY_CONTEXT", context);
+    repository().save(stored);
+    mvc.perform(get("/api/auth/me").cookie(cookie)).andExpect(status().isOk()).andExpect(jsonPath("$.role").value("ADMIN"));
+    mvc.perform(post("/api/auth/logout").cookie(cookie).with(csrf())).andExpect(status().isNoContent());
+  }
+
+  @Test
+  void registrationKeepsItsContractAndNewUsersCannotAccessModeration() throws Exception {
+    String email = "registration-" + java.util.UUID.randomUUID() + "@khki.test";
+    try {
+      mvc
+        .perform(
+          post("/api/auth/register")
+            .with(csrf())
+            .contentType("application/json")
+            .content("{\"name\":\"Nova conta\",\"email\":\"" + email + "\",\"password\":\"Test-user-password-123\"}")
+        )
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.name").value("Nova conta"))
+        .andExpect(jsonPath("$.role").value("USER"))
+        .andExpect(jsonPath("$.password").doesNotExist());
+      var result = mvc
+        .perform(
+          post("/api/auth/login")
+            .with(csrf())
+            .contentType("application/json")
+            .content("{\"email\":\"" + email + "\",\"password\":\"Test-user-password-123\"}")
+        )
+        .andExpect(status().isOk())
+        .andReturn();
+      var cookie = result.getResponse().getCookie("KHKI_SESSION");
+      mvc.perform(get("/api/auth/me").cookie(cookie)).andExpect(status().isOk()).andExpect(jsonPath("$.role").value("USER"));
+      mvc.perform(get("/api/admin/queue").cookie(cookie)).andExpect(status().isForbidden());
+    } finally {
+      users.findByEmail(email).ifPresent(users::delete);
+    }
   }
 }

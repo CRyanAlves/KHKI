@@ -1,12 +1,12 @@
 package br.com.khki.usecase.contribution;
 
 import br.com.khki.shared.api.ApiException;
-import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.shared.domain.BaseModeratedEntity;
 import br.com.khki.shared.domain.Status;
 import br.com.khki.shared.domain.TargetType;
 import br.com.khki.usecase.bathroom.Bathroom;
 import br.com.khki.usecase.bathroom.BathroomRepository;
+import br.com.khki.usecase.contribution.dto.ContributionView;
 import br.com.khki.usecase.review.Review;
 import br.com.khki.usecase.review.ReviewRepository;
 import java.util.*;
@@ -59,7 +59,7 @@ public class ContributionService {
 
   public BaseModeratedEntity requirePublic(TargetType type, UUID id) {
     var content = target(type, id);
-    if (content.getStatus() != Status.APPROVED || content instanceof Review review && review.getBathroom().getStatus() != Status.APPROVED) throw ApiException.missing();
+    if (content.getStatus() != Status.APPROVED || (content instanceof Review review && review.getBathroom().getStatus() != Status.APPROVED)) throw ApiException.missing();
     return content;
   }
 }

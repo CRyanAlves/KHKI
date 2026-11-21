@@ -1,7 +1,10 @@
 package br.com.khki.usecase.bathroom;
 
-import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.usecase.account.AccountService;
+import br.com.khki.usecase.bathroom.dto.BathroomInput;
+import br.com.khki.usecase.bathroom.dto.BathroomView;
+import br.com.khki.usecase.bathroom.dto.NearbyResult;
+import br.com.khki.usecase.contribution.dto.ContributionView;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.security.Principal;

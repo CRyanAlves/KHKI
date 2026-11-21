@@ -69,69 +69,179 @@ public class Bathroom extends BaseModeratedEntity {
   @com.fasterxml.jackson.annotation.JsonIgnore
   private Set<Review> reviews = new HashSet<>();
 
-  public String getName() { return name; }
-  public void setName(String value) { name = value; }
+  public String getName() {
+    return name;
+  }
 
-  public String getAddress() { return address; }
-  public void setAddress(String value) { address = value; }
+  public void setName(String value) {
+    name = value;
+  }
 
-  public String getComplement() { return complement; }
-  public void setComplement(String value) { complement = value; }
+  public String getAddress() {
+    return address;
+  }
 
-  public String getCategory() { return category; }
-  public void setCategory(String value) { category = value; }
+  public void setAddress(String value) {
+    address = value;
+  }
 
-  public double getLatitude() { return latitude; }
-  public void setLatitude(double value) { latitude = value; }
+  public String getComplement() {
+    return complement;
+  }
 
-  public double getLongitude() { return longitude; }
-  public void setLongitude(double value) { longitude = value; }
+  public void setComplement(String value) {
+    complement = value;
+  }
 
-  public AccessType getAccess() { return access; }
-  public void setAccess(AccessType value) { access = value; }
+  public String getCategory() {
+    return category;
+  }
 
-  public String getAccessDetails() { return accessDetails; }
-  public void setAccessDetails(String value) { accessDetails = value; }
+  public void setCategory(String value) {
+    category = value;
+  }
 
-  public String getHours() { return hours; }
-  public void setHours(String value) { hours = value; }
+  public double getLatitude() {
+    return latitude;
+  }
 
-  public Boolean getAccessible() { return accessible; }
-  public void setAccessible(Boolean value) { accessible = value; }
+  public void setLatitude(double value) {
+    latitude = value;
+  }
 
-  public Set<String> getItems() { return items; }
-  public void setItems(Set<String> value) { items = value; }
+  public double getLongitude() {
+    return longitude;
+  }
 
-  public boolean getDemo() { return demo; }
-  public void setDemo(boolean value) { demo = value; }
+  public void setLongitude(double value) {
+    longitude = value;
+  }
 
-  public String getUsageRestriction() { return usageRestriction; }
-  public void setUsageRestriction(String value) { usageRestriction = value; }
+  public AccessType getAccess() {
+    return access;
+  }
 
-  public String getCharging() { return charging; }
-  public void setCharging(String value) { charging = value; }
+  public void setAccess(AccessType value) {
+    access = value;
+  }
 
-  public BigDecimal getFeeAmount() { return feeAmount; }
-  public void setFeeAmount(BigDecimal value) { feeAmount = value; }
+  public String getAccessDetails() {
+    return accessDetails;
+  }
 
-  public Set<String> getBathroomTypes() { return bathroomTypes; }
-  public void setBathroomTypes(Set<String> value) { bathroomTypes = value; }
+  public void setAccessDetails(String value) {
+    accessDetails = value;
+  }
 
-  public Boolean getStepFreeAccess() { return stepFreeAccess; }
-  public void setStepFreeAccess(Boolean value) { stepFreeAccess = value; }
+  public String getHours() {
+    return hours;
+  }
 
-  public Boolean getElevator() { return elevator; }
-  public void setElevator(Boolean value) { elevator = value; }
+  public void setHours(String value) {
+    hours = value;
+  }
 
-  public Boolean getAdaptedCabin() { return adaptedCabin; }
-  public void setAdaptedCabin(Boolean value) { adaptedCabin = value; }
+  public Boolean getAccessible() {
+    return accessible;
+  }
 
-  public Boolean getGrabBars() { return grabBars; }
-  public void setGrabBars(Boolean value) { grabBars = value; }
+  public void setAccessible(Boolean value) {
+    accessible = value;
+  }
 
-  public LocalDate getLastVisited() { return lastVisited; }
-  public void setLastVisited(LocalDate value) { lastVisited = value; }
+  public Set<String> getItems() {
+    return items;
+  }
 
-  public Set<Review> getReviews() { return reviews; }
-  public void setReviews(Set<Review> value) { reviews = value; }
+  public void setItems(Set<String> value) {
+    items = value;
+  }
+
+  public boolean getDemo() {
+    return demo;
+  }
+
+  public void setDemo(boolean value) {
+    demo = value;
+  }
+
+  public String getUsageRestriction() {
+    return usageRestriction;
+  }
+
+  public void setUsageRestriction(String value) {
+    usageRestriction = value;
+  }
+
+  public String getCharging() {
+    return charging;
+  }
+
+  public void setCharging(String value) {
+    charging = value;
+  }
+
+  public BigDecimal getFeeAmount() {
+    return feeAmount;
+  }
+
+  public void setFeeAmount(BigDecimal value) {
+    feeAmount = value;
+  }
+
+  public Set<String> getBathroomTypes() {
+    return bathroomTypes;
+  }
+
+  public void setBathroomTypes(Set<String> value) {
+    bathroomTypes = value;
+  }
+
+  public Boolean getStepFreeAccess() {
+    return stepFreeAccess;
+  }
+
+  public void setStepFreeAccess(Boolean value) {
+    stepFreeAccess = value;
+  }
+
+  public Boolean getElevator() {
+    return elevator;
+  }
+
+  public void setElevator(Boolean value) {
+    elevator = value;
+  }
+
+  public Boolean getAdaptedCabin() {
+    return adaptedCabin;
+  }
+
+  public void setAdaptedCabin(Boolean value) {
+    adaptedCabin = value;
+  }
+
+  public Boolean getGrabBars() {
+    return grabBars;
+  }
+
+  public void setGrabBars(Boolean value) {
+    grabBars = value;
+  }
+
+  public LocalDate getLastVisited() {
+    return lastVisited;
+  }
+
+  public void setLastVisited(LocalDate value) {
+    lastVisited = value;
+  }
+
+  public Set<Review> getReviews() {
+    return reviews;
+  }
+
+  public void setReviews(Set<Review> value) {
+    reviews = value;
+  }
 }

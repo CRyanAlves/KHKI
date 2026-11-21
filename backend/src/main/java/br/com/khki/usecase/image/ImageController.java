@@ -1,7 +1,7 @@
 package br.com.khki.usecase.image;
 
-import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.usecase.account.AccountService;
+import br.com.khki.usecase.contribution.dto.ContributionView;
 import jakarta.validation.constraints.*;
 import java.security.Principal;
 import java.util.*;

@@ -1,11 +1,13 @@
 package br.com.khki.usecase.bathroom;
 
 import br.com.khki.shared.api.ApiException;
-import br.com.khki.shared.api.Contracts.*;
-import br.com.khki.shared.domain.Status;
 import br.com.khki.shared.domain.GeographicDistance;
-import br.com.khki.usecase.contribution.ContributionService;
+import br.com.khki.shared.domain.Status;
 import br.com.khki.usecase.account.UserRepository;
+import br.com.khki.usecase.bathroom.dto.BathroomInput;
+import br.com.khki.usecase.bathroom.dto.BathroomView;
+import br.com.khki.usecase.contribution.ContributionService;
+import br.com.khki.usecase.contribution.dto.ContributionView;
 import br.com.khki.usecase.image.ImageUrls;
 import br.com.khki.usecase.review.ReviewRepository;
 import java.text.Normalizer;
@@ -58,7 +60,10 @@ public class BathroomService {
   public BathroomView view(Bathroom bathroom) {
     bathroom = bathrooms.findById(bathroom.getId()).orElseThrow(ApiException::missing);
     var publicReviews = reviews.findByBathroom_IdAndStatusOrderByCreatedAtDesc(bathroom.getId(), Status.APPROVED);
-    var approvedReviews = publicReviews.stream().filter(review -> !review.getPhotoOnly()).toList();
+    var approvedReviews = publicReviews
+      .stream()
+      .filter(review -> !review.getPhotoOnly())
+      .toList();
     Double average = approvedReviews.isEmpty()
       ? null
       : approvedReviews
@@ -80,7 +85,10 @@ public class BathroomService {
       List.copyOf(bathroom.getItems()),
       average,
       approvedReviews.size(),
-      java.util.stream.Stream.concat(bathroom.getImageUrls().stream(), publicReviews.stream().flatMap(review -> review.getImageUrls().stream())).map(ImageUrls::id).distinct().toList(),
+      java.util.stream.Stream.concat(bathroom.getImageUrls().stream(), publicReviews.stream().flatMap(review -> review.getImageUrls().stream()))
+        .map(ImageUrls::id)
+        .distinct()
+        .toList(),
       bathroom.getDemo(),
       bathroom.getComplement(),
       BathroomDetailsMapper.view(bathroom)

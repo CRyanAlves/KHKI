@@ -1,11 +1,13 @@
 package br.com.khki.usecase.review;
 
 import br.com.khki.shared.api.ApiException;
-import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.shared.domain.Status;
 import br.com.khki.usecase.account.UserRepository;
 import br.com.khki.usecase.bathroom.BathroomService;
 import br.com.khki.usecase.contribution.ContributionService;
+import br.com.khki.usecase.contribution.dto.ContributionView;
+import br.com.khki.usecase.review.dto.ReviewInput;
+import br.com.khki.usecase.review.dto.ReviewView;
 import java.util.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

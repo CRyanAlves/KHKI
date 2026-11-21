@@ -4,17 +4,39 @@
 
 `br.com.khki.usecase` reúne cada fluxo com seus controllers, serviços, entidades e repositórios. Não existe mais um controller ou serviço central que misture todos os conteúdos.
 
-| Pacote | Responsabilidade |
-| --- | --- |
-| `account` | `User`, `UserRepository`, cadastro, autenticação e usuário atual |
-| `bathroom` | `Bathroom`, `AccessType`, consulta, detalhes, cadastro, correção e proximidade |
-| `review` | `Review`, consulta e envio/correção de avaliações |
-| `contribution` | Contribuições do autor, sem recibos de envio |
-| `report` | Denúncias autenticadas de banheiro ou avaliação |
-| `moderation` | Fila, decisões, denúncias e auditoria |
-| `image` | Upload de anexos e leitura autorizada dos arquivos, sem entidade ou tabela de foto |
+| Pacote         | Responsabilidade                                                                   |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `account`      | `User`, `UserRepository`, cadastro, autenticação e usuário atual                   |
+| `bathroom`     | `Bathroom`, `AccessType`, consulta, detalhes, cadastro, correção e proximidade     |
+| `review`       | `Review`, consulta e envio/correção de avaliações                                  |
+| `contribution` | Contribuições do autor, sem recibos de envio                                       |
+| `report`       | Denúncias autenticadas de banheiro ou avaliação                                    |
+| `moderation`   | Fila, decisões, denúncias e auditoria                                              |
+| `image`        | Upload de anexos e leitura autorizada dos arquivos, sem entidade ou tabela de foto |
 
-`shared.api` contém os contratos HTTP e o tratamento de erros. `shared.domain` reúne estado de moderação e referências comuns. `infrastructure` contém segurança/sessões, armazenamento privado, migrações, inicialização e health check.
+`shared.api` contém somente o tratamento transversal de erros (`ApiException` e `ApiErrors`). Cada caso de uso mantém seus contratos HTTP em um subpacote `dto`, sem concentrá-los em uma classe `Contracts`. `shared.domain` reúne estado de moderação e referências comuns. `infrastructure` contém segurança/sessões, armazenamento privado, migrações, inicialização e health check.
+
+| Pacote de contratos | Responsabilidade                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `account.dto`       | Entrada, cadastro de conta e dados públicos do usuário                               |
+| `bathroom.dto`      | Entrada, detalhes, apresentação e resultados de proximidade/duplicidade de banheiros |
+| `review.dto`        | Entrada e apresentação das avaliações                                                |
+| `contribution.dto`  | Resumo das contribuições do autor, também reutilizado nas respostas de outros fluxos |
+| `report.dto`        | Entrada e apresentação das denúncias                                                 |
+| `image.dto`         | Identificação dos anexos, sem criar entidade ou moderação independente de foto       |
+| `moderation.dto`    | Decisão, inspeção, fila e histórico de auditoria                                     |
+
+Um DTO reutilizado mantém uma única definição no caso de uso responsável. Por exemplo, `ModerationDetail` referencia `BathroomView`, `ContributionView` e `ImageView` dos respectivos pacotes. A mudança dos tipos Java não altera nomes de campos JSON, validações, endpoints ou regras de negócio; o frontend e as coleções HTTP continuam usando os mesmos contratos.
+
+## Autenticação e sessão
+
+`AuthController` delega a entrada a `LoginService` e o cadastro/consulta da conta a `AccountService`. `LoginService` normaliza o e-mail e pede a autenticação ao `AuthenticationManager`; o `DaoAuthenticationProvider` usa `AccountDetailsService` e `PasswordEncoder` para carregar a conta e verificar a senha. A validação de credenciais não é duplicada no controller.
+
+`AccountDetailsService` implementa a interface `UserDetailsService` do Spring Security. `SecurityConfig` recebe essa interface e não importa entidades ou repositórios de `usecase.account`, eliminando a dependência circular entre os pacotes de conta e segurança. A configuração HTTP e o caso de uso compartilham o mesmo `AuthenticationManager`.
+
+`SessionAuthenticationService` renova o identificador da sessão existente e salva o contexto autenticado pelo `SecurityContextRepository` compartilhado com a cadeia de filtros. `SessionPolicy`, `SessionExpiryFilter` e `SessionConfiguration` continuam separados: definem os prazos, rejeitam sessões vencidas e configuram o cookie. As credenciais são apagadas pelo `ProviderManager` antes da persistência do contexto.
+
+`LoginRequest`, `RegisterRequest` e `UserView` são contratos locais de conta. Os endpoints `/api/auth/csrf`, `/api/auth/login`, `/api/auth/register`, `/api/auth/me` e `/api/auth/logout`, os campos JSON e as respostas permanecem iguais. A autenticação continua por sessão HTTP com CSRF e cookie HttpOnly; não foram introduzidos JWT ou refresh token. O limite de 72 bytes do BCrypt, as mensagens de credenciais inválidas, as permissões, a limitação de tentativas e a opção de manter conectado são preservados. Falhas internas de autenticação continuam sendo tratadas como falhas do servidor, sem serem confundidas com senha incorreta.
 
 As entidades mantêm nomes do domínio em inglês: `User`, `Bathroom`, `Review`, `Report` e `ModerationAudit`. `AppUser` foi renomeada para `User`, `AppUserRepository` para `UserRepository`, `Access` para `AccessType` e `AdminController` para `ModerationController`. A entidade `User` está mapeada na tabela `user`, entre aspas no SQL por ser uma palavra reservada. V16 renomeia `app_users` preservando seus registros e relações. O `User` do Spring Security é referenciado explicitamente para não confundir os dois modelos.
 
