@@ -2,13 +2,13 @@ import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angul
 import { NavigationEnd, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ExplorationState } from '../exploration-workspace/exploration-state.service';
-import { NavigationService } from '../../features/navigation/navigation.service';
+import { RouteNavigationService } from '../../features/route/navigation/service/route-navigation.service';
 
 @Injectable({ providedIn: 'root' })
 export class MobileUiService {
   private readonly router = inject(Router);
   private readonly state = inject(ExplorationState);
-  readonly navigation = inject(NavigationService);
+  readonly navigation = inject(RouteNavigationService);
   private readonly media = window.matchMedia('(max-width: ' + getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-mobile').trim() + ')');
   readonly mobile = signal(this.media.matches);
   readonly url = signal(this.router.url);

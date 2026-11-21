@@ -1,0 +1,23 @@
+@if (auth.user()) {
+  <div class="modal-backdrop">
+    <form class="small-modal" role="dialog" aria-modal="true" aria-labelledby="report-title" appDialogFocus (dialogEscape)="!submission.busy() && closed.emit()" (ngSubmit)="submit()">
+      <button type="button" class="icon-button modal-close" aria-label="Fechar" (click)="closed.emit()"><app-icon name="X" /></button><span class="eyebrow">AJUDE A CUIDAR DA COMUNIDADE</span>
+      <h2 id="report-title">Denunciar conteúdo</h2>
+      <p class="muted">Sua denúncia será analisada por uma pessoa da moderação.</p>
+      <label
+        >Motivo<select name="reason" [ngModel]="submission.reason()" (ngModelChange)="submission.reason.set($event)" required>
+          <option value="INCORRECT">Informação incorreta</option>
+          <option value="CLOSED">Local fechado ou indisponível</option>
+          <option value="PRIVACY">Pessoas ou informações pessoais</option>
+          <option value="INAPPROPRIATE">Conteúdo inadequado</option>
+          <option value="SPAM">Spam</option>
+          <option value="OTHER">Outro motivo</option>
+        </select></label
+      >
+      @if (submission.message()) {
+        <p role="status">{{ submission.message() }}</p>
+      }
+      <button class="button primary full" [disabled]="submission.busy() || submission.sent()">{{ submission.sent() ? 'Denúncia recebida' : submission.busy() ? 'Enviando…' : 'Enviar denúncia' }}</button>
+    </form>
+  </div>
+}

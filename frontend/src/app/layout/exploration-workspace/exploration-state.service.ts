@@ -1,11 +1,14 @@
+import { apiError } from '../../core/http/api-error';
+import { BathroomApiService } from '../../features/bathroom/service/bathroom-api.service';
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
-import { ApiService } from '../../core/http/api.service';
 import { MapsService, TravelMode, TravelRoute } from '../../integrations/maps/maps.service';
 import { Bathroom, ITEM_LABELS } from '../../domain/bathrooms/bathroom.model';
 import { Location, MapArea } from '../../domain/location/location.model';
 import { distanceMeters, validPoint } from '../../shared/geo/navigation-geometry';
 import { OBSERVED_ACCESSIBILITY } from '../../domain/bathrooms/bathroom-details';
-import { ExplorationFilters, activeFilters, copyFilters, emptyFilters, filterBathrooms, FILTER_DISTANCES } from '../../features/explore-bathrooms/exploration-filters';
+import { BathroomSearchFilters, FILTER_DISTANCES } from '../../features/bathroom/search/model/bathroom-search-filters.model';
+import { activeFilters, copyFilters, emptyFilters, filterBathrooms } from '../../features/bathroom/search/service/bathroom-search-filtering';
+import { BathroomSearchService } from '../../features/bathroom/search/service/bathroom-search.service';
 
 export interface RouteDraft {
   origin: string;
@@ -22,12 +25,11 @@ export interface PhotoView {
 }
 export type ExplorationScene = 'search' | 'details' | 'route' | 'review' | 'registration';
 const MAP_MESSAGE_DURATION_MS = 6000;
-const SEARCH_PAGE_SIZE = 200;
-const SEARCH_MAX_OFFSET = 100000;
 
 @Injectable({ providedIn: 'root' })
 export class ExplorationState {
-  private readonly api = inject(ApiService);
+  private readonly bathrooms = inject(BathroomApiService);
+  private readonly searchResults = inject(BathroomSearchService);
   private readonly maps = inject(MapsService);
   private sequence = 0;
   private selectedSequence = 0;
@@ -36,8 +38,8 @@ export class ExplorationState {
   loaded = false;
   lastSelected = '';
   query = '';
-  readonly appliedFilters = signal<ExplorationFilters>(emptyFilters());
-  readonly filterDraft = signal<ExplorationFilters | null>(null);
+  readonly appliedFilters = signal<BathroomSearchFilters>(emptyFilters());
+  readonly filterDraft = signal<BathroomSearchFilters | null>(null);
   readonly activeFilters = computed(() => activeFilters(this.appliedFilters()));
   readonly filterCount = computed(() => this.activeFilters().length);
   readonly referenceLabel = signal('Minha localização');
@@ -97,7 +99,7 @@ export class ExplorationState {
   closeFilters(): void {
     this.filterDraft.set(null);
   }
-  updateFilterDraft(value: Partial<ExplorationFilters>): void {
+  updateFilterDraft(value: Partial<BathroomSearchFilters>): void {
     this.filterDraft.update((draft) => (draft ? { ...draft, ...value } : null));
   }
   clearFilterDraft(): void {
@@ -166,17 +168,10 @@ export class ExplorationState {
     this.loading.set(true);
     this.error.set('');
     try {
-      const parameters: Record<string, string> = { q: this.query };
       const bathrooms: Bathroom[] = [];
-      const received = new Set<string>();
-      for (let offset = 0; ; offset += SEARCH_PAGE_SIZE) {
-        if (offset > SEARCH_MAX_OFFSET) throw new Error('A busca está muito ampla. Informe um nome ou região para continuar.');
-        const page = await this.api.get<Bathroom[]>('/bathrooms', offset ? { ...parameters, offset: String(offset) } : parameters);
+      for await (const page of this.searchResults.loadResultPages(this.query)) {
         if (sequence !== this.sequence) return;
-        if (page.some((bathroom) => received.has(bathroom.id))) throw new Error('Não foi possível carregar a busca completa. Tente novamente.');
-        page.forEach((bathroom) => received.add(bathroom.id));
         bathrooms.push(...page);
-        if (page.length < SEARCH_PAGE_SIZE) break;
       }
       this.results.set(bathrooms);
       this.filterViewport.set(false);
@@ -185,7 +180,7 @@ export class ExplorationState {
       this.loaded = true;
       if (inArea) this.showMessage('Resultados filtrados pela área visível do mapa.');
     } catch (error) {
-      if (sequence === this.sequence) this.error.set(this.api.error(error));
+      if (sequence === this.sequence) this.error.set(apiError(error));
     } finally {
       if (sequence === this.sequence) this.loading.set(false);
     }
@@ -198,10 +193,10 @@ export class ExplorationState {
     if (!point) return null;
     return Math.round(distanceMeters(point, { lat: bathroom.latitude, lng: bathroom.longitude }));
   }
-  async select(id: string): Promise<Bathroom | null> {
+  async select(id: string, loadedBathroom?: Promise<Bathroom>): Promise<Bathroom | null> {
     const sequence = ++this.selectedSequence;
     if (this.selected()?.id !== id) this.selected.set(this.results().find((bathroom) => bathroom.id === id) || null);
-    const bathroom = await this.api.get<Bathroom>('/bathrooms/' + id);
+    const bathroom = await (loadedBathroom || this.bathrooms.details(id));
     if (sequence === this.selectedSequence) this.selected.set(bathroom);
     return sequence === this.selectedSequence ? bathroom : null;
   }
@@ -245,7 +240,7 @@ export class ExplorationState {
       this.order();
       this.showMessage('Localização obtida. As distâncias da lista são em linha reta.');
     } catch (error) {
-      if (sequence === this.locationSequence) this.showMessage(this.api.error(error));
+      if (sequence === this.locationSequence) this.showMessage(apiError(error));
     }
   }
   async locateAddress(): Promise<void> {
@@ -260,7 +255,7 @@ export class ExplorationState {
       this.order();
       this.showMessage('Mapa centralizado no endereço buscado. Distâncias em linha reta.');
     } catch (error) {
-      if (sequence === this.locationSequence) this.showMessage(this.api.error(error));
+      if (sequence === this.locationSequence) this.showMessage(apiError(error));
     }
   }
 }

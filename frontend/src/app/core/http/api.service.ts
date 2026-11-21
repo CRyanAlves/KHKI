@@ -27,7 +27,4 @@ export class ApiService {
   put<T>(path: string, body: unknown): Promise<T> {
     return this.request(this.http.put<T>('/api' + path, body), path);
   }
-  error(error: unknown): string {
-    return error instanceof HttpErrorResponse ? error.error?.detail || (error.status === 0 || error.status === 502 ? 'Não foi possível conectar ao servidor. Confira se o backend está em execução.' : 'Não foi possível concluir. Tente novamente.') : error instanceof Error ? error.message : 'Não foi possível concluir. Tente novamente.';
-  }
 }

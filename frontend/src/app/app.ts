@@ -1,20 +1,20 @@
+import { apiError } from './core/http/api-error';
 import { Component, inject, signal } from '@angular/core';
 import { NavigationCancel, NavigationEnd, NavigationError, NavigationSkipped, NavigationStart, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ThemeService } from './core/preferences/theme.service';
 import { AuthService } from './core/session/auth.service';
-import { ApiService } from './core/http/api.service';
 import { IconComponent } from './shared/ui/icon/icon.component';
-import { AuthenticationComponent } from './features/authentication/authentication.component';
+import { AuthenticationPanelComponent } from './layout/authentication-panel/authentication-panel.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SkeletonComponent, SkeletonVariant } from './shared/ui/skeleton/skeleton.component';
 import { MobileUiService } from './layout/mobile/mobile-ui.service';
-import { MobileAccountComponent } from './features/authentication/account-menu/mobile-account.component';
+import { MobileAccountPopoverComponent } from './features/user/account-menu/view/mobile-account-popover.component';
 import { AccountAvatarComponent } from './shared/ui/account-avatar/account-avatar.component';
-import { ExploreFilterPanelComponent } from './features/explore-bathrooms/explore-filter-panel.component';
+import { BathroomSearchFiltersPanelComponent } from './features/bathroom/search/view/filters/bathroom-search-filters-panel.component';
 import { ConfirmationComponent } from './shared/ui/confirmation/confirmation.component';
 import { MobileNavMotionDirective } from './layout/mobile-navbar/mobile-nav-motion.directive';
 
-@Component({ selector: 'app-root', imports: [MobileNavMotionDirective, ExploreFilterPanelComponent, ConfirmationComponent, MobileAccountComponent, AccountAvatarComponent, SkeletonComponent, RouterOutlet, RouterLink, RouterLinkActive, IconComponent, AuthenticationComponent], templateUrl: './app.html', styleUrl: './app.scss' })
+@Component({ selector: 'app-root', imports: [MobileNavMotionDirective, BathroomSearchFiltersPanelComponent, ConfirmationComponent, MobileAccountPopoverComponent, AccountAvatarComponent, SkeletonComponent, RouterOutlet, RouterLink, RouterLinkActive, IconComponent, AuthenticationPanelComponent], templateUrl: './app.html', styleUrl: './app.scss' })
 export class App {
   readonly navigation = [
     { path: '/', label: 'Explorar', icon: 'Search' },
@@ -24,7 +24,6 @@ export class App {
   readonly theme = inject(ThemeService);
   readonly auth = inject(AuthService);
   readonly mobileUi = inject(MobileUiService);
-  private readonly api = inject(ApiService);
   menu = false;
   error = '';
   readonly navigationLoading = signal(false);
@@ -47,7 +46,7 @@ export class App {
       await this.auth.logout();
       this.menu = false;
     } catch (error) {
-      this.error = this.api.error(error);
+      this.error = apiError(error);
     }
   }
 }

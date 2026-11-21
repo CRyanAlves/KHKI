@@ -1,4 +1,5 @@
-import type { RegisterBathroomComponent } from '../../features/register-bathroom/register-bathroom.component';
+import { apiError } from '../../core/http/api-error';
+import type { BathroomRegistrationFormComponent } from '../../features/bathroom/register/view/bathroom-registration-form.component';
 import { DecimalPipe } from '@angular/common';
 import { Bathroom } from '../../domain/bathrooms/bathroom.model';
 import { Location } from '../../domain/location/location.model';
@@ -10,18 +11,18 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ExplorationState } from './exploration-state.service';
 import { MapComponent } from '../../integrations/maps/map/map.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
-import { NavigationService } from '../../features/navigation/navigation.service';
-import { NavigationToolsComponent } from '../../features/navigation/tools/navigation-tools.component';
-import { ExploreComponent } from '../../features/explore-bathrooms/explore.component';
-import { MapPhotoViewerComponent } from '../../features/bathroom-details/gallery/map-photo-viewer.component';
+import { RouteNavigationService } from '../../features/route/navigation/service/route-navigation.service';
+import { RouteNavigationPanelComponent } from '../../features/route/navigation/view/panel/route-navigation-panel.component';
+import { BathroomSearchResultsComponent } from '../../features/bathroom/search/view/results/bathroom-search-results.component';
+import { BathroomPhotoGalleryComponent } from '../../features/bathroom/details/view/gallery/bathroom-photo-gallery.component';
 import { MapsService } from '../../integrations/maps/maps.service';
 import { MobileUiService } from '../mobile/mobile-ui.service';
 import { MobileSheetDirective } from '../mobile/mobile-sheet.directive';
-import { MobileSearchComponent } from '../../features/explore-bathrooms/search/mobile-search.component';
+import { MobileBathroomSearchInputComponent } from '../../features/bathroom/search/view/search-input/mobile-bathroom-search-input.component';
 
 @Component({
   selector: 'app-workspace',
-  imports: [MobileSearchComponent, MobileSheetDirective, DecimalPipe, MapPhotoViewerComponent, ExploreComponent, RouterOutlet, MapComponent, IconComponent, NavigationToolsComponent],
+  imports: [MobileBathroomSearchInputComponent, MobileSheetDirective, DecimalPipe, BathroomPhotoGalleryComponent, BathroomSearchResultsComponent, RouterOutlet, MapComponent, IconComponent, RouteNavigationPanelComponent],
   templateUrl: './workspace.component.html',
   styleUrls: ['./workspace.component.scss', '../../../styles/workspace.scss', '../../../styles/workspace-split.scss', '../../../styles/workspace-registration.scss', '../../../styles/workspace-picking.scss'],
   encapsulation: ViewEncapsulation.None
@@ -29,7 +30,7 @@ import { MobileSearchComponent } from '../../features/explore-bathrooms/search/m
 export class WorkspaceComponent implements OnInit {
   readonly state = inject(ExplorationState);
   readonly maps = inject(MapsService);
-  readonly navigation = inject(NavigationService);
+  readonly navigation = inject(RouteNavigationService);
   readonly mobileUi = inject(MobileUiService);
   readonly areaMoved = signal(false);
   readonly visibleMapBathrooms = computed(() => {
@@ -40,10 +41,10 @@ export class WorkspaceComponent implements OnInit {
   readonly urgentError = signal('');
   private readonly api = inject(ApiService);
   readonly navigationBottomInset = signal(0);
-  readonly registration = signal<RegisterBathroomComponent | null>(null);
+  readonly registration = signal<BathroomRegistrationFormComponent | null>(null);
   activatePanel(component: unknown, path: string | undefined): void {
     if (path !== 'cadastrar') return;
-    this.registration.set(component as RegisterBathroomComponent);
+    this.registration.set(component as BathroomRegistrationFormComponent);
     this.navigation.stop();
     this.state.enter('registration');
   }
@@ -172,7 +173,7 @@ export class WorkspaceComponent implements OnInit {
       this.state.routeDrafts.set(nearest.id, { origin: 'Minha localização', position, mode: 'drive', route, startNavigation: true });
       await this.router.navigate(['/banheiros', nearest.id, 'rota']);
     } catch (error) {
-      if (current()) this.urgentError.set(this.api.error(error));
+      if (current()) this.urgentError.set(apiError(error));
     } finally {
       this.urgentBusy.set(false);
     }

@@ -92,9 +92,7 @@ export class AuthService {
     this.opened.set(true);
     return false;
   }
-  async login(email: string, password: string, rememberMe = false): Promise<void> {
-    await this.api.get('/auth/csrf');
-    const user = await this.api.post<User>('/auth/login', { email, password, rememberMe });
+  async completeLogin(user: unknown): Promise<void> {
     this.validateUser(user);
     this.revision++;
     this.user.set(user);
@@ -107,11 +105,6 @@ export class AuthService {
     }
     this.opened.set(false);
     await this.resumeAction();
-  }
-  async register(name: string, email: string, password: string): Promise<void> {
-    await this.api.get('/auth/csrf');
-    await this.api.post('/auth/register', { name, email, password });
-    await this.login(email, password);
   }
   async logout(): Promise<void> {
     await this.api.get('/auth/csrf');
