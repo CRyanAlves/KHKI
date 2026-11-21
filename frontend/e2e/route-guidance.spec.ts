@@ -1,5 +1,5 @@
 import { expect, Page, test } from '@playwright/test';
-import { formatRouteDuration, parseManeuvers, upcomingDirections } from '../src/app/core/route-guidance';
+import { formatRouteDuration, parseManeuvers, upcomingDirections } from '../src/app/features/navigation/route-guidance';
 
 test('route duration formats minute and hour boundaries without showing 60 remaining minutes', () => {
   for (const [minutes, text] of [

@@ -39,6 +39,6 @@
 </nav>
 } @if (mobileUi.mobile() && mobileUi.accountOpen()) {
 <app-mobile-account (logoutRequested)="logout()" />
-} @if (auth.opened()) { <app-login /> }
+} @if (auth.opened()) { <app-authentication /> }
 <app-confirmation />
 <app-explore-filter-panel [mobile]="true" />

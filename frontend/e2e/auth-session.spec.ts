@@ -115,3 +115,38 @@ test('invalid account responses are treated as unavailable without breaking the 
   await expect(page.getByRole('button', { name: 'Entrar ou criar conta', exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('separate account registration retains fields between modes, recovers from failure and resumes the protected action', async ({ page }) => {
+  await prepare(page);
+  await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: { detail: 'Entre na sua conta.' } }));
+  let registrations = 0;
+  const loginPayloads: unknown[] = [];
+  await page.route('**/api/auth/register', async (route) => {
+    expect(route.request().postDataJSON()).toEqual({ name: 'Pessoa Nova', email: 'nova@example.test', password: 'Test-password-123' });
+    registrations++;
+    await route.fulfill({ status: registrations === 1 ? 503 : 201, json: registrations === 1 ? { detail: 'Tente novamente.' } : {} });
+  });
+  await page.route('**/api/auth/login', async (route) => {
+    loginPayloads.push(route.request().postDataJSON());
+    await route.fulfill({ json: user });
+  });
+  await page.goto('/');
+  await page.getByRole('link', { name: 'Cadastrar banheiro', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('E-mail', { exact: true }).fill('nova@example.test');
+  await dialog.getByLabel('Senha', { exact: true }).fill('Test-password-123');
+  await dialog.getByRole('button', { name: 'Cadastre-se', exact: true }).click();
+  await dialog.getByLabel('Nome', { exact: true }).fill('Pessoa Nova');
+  await dialog.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await expect(dialog.getByLabel('E-mail', { exact: true })).toHaveValue('nova@example.test');
+  await dialog.getByRole('button', { name: 'Cadastre-se', exact: true }).click();
+  await expect(dialog.getByLabel('Nome', { exact: true })).toHaveValue('Pessoa Nova');
+  await dialog.getByRole('button', { name: 'Criar conta', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toHaveText('Tente novamente.');
+  await expect(dialog.getByLabel('Senha', { exact: true })).toHaveValue('Test-password-123');
+  await dialog.getByRole('button', { name: 'Criar conta', exact: true }).click();
+  await expect(page).toHaveURL(/\/cadastrar$/);
+  await expect(dialog).toHaveCount(0);
+  expect(registrations).toBe(2);
+  expect(loginPayloads).toEqual([{ email: 'nova@example.test', password: 'Test-password-123', rememberMe: false }]);
+});
