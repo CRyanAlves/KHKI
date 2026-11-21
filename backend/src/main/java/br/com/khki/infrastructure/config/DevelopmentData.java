@@ -1,11 +1,11 @@
 package br.com.khki.infrastructure.config;
 
 import br.com.khki.shared.domain.Status;
-import br.com.khki.usecase.account.User;
-import br.com.khki.usecase.account.UserRepository;
-import br.com.khki.usecase.bathroom.AccessType;
-import br.com.khki.usecase.bathroom.Bathroom;
-import br.com.khki.usecase.bathroom.BathroomRepository;
+import br.com.khki.usecase.bathroom.model.AccessType;
+import br.com.khki.usecase.bathroom.model.Bathroom;
+import br.com.khki.usecase.bathroom.model.repository.BathroomRepository;
+import br.com.khki.usecase.user.model.User;
+import br.com.khki.usecase.user.model.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;

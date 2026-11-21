@@ -6,7 +6,8 @@
 
 | Pacote         | Responsabilidade                                                                   |
 | -------------- | ---------------------------------------------------------------------------------- |
-| `account`      | `User`, `UserRepository`, cadastro, autenticação e usuário atual                   |
+| `user`         | Cadastro da conta, usuário atual, `User` e `UserRepository`                        |
+| `login`        | Autenticação, obtenção do token CSRF e carregamento de credenciais                 |
 | `bathroom`     | `Bathroom`, `AccessType`, consulta, detalhes, cadastro, correção e proximidade     |
 | `review`       | `Review`, consulta e envio/correção de avaliações                                  |
 | `contribution` | Contribuições do autor, sem recibos de envio                                       |
@@ -18,7 +19,8 @@
 
 | Pacote de contratos | Responsabilidade                                                                     |
 | ------------------- | ------------------------------------------------------------------------------------ |
-| `account.dto`       | Entrada, cadastro de conta e dados públicos do usuário                               |
+| `user.dto`          | Cadastro de conta e dados públicos do usuário                                        |
+| `login.dto`         | Credenciais e preferência de permanência da sessão                                   |
 | `bathroom.dto`      | Entrada, detalhes, apresentação e resultados de proximidade/duplicidade de banheiros |
 | `review.dto`        | Entrada e apresentação das avaliações                                                |
 | `contribution.dto`  | Resumo das contribuições do autor, também reutilizado nas respostas de outros fluxos |
@@ -26,17 +28,42 @@
 | `image.dto`         | Identificação dos anexos, sem criar entidade ou moderação independente de foto       |
 | `moderation.dto`    | Decisão, inspeção, fila e histórico de auditoria                                     |
 
-Um DTO reutilizado mantém uma única definição no caso de uso responsável. Por exemplo, `ModerationDetail` referencia `BathroomView`, `ContributionView` e `ImageView` dos respectivos pacotes. A mudança dos tipos Java não altera nomes de campos JSON, validações, endpoints ou regras de negócio; o frontend e as coleções HTTP continuam usando os mesmos contratos.
+Um DTO reutilizado mantém uma única definição no caso de uso responsável. Por exemplo, `ModerationDetailDTO` referencia `BathroomDTO`, `ContributionDTO` e `ImageDTO` dos respectivos pacotes. A mudança dos tipos Java não altera nomes de campos JSON, validações, endpoints ou regras de negócio; o frontend e as coleções HTTP continuam usando os mesmos contratos.
+
+## Estrutura interna dos módulos
+
+Os fontes ficam em `src/main/java/br/com/khki`, coerentes com o pacote Java raiz `br.com.khki`. Somente a migração Java do Flyway permanece em `src/main/java/db/migration`, no pacote `db.migration`.
+
+Cada caso de uso separa suas responsabilidades em `controller` (HTTP), `service` (operações e regras), `dto` (contratos), `model` (entidades, enumerações e o subpacote `model.repository` para persistência). Só existem as camadas efetivamente usadas: não há entidades artificiais de login, imagem ou contribuição. Neste backend REST, os DTOs representam os dados enviados ao frontend; não existe uma camada de templates HTML.
+
+```text
+br.com.khki
+├── usecase
+│   ├── user          # Cadastrar-se e consultar o usuário atual
+│   ├── login         # Login e token CSRF
+│   ├── bathroom      # Buscar, consultar, cadastrar e corrigir banheiros
+│   ├── review        # Manter avaliação
+│   ├── report        # Fazer denúncia
+│   ├── moderation    # Manter moderação
+│   ├── contribution  # Apoio: contribuições do autor
+│   └── image         # Apoio: anexos e leitura autorizada
+├── shared            # Erros, estado e referências comuns
+└── infrastructure    # Segurança, sessões, armazenamento e configuração
+```
+
+`Bathroom` e `AccessType` ficam em `bathroom.model`; `User`, em `user.model`; `Review`, em `review.model`; `Report`, em `report.model`; e `ModerationAudit`, em `moderation.model`. Cada entidade mantém uma única definição e seu repositório em `model.repository` do módulo proprietário, por exemplo `bathroom.model.repository.BathroomRepository`. `BathroomDetailsMapper` e `ImageUrls` ficam em `service` como auxiliares das operações, sem exigir novos beans.
+
+A rastreabilidade com o Astah preserva os casos de uso existentes. Visualizar mapa e traçar rotas são realizados pelo frontend e pela integração de mapas, por isso não criam módulos fictícios no backend. Contribuições e imagens continuam como módulos de apoio. O logout continua na cadeia de filtros do Spring Security; as políticas e os filtros de sessão permanecem na infraestrutura. O diagrama Astah não foi alterado nesta reorganização.
 
 ## Autenticação e sessão
 
-`AuthController` delega a entrada a `LoginService` e o cadastro/consulta da conta a `AccountService`. `LoginService` normaliza o e-mail e pede a autenticação ao `AuthenticationManager`; o `DaoAuthenticationProvider` usa `AccountDetailsService` e `PasswordEncoder` para carregar a conta e verificar a senha. A validação de credenciais não é duplicada no controller.
+`login.controller.LoginController` delega a entrada a `login.service.LoginService` e disponibiliza o token CSRF. `user.controller.UserController` delega o cadastro e a consulta da conta a `user.service.UserService`. `LoginService` normaliza o e-mail e pede a autenticação ao `AuthenticationManager`; o `DaoAuthenticationProvider` usa `UserDetailsProvider` e `PasswordEncoder` para carregar a conta e verificar a senha. A validação de credenciais não é duplicada no controller.
 
-`AccountDetailsService` implementa a interface `UserDetailsService` do Spring Security. `SecurityConfig` recebe essa interface e não importa entidades ou repositórios de `usecase.account`, eliminando a dependência circular entre os pacotes de conta e segurança. A configuração HTTP e o caso de uso compartilham o mesmo `AuthenticationManager`.
+`UserDetailsProvider` implementa a interface `UserDetailsService` do Spring Security. `SecurityConfig` recebe essa interface e não importa entidades ou repositórios de `usecase.user`, eliminando a dependência circular entre os pacotes de conta e segurança. A configuração HTTP e o caso de uso compartilham o mesmo `AuthenticationManager`.
 
 `SessionAuthenticationService` renova o identificador da sessão existente e salva o contexto autenticado pelo `SecurityContextRepository` compartilhado com a cadeia de filtros. `SessionPolicy`, `SessionExpiryFilter` e `SessionConfiguration` continuam separados: definem os prazos, rejeitam sessões vencidas e configuram o cookie. As credenciais são apagadas pelo `ProviderManager` antes da persistência do contexto.
 
-`LoginRequest`, `RegisterRequest` e `UserView` são contratos locais de conta. Os endpoints `/api/auth/csrf`, `/api/auth/login`, `/api/auth/register`, `/api/auth/me` e `/api/auth/logout`, os campos JSON e as respostas permanecem iguais. A autenticação continua por sessão HTTP com CSRF e cookie HttpOnly; não foram introduzidos JWT ou refresh token. O limite de 72 bytes do BCrypt, as mensagens de credenciais inválidas, as permissões, a limitação de tentativas e a opção de manter conectado são preservados. Falhas internas de autenticação continuam sendo tratadas como falhas do servidor, sem serem confundidas com senha incorreta.
+`LoginDTO` pertence a `login.dto`; `RegisterDTO` e `UserDTO` pertencem a `user.dto`. A resposta pública de usuário é reutilizada pelo login, sem duplicar o DTO. Os endpoints `/api/auth/csrf`, `/api/auth/login`, `/api/auth/register`, `/api/auth/me` e `/api/auth/logout`, os campos JSON e as respostas permanecem iguais. A autenticação continua por sessão HTTP com CSRF e cookie HttpOnly; não foram introduzidos JWT ou refresh token. O limite de 72 bytes do BCrypt, as mensagens de credenciais inválidas, as permissões, a limitação de tentativas e a opção de manter conectado são preservados. Falhas internas de autenticação continuam sendo tratadas como falhas do servidor, sem serem confundidas com senha incorreta.
 
 As entidades mantêm nomes do domínio em inglês: `User`, `Bathroom`, `Review`, `Report` e `ModerationAudit`. `AppUser` foi renomeada para `User`, `AppUserRepository` para `UserRepository`, `Access` para `AccessType` e `AdminController` para `ModerationController`. A entidade `User` está mapeada na tabela `user`, entre aspas no SQL por ser uma palavra reservada. V16 renomeia `app_users` preservando seus registros e relações. O `User` do Spring Security é referenciado explicitamente para não confundir os dois modelos.
 
@@ -75,7 +102,7 @@ Verificação histórica da V14: 36 testes no PostgreSQL 17, sem falhas; suíte 
 
 ## Reaproveitamento de regras
 
-`GeographicDistance` centraliza a distância em linha reta usada na busca de duplicados e na verificação de proximidade. A montagem de `BathroomView` consulta as avaliações aprovadas uma única vez e reaproveita o resultado para nota, contagem e imagens; registros legados sem nota continuam contribuindo apenas com suas imagens. A moderação reutiliza o mesmo banheiro detalhado na resposta, uma única montagem de auditoria e as entidades já carregadas. Os contratos HTTP, as permissões, as regras de transição e as migrações históricas permanecem preservados.
+`GeographicDistance` centraliza a distância em linha reta usada na busca de duplicados e na verificação de proximidade. A montagem de `BathroomDTO` consulta as avaliações aprovadas uma única vez e reaproveita o resultado para nota, contagem e imagens; registros legados sem nota continuam contribuindo apenas com suas imagens. A moderação reutiliza o mesmo banheiro detalhado na resposta, uma única montagem de auditoria e as entidades já carregadas. Os contratos HTTP, as permissões, as regras de transição e as migrações históricas permanecem preservados.
 
 ## Remoção de recibos e nome da tabela de usuários
 

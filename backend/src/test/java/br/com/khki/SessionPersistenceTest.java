@@ -44,7 +44,7 @@ class SessionPersistenceTest {
   br.com.khki.infrastructure.security.AbuseGuard abuse;
 
   @Autowired
-  br.com.khki.usecase.account.UserRepository users;
+  br.com.khki.usecase.user.model.repository.UserRepository users;
 
   @Autowired
   org.springframework.security.crypto.password.PasswordEncoder passwords;
@@ -129,7 +129,7 @@ class SessionPersistenceTest {
 
   @Test
   void sessionSupportsTheFullEmailLengthAcceptedByTheAccountContract() throws Exception {
-    var account = new br.com.khki.usecase.account.User();
+    var account = new br.com.khki.usecase.user.model.User();
     account.setName("Conta com e-mail longo");
     account.setEmail("a".repeat(64) + "@" + "b".repeat(63) + "." + "c".repeat(63) + "." + "d".repeat(61));
     account.setPassword(passwords.encode("Test-user-password-123"));

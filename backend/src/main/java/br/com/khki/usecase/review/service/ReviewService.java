@@ -1,0 +1,68 @@
+package br.com.khki.usecase.review.service;
+
+import br.com.khki.shared.api.ApiException;
+import br.com.khki.shared.domain.Status;
+import br.com.khki.usecase.bathroom.service.BathroomService;
+import br.com.khki.usecase.contribution.dto.ContributionDTO;
+import br.com.khki.usecase.contribution.service.ContributionService;
+import br.com.khki.usecase.review.dto.ReviewDTO;
+import br.com.khki.usecase.review.dto.ReviewInputDTO;
+import br.com.khki.usecase.review.model.Review;
+import br.com.khki.usecase.review.model.repository.ReviewRepository;
+import br.com.khki.usecase.user.model.repository.UserRepository;
+import java.util.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@Transactional
+public class ReviewService {
+
+  private final ReviewRepository reviews;
+  private final UserRepository users;
+  private final BathroomService bathrooms;
+  private final ContributionService contributions;
+
+  public ReviewService(ReviewRepository reviews, UserRepository users, BathroomService bathrooms, ContributionService contributions) {
+    this.reviews = reviews;
+    this.users = users;
+    this.bathrooms = bathrooms;
+    this.contributions = contributions;
+  }
+
+  public List<ReviewDTO> publicReviews(UUID id) {
+    bathrooms.approved(id);
+    return reviews
+      .findByBathroom_IdAndStatusOrderByCreatedAtDesc(id, Status.APPROVED)
+      .stream()
+      .filter(review -> !review.getPhotoOnly())
+      .map(review -> new ReviewDTO(review.getId(), review.getAuthor().getName(), review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt()))
+      .toList();
+  }
+
+  public ContributionDTO createReview(UUID bathroomId, ReviewInputDTO input, UUID authorId) {
+    var bathroom = bathrooms.approved(bathroomId);
+    var review = new Review();
+    review.setAuthor(users.findById(authorId).orElseThrow(ApiException::missing));
+    review.setBathroom(bathroom);
+    applyReview(review, input);
+    return contributions.contribution(reviews.save(review));
+  }
+
+  private void applyReview(Review review, ReviewInputDTO input) {
+    review.setCleanliness(input.cleanliness());
+    review.setStructure(input.structure());
+    review.setComment(input.comment());
+  }
+
+  public ContributionDTO reviseReview(UUID id, ReviewInputDTO input, UUID authorId) {
+    var review = reviews.findById(id).orElseThrow(ApiException::missing);
+    contributions.editable(review, authorId);
+    bathrooms.approved(review.getBathroom().getId());
+    review.setPhotoOnly(false);
+    applyReview(review, input);
+    review.setStatus(Status.PENDING);
+    review.setReason(null);
+    return contributions.contribution(reviews.save(review));
+  }
+}
