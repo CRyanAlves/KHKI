@@ -5,7 +5,7 @@ import { Location } from '../../domain/location/location.model';
 import { validPoint } from '../../shared/geo/navigation-geometry';
 import type { Feature, MultiLineString } from 'geojson';
 import { isTravelMode, TravelMode } from './travel-modes';
-import { parseManeuvers, RouteManeuver } from '../../features/navigation/route-guidance';
+import { parseManeuvers, RouteManeuver } from '../../features/route/service/route-maneuver-guidance';
 export type { TravelMode } from './travel-modes';
 
 declare global {

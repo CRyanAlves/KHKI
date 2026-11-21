@@ -5,7 +5,7 @@ import { Bathroom, ITEM_LABELS } from '../../domain/bathrooms/bathroom.model';
 import { Location, MapArea } from '../../domain/location/location.model';
 import { distanceMeters, validPoint } from '../../shared/geo/navigation-geometry';
 import { OBSERVED_ACCESSIBILITY } from '../../domain/bathrooms/bathroom-details';
-import { ExplorationFilters, activeFilters, copyFilters, emptyFilters, filterBathrooms, FILTER_DISTANCES } from '../../features/explore-bathrooms/exploration-filters';
+import { ExplorationFilters, activeFilters, copyFilters, emptyFilters, filterBathrooms, FILTER_DISTANCES } from '../../features/bathroom/search/service/bathroom-search-filtering';
 
 export interface RouteDraft {
   origin: string;

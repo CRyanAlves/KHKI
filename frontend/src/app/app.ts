@@ -4,13 +4,13 @@ import { ThemeService } from './core/preferences/theme.service';
 import { AuthService } from './core/session/auth.service';
 import { ApiService } from './core/http/api.service';
 import { IconComponent } from './shared/ui/icon/icon.component';
-import { AuthenticationComponent } from './features/authentication/authentication.component';
+import { AuthenticationComponent } from './layout/authentication-panel/authentication-panel.component';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { SkeletonComponent, SkeletonVariant } from './shared/ui/skeleton/skeleton.component';
 import { MobileUiService } from './layout/mobile/mobile-ui.service';
-import { MobileAccountComponent } from './features/authentication/account-menu/mobile-account.component';
+import { MobileAccountComponent } from './features/user/account-menu/view/mobile-account-popover.component';
 import { AccountAvatarComponent } from './shared/ui/account-avatar/account-avatar.component';
-import { ExploreFilterPanelComponent } from './features/explore-bathrooms/explore-filter-panel.component';
+import { ExploreFilterPanelComponent } from './features/bathroom/search/view/filters/bathroom-search-filters-panel.component';
 import { ConfirmationComponent } from './shared/ui/confirmation/confirmation.component';
 import { MobileNavMotionDirective } from './layout/mobile-navbar/mobile-nav-motion.directive';
 

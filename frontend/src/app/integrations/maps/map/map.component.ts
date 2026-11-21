@@ -5,9 +5,9 @@ import { Location, MapArea } from '../../../domain/location/location.model';
 import { MapsService, TravelRoute } from '../maps.service';
 import { ThemeService } from '../../../core/preferences/theme.service';
 import { IconComponent } from '../../../shared/ui/icon/icon.component';
-import { animateRoute } from '../../../features/navigation/route-animation';
+import { animateRoute } from '../../../features/route/navigation/view/map/route-path-animation';
 import { motionDurationMilliseconds } from '../../../shared/utils/motion-duration';
-import type { NavigationFrame } from '../../../features/navigation/navigation.service';
+import type { NavigationFrame } from '../../../features/route/navigation/service/route-navigation.service';
 import { headingDelta } from '../../../shared/geo/navigation-geometry';
 
 import { SkeletonComponent } from '../../../shared/ui/skeleton/skeleton.component';
