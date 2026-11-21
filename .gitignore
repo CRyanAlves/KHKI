@@ -15,4 +15,5 @@ frontend/playwright-report/
 coverage/
 cloudflare/node_modules/
 cloudflare/.wrangler/
+/.wrangler/
 supabase/.temp/
