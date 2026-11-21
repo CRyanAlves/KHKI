@@ -1,26 +1,175 @@
-.modal-backdrop { position: fixed; inset: 0; z-index: 100; background: var(--color-overlay); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; padding: var(--space-6); overflow-y: auto; }
-.login-modal { position: relative; display: grid; grid-template-columns: 1fr 1fr; width: 900px; max-width: 100%; background: var(--color-surface); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-lg); }
-.modal-close { position: absolute; top: var(--space-4); right: var(--space-4); z-index: 1; }
-.login-story { display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--color-background); padding: var(--space-12) var(--space-8); text-align: center; }
-.city-illustration { width: 100%; max-width: 350px; margin-bottom: var(--space-8); border-radius: var(--radius-md); overflow: hidden; }
-.city-illustration img { width: 100%; height: auto; object-fit: contain; }
-.brand-pin.large { width: 84px; height: 98px; border-width: 8px; }
-.login-story .eyebrow { font-size: 0.57rem; }
-.login-story h2 { font-size: 3.1rem; line-height: 1.05; letter-spacing: -0.05em; margin-top: var(--space-4); }
-.login-story > p { max-width: 270px; color: var(--color-muted); margin-top: var(--space-5); }
-.story-note { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-8); font-size: 0.65rem; }
-.login-form { padding: 66px var(--space-10) var(--space-10); }
-.login-form h3 { font-size: 1.4rem; }
-.login-form > p.muted { font-size: var(--text-sm); }
-.login-form label { margin-top: var(--space-5); }
-.password-field { position: relative; }
-.password-field input { padding-right: 45px !important; }
-.password-field .icon-button { position: absolute; right: 5px; top: 6px; }
-.login-form .full { margin-top: var(--space-8); }
-.account-switch { text-align: center; font-size: var(--text-xs); margin-top: var(--space-5); }
-.account-switch .text-button { font-size: inherit; }
-.privacy-note { display: flex; gap: 5px; align-items: center; justify-content: center; margin-top: var(--space-8); font-size: 0.6rem; color: var(--color-muted); }
-.small-modal { width: 460px; position: relative; border-radius: var(--radius-lg); padding: var(--space-10); background: var(--color-surface); box-shadow: var(--shadow-lg); }
-.small-modal h2 { margin-top: var(--space-3); }
-.small-modal .full { margin-top: var(--space-5); }
-@media (max-width: 640px) { .modal-backdrop { padding: var(--space-4); } .login-modal { grid-template-columns: 1fr; max-height: calc(100dvh - 32px); overflow-y: auto; } .login-story { padding: var(--space-6); } .city-illustration, .story-note, .login-story > .eyebrow { display: none; } .login-story h2 { font-size: 2rem; margin-top: 0; } .login-story h2 br { display: none; } .login-story > p { font-size: var(--text-sm); margin-top: var(--space-3); } .login-form { padding: var(--space-6); } .login-form > h3, .login-form > p.muted { display: none; } .login-form label:first-of-type { margin-top: 0; } .small-modal { padding: var(--space-8) var(--space-6); } }
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--color-overlay);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  overflow-y: auto;
+}
+.login-modal {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 900px;
+  max-width: 100%;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+.modal-close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 1;
+}
+.login-story {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-background);
+  padding: var(--space-12) var(--space-8);
+  text-align: center;
+}
+.city-illustration {
+  width: 100%;
+  max-width: 350px;
+  margin-bottom: var(--space-8);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.city-illustration img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.brand-pin.large {
+  width: 84px;
+  height: 98px;
+  border-width: 8px;
+}
+.login-story .eyebrow {
+  font-size: 0.57rem;
+}
+.login-story h2 {
+  font-size: 3.1rem;
+  line-height: 1.05;
+  letter-spacing: -0.05em;
+  margin-top: var(--space-4);
+}
+.login-story > p {
+  max-width: 270px;
+  color: var(--color-muted);
+  margin-top: var(--space-5);
+}
+.story-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-8);
+  font-size: 0.65rem;
+}
+.login-form {
+  padding: 66px var(--space-10) var(--space-10);
+}
+.login-form h3 {
+  font-size: 1.4rem;
+}
+.login-form > p.muted {
+  font-size: var(--text-sm);
+}
+.login-form label {
+  margin-top: var(--space-5);
+}
+.password-field {
+  position: relative;
+}
+.password-field input {
+  padding-right: 45px !important;
+}
+.password-field .icon-button {
+  position: absolute;
+  right: 5px;
+  top: 6px;
+}
+.login-form .full {
+  margin-top: var(--space-8);
+}
+.account-switch {
+  text-align: center;
+  font-size: var(--text-xs);
+  margin-top: var(--space-5);
+}
+.account-switch .text-button {
+  font-size: inherit;
+}
+.privacy-note {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-8);
+  font-size: 0.6rem;
+  color: var(--color-muted);
+}
+.small-modal {
+  width: 460px;
+  position: relative;
+  border-radius: var(--radius-lg);
+  padding: var(--space-10);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+.small-modal h2 {
+  margin-top: var(--space-3);
+}
+.small-modal .full {
+  margin-top: var(--space-5);
+}
+@media (max-width: 640px) {
+  .modal-backdrop {
+    padding: var(--space-4);
+  }
+  .login-modal {
+    grid-template-columns: 1fr;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+  }
+  .login-story {
+    padding: var(--space-6);
+  }
+  .city-illustration,
+  .story-note,
+  .login-story > .eyebrow {
+    display: none;
+  }
+  .login-story h2 {
+    font-size: 2rem;
+    margin-top: 0;
+  }
+  .login-story h2 br {
+    display: none;
+  }
+  .login-story > p {
+    font-size: var(--text-sm);
+    margin-top: var(--space-3);
+  }
+  .login-form {
+    padding: var(--space-6);
+  }
+  .login-form > h3,
+  .login-form > p.muted {
+    display: none;
+  }
+  .login-form label:first-of-type {
+    margin-top: 0;
+  }
+  .small-modal {
+    padding: var(--space-8) var(--space-6);
+  }
+}

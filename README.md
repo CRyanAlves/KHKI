@@ -28,6 +28,12 @@ npm.cmd start
 
 Abra [http://127.0.0.1:4200](http://127.0.0.1:4200). API em `http://127.0.0.1:8080/api`, encaminhada pelo proxy do Angular. Use sempre o mesmo hostname durante a sessão, pois os cookies de `localhost` e `127.0.0.1` são diferentes. Em execução manual, variáveis de `.env` não são carregadas automaticamente pelo Spring: exporte-as no terminal ou use o iniciador.
 
+## Formatar o código
+
+Na raiz, execute `npm.cmd run format` para aplicar o Prettier em todos os arquivos suportados da aplicação, incluindo Angular, SCSS, Java, scripts, JSON, YAML e Markdown. Execute `npm.cmd run format:check` para apenas conferir. As dependências ficam no frontend: `npm.cmd ci --prefix frontend`.
+
+O comando reutiliza `frontend/.prettierrc`, sem vírgulas finais e com largura de 400 caracteres. Java usa `prettier-plugin-java`. Dependências, builds, arquivos gerados, dados, lockfiles e segredos são ignorados. Formatos sem parser configurado, como SQL e XML, não são alterados.
+
 ## Banco de dados
 
 Sem variáveis, a aplicação usa **H2 persistente** em `backend/data/khki`. Isso permite executar a apresentação sem Docker. H2 console fica desabilitado. Flyway aplica `V1__initial_schema.sql`, e Hibernate valida o schema sem alterá-lo.
@@ -56,16 +62,16 @@ Para carregar **três locais fictícios**, configure `DEMO_DATA=true` antes da p
 
 ## Organização e decisões para o reviewer
 
-| Área | Arquivos | Motivo |
-| --- | --- | --- |
-| Páginas | `frontend/src/app/features/` | Fluxos separados, carregados sob demanda pelo router |
-| HTTP, sessão e mapa | `frontend/src/app/core/` | Centraliza contrato, comunicação, autenticação e integração externa |
-| Componentes compartilhados | `frontend/src/app/shared/` | Reutiliza ícones, cards, mapa, login e denúncia |
-| Controllers/DTOs | `backend/.../api/` | Entrada validada e retorno explícito, sem expor usuários ou senhas |
-| Regras | `backend/.../service/` | Publicação, média, privacidade e transições no servidor |
-| Persistência | `backend/.../domain/`, `repository/` | Entidades JPA e repositórios injetados por construtor |
-| Segurança | `backend/.../security/` | Sessão HttpOnly, CSRF, BCrypt, CORS, perfis e limite básico de POSTs |
-| Migração | `backend/src/main/resources/db/migration/` | Schema versionado pelo Flyway |
+| Área                       | Arquivos                                      | Motivo                                                               |
+| -------------------------- | --------------------------------------------- | -------------------------------------------------------------------- |
+| Páginas                    | `frontend/src/app/features/`                  | Fluxos separados, carregados sob demanda pelo router                 |
+| HTTP, sessão e mapa        | `frontend/src/app/core/`                      | Centraliza contrato, comunicação, autenticação e integração externa  |
+| Componentes compartilhados | `frontend/src/app/shared/`                    | Reutiliza ícones, cards, mapa, login e denúncia                      |
+| Controllers/DTOs           | `backend/.../api/`                            | Entrada validada e retorno explícito, sem expor usuários ou senhas   |
+| Regras                     | `backend/.../service/`                        | Publicação, média, privacidade e transições no servidor              |
+| Persistência               | `backend/.../domain/`, `repository/`          | Entidades JPA e repositórios injetados por construtor                |
+| Segurança                  | `backend/.../security/`                       | Sessão HttpOnly, CSRF, BCrypt, CORS, perfis e limite básico de POSTs |
+| Migração                   | `backend/src/main/resources/db/migration/`    | Schema versionado pelo Flyway                                        |
 
 Fotos ficam como bytes privados no banco, adequados ao MVP de pequeno volume. O backend valida assinatura/formato real, tamanho e resolução e regrava JPEG sem metadados originais. A aprovação é humana, sem promessa de detecção automática de pessoas/reflexos. Uma foto rejeitada não rejeita seu cadastro ou avaliação. Ao remover uma foto, os bytes são apagados, mantendo o registro de moderação.
 

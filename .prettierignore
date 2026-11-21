@@ -1,0 +1,11 @@
+**/node_modules/
+**/dist/
+**/target/
+**/.angular/
+**/.wrangler/
+**/data/
+**/test-results/
+**/playwright-report/
+**/coverage/
+**/package-lock.json
+frontend/public/config.js
