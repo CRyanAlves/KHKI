@@ -2,15 +2,87 @@
   @if (!mobile() || ui.mobile()) {
     <div class="filters-container" [class.filters-overlay]="mobile()" (click)="mobile() && state.closeFilters()">
       <section id="explore-filters-panel" class="filters-panel" [attr.role]="mobile() ? 'dialog' : 'region'" [attr.aria-modal]="mobile() ? true : null" aria-labelledby="explore-filters-title" appDialogFocus dialogInitialFocus="#explore-filters-close" [dialogTrapFocus]="mobile()" (dialogEscape)="state.closeFilters()" (click)="$event.stopPropagation()">
-        <header><h2 id="explore-filters-title">Filtros</h2><button id="explore-filters-close" class="icon-button" type="button" aria-label="Fechar filtros sem aplicar" (click)="state.closeFilters()"><app-icon [name]="mobile() ? 'X' : 'ChevronDown'" /></button></header>
+        <header>
+          <h2 id="explore-filters-title">Filtros</h2>
+          <button id="explore-filters-close" class="icon-button" type="button" aria-label="Fechar filtros sem aplicar" (click)="state.closeFilters()"><app-icon [name]="mobile() ? 'X' : 'ChevronDown'" /></button>
+        </header>
         <div class="filters-content">
-          <fieldset><legend>Quem pode usar</legend><div class="filter-choices">@for (option of audiences; track option.value) { <label><input type="radio" name="filter-audience" [value]="option.value" [checked]="draft.audience === option.value" (change)="state.updateFilterDraft({ audience: option.value })" />{{ option.label }}</label> }</div></fieldset>
-          <fieldset><legend>Cobrança</legend><div class="filter-choices">@for (option of charges; track option.value) { <label><input type="radio" name="filter-charge" [value]="option.value" [checked]="draft.charge === option.value" (change)="state.updateFilterDraft({ charge: option.value })" />{{ option.label }}</label> }</div><p class="filter-help">Acesso livre não significa gratuito.</p></fieldset>
-          <fieldset><legend>Acessibilidade</legend><label class="filter-check"><input type="checkbox" [checked]="draft.accessible" (change)="state.updateFilterDraft({ accessible: !draft.accessible })" />Acessível — informação geral</label>@for (resource of resources; track resource.key) { <label class="filter-check"><input type="checkbox" [checked]="draft.resources.includes(resource.key)" (change)="state.toggleDraftOption('resources', resource.key)" />{{ resource.label }}</label> }<p class="filter-help">Filtramos apenas informações confirmadas. A informação geral de acessibilidade é independente dos recursos específicos.</p></fieldset>
-          <fieldset><legend>Distância máxima</legend>@if (referenceAvailable()) { <p class="filter-reference"><app-icon name="MapPin" [size]="17" />A partir de {{ state.referenceLabel() }}</p> } @else { <p class="filter-help">Defina uma localização para filtrar por distância.</p> }<div class="filter-choices">@for (option of distances; track option.value) { <label [class.unavailable]="option.value !== 0 && !referenceAvailable()"><input type="radio" name="filter-distance" [value]="option.value" [checked]="draft.radius === option.value" [disabled]="option.value !== 0 && !referenceAvailable()" (change)="state.updateFilterDraft({ radius: option.value })" />{{ option.label }}</label> }</div><p class="filter-help">Distância em linha reta.</p></fieldset>
-          <details class="filter-structure"><summary>Categoria e estrutura<app-icon name="ChevronDown" [size]="18" /></summary><fieldset><legend>Tipo de local</legend>@for (category of state.filterCategories(); track category) { <label class="filter-check"><input type="checkbox" [checked]="draft.categories.includes(category)" (change)="state.toggleDraftOption('categories', category)" />{{ category }}</label> } @empty { <p class="filter-help">As categorias aparecem após carregar a busca.</p> }</fieldset><fieldset><legend>Itens disponíveis</legend>@for (item of items; track item[0]) { <label class="filter-check"><input type="checkbox" [checked]="draft.items.includes(item[0])" (change)="state.toggleDraftOption('items', item[0])" />{{ item[1] }}</label> }<p class="filter-help">O local deve ter todos os itens marcados. Categorias selecionadas são alternativas.</p></fieldset></details>
+          <fieldset>
+            <legend>Quem pode usar</legend>
+            <div class="filter-choices">
+              @for (option of audiences; track option.value) {
+                <label><input type="radio" name="filter-audience" [value]="option.value" [checked]="draft.audience === option.value" (change)="state.updateFilterDraft({ audience: option.value })" />{{ option.label }}</label>
+              }
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Cobrança</legend>
+            <div class="filter-choices">
+              @for (option of charges; track option.value) {
+                <label><input type="radio" name="filter-charge" [value]="option.value" [checked]="draft.charge === option.value" (change)="state.updateFilterDraft({ charge: option.value })" />{{ option.label }}</label>
+              }
+            </div>
+            <p class="filter-help">Acesso livre não significa gratuito.</p>
+          </fieldset>
+          <fieldset>
+            <legend>Acessibilidade</legend>
+            <label class="filter-check"><input type="checkbox" [checked]="draft.accessible" (change)="state.updateFilterDraft({ accessible: !draft.accessible })" />Acessível — informação geral</label>
+            @for (resource of resources; track resource.key) {
+              <label class="filter-check"><input type="checkbox" [checked]="draft.resources.includes(resource.key)" (change)="state.toggleDraftOption('resources', resource.key)" />{{ resource.label }}</label>
+            }
+            <p class="filter-help">Filtramos apenas informações confirmadas. A informação geral de acessibilidade é independente dos recursos específicos.</p>
+          </fieldset>
+          <fieldset>
+            <legend>Distância máxima</legend>
+            @if (referenceAvailable()) {
+              <p class="filter-reference"><app-icon name="MapPin" [size]="17" />A partir de {{ state.referenceLabel() }}</p>
+            } @else {
+              <p class="filter-help">Defina uma localização para filtrar por distância.</p>
+            }
+            <div class="filter-choices">
+              @for (option of distances; track option.value) {
+                <label [class.unavailable]="option.value !== 0 && !referenceAvailable()"><input type="radio" name="filter-distance" [value]="option.value" [checked]="draft.radius === option.value" [disabled]="option.value !== 0 && !referenceAvailable()" (change)="state.updateFilterDraft({ radius: option.value })" />{{ option.label }}</label>
+              }
+            </div>
+            <p class="filter-help">Distância em linha reta.</p>
+          </fieldset>
+          <details class="filter-structure">
+            <summary>Categoria e estrutura<app-icon name="ChevronDown" [size]="18" /></summary>
+            <fieldset>
+              <legend>Tipo de local</legend>
+              @for (category of state.filterCategories(); track category) {
+                <label class="filter-check"><input type="checkbox" [checked]="draft.categories.includes(category)" (change)="state.toggleDraftOption('categories', category)" />{{ category }}</label>
+              } @empty {
+                <p class="filter-help">As categorias aparecem após carregar a busca.</p>
+              }
+            </fieldset>
+            <fieldset>
+              <legend>Itens disponíveis</legend>
+              @for (item of items; track item[0]) {
+                <label class="filter-check"><input type="checkbox" [checked]="draft.items.includes(item[0])" (change)="state.toggleDraftOption('items', item[0])" />{{ item[1] }}</label>
+              }
+              <p class="filter-help">O local deve ter todos os itens marcados. Categorias selecionadas são alternativas.</p>
+            </fieldset>
+          </details>
         </div>
-        <footer><button class="button secondary" type="button" (click)="state.clearFilterDraft()">Limpar</button>@if (state.error()) { <div class="filter-load-error"><p role="alert">Não foi possível carregar a busca completa.</p><button class="text-button" type="button" (click)="state.search(!!state.area())">Tentar novamente</button></div> }<button class="button primary" type="button" [disabled]="state.loading() || !!state.error() || !state.loaded" (click)="state.applyFilterDraft()">@if (state.error()) { Busca indisponível } @else if (state.loading() || !state.loaded) { Carregando resultados… } @else { Mostrar {{ state.previewCount() }} {{ state.previewCount() === 1 ? 'banheiro' : 'banheiros' }} }</button></footer>
+        <footer>
+          <button class="button secondary" type="button" (click)="state.clearFilterDraft()">Limpar</button>
+          @if (state.error()) {
+            <div class="filter-load-error">
+              <p role="alert">Não foi possível carregar a busca completa.</p>
+              <button class="text-button" type="button" (click)="state.search(!!state.area())">Tentar novamente</button>
+            </div>
+          }
+          <button class="button primary" type="button" [disabled]="state.loading() || !!state.error() || !state.loaded" (click)="state.applyFilterDraft()">
+            @if (state.error()) {
+              Busca indisponível
+            } @else if (state.loading() || !state.loaded) {
+              Carregando resultados…
+            } @else {
+              Mostrar {{ state.previewCount() }} {{ state.previewCount() === 1 ? 'banheiro' : 'banheiros' }}
+            }
+          </button>
+        </footer>
       </section>
     </div>
   }

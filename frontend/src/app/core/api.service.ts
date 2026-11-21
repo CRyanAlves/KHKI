@@ -8,7 +8,15 @@ export class ApiService {
   private readonly expired = new Subject<void>();
   readonly authenticationExpired = this.expired.asObservable();
   private request<T>(request: Observable<T>, path: string): Promise<T> {
-    return firstValueFrom(request.pipe(tap({ error: (error: unknown) => { if (error instanceof HttpErrorResponse && error.status === 401 && !path.startsWith('/auth/')) this.expired.next(); } })));
+    return firstValueFrom(
+      request.pipe(
+        tap({
+          error: (error: unknown) => {
+            if (error instanceof HttpErrorResponse && error.status === 401 && !path.startsWith('/auth/')) this.expired.next();
+          }
+        })
+      )
+    );
   }
   get<T>(path: string, params: Record<string, string> = {}): Promise<T> {
     return this.request(this.http.get<T>('/api' + path, { params: new HttpParams({ fromObject: params }) }), path);

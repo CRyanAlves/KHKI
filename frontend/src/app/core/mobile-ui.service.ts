@@ -86,7 +86,7 @@ export class MobileUiService {
   }
   toggleAccount(trigger: HTMLElement): void {
     this.accountTrigger.set(trigger);
-    this.accountOpen.update(open => !open);
+    this.accountOpen.update((open) => !open);
   }
   cycle(): void {
     if (Date.now() < this.suppressClickUntil) return;

@@ -10,11 +10,14 @@ async function openLogin(page: Page): Promise<void> {
 }
 
 async function resizeVisualViewport(page: Page, height: number, top = 0): Promise<void> {
-  await page.evaluate(({ height, top }) => {
-    Object.defineProperty(window.visualViewport!, 'height', { configurable: true, get: () => height });
-    Object.defineProperty(window.visualViewport!, 'offsetTop', { configurable: true, get: () => top });
-    window.visualViewport!.dispatchEvent(new Event('resize'));
-  }, { height, top });
+  await page.evaluate(
+    ({ height, top }) => {
+      Object.defineProperty(window.visualViewport!, 'height', { configurable: true, get: () => height });
+      Object.defineProperty(window.visualViewport!, 'offsetTop', { configurable: true, get: () => top });
+      window.visualViewport!.dispatchEvent(new Event('resize'));
+    },
+    { height, top }
+  );
 }
 
 test('mobile login fills the viewport, uses official assets and restores exploration on close', async ({ page }) => {
@@ -36,7 +39,7 @@ test('mobile login fills the viewport, uses official assets and restores explora
   await dialog.getByRole('button', { name: 'Continuar explorando sem entrar', exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.locator('.map-workspace')).toHaveAttribute('class', sheet!);
-  expect(await map!.evaluate(element => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
+  expect(await map!.evaluate((element) => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
 });
 
 test('viewport reduction compacts login, preserves values between fields and restores the illustration', async ({ page }) => {
@@ -68,8 +71,10 @@ test('viewport reduction compacts login, preserves values between fields and res
 test('inline validation and delayed authentication reject duplicate submits and preserve errors', async ({ page }) => {
   let calls = 0;
   let respond!: () => void;
-  const pending = new Promise<void>(resolve => { respond = resolve; });
-  await page.route('**/api/auth/login', async route => {
+  const pending = new Promise<void>((resolve) => {
+    respond = resolve;
+  });
+  await page.route('**/api/auth/login', async (route) => {
     calls++;
     await pending;
     await route.fulfill({ status: 401, json: { detail: 'E-mail ou senha inválidos.' } });
@@ -87,7 +92,7 @@ test('inline validation and delayed authentication reject duplicate submits and 
   await page.getByLabel('Senha', { exact: true }).fill('senha-invalida');
   await page.getByLabel('Senha', { exact: true }).press('Enter');
   await expect(form.getByRole('button', { name: 'Aguarde…', exact: true })).toBeDisabled();
-  await form.evaluate(element => {
+  await form.evaluate((element) => {
     element.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     element.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
   });
@@ -99,8 +104,8 @@ test('inline validation and delayed authentication reject duplicate submits and 
 });
 
 test('authenticated response resumes the protected route and registration remains available', async ({ page }) => {
-  await page.route('**/api/auth/me', route => route.fulfill({ status: 401, json: { detail: 'Entre na sua conta.' } }));
-  await page.route('**/api/auth/login', route => route.fulfill({ json: { id: '11111111-1111-4111-8111-111111111111', name: 'Pessoa de teste', role: 'USER' } }));
+  await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: { detail: 'Entre na sua conta.' } }));
+  await page.route('**/api/auth/login', (route) => route.fulfill({ json: { id: '11111111-1111-4111-8111-111111111111', name: 'Pessoa de teste', role: 'USER' } }));
   await openLogin(page);
   await page.getByRole('button', { name: 'Cadastre-se', exact: true }).click();
   await expect(page.getByLabel('Nome', { exact: true })).toBeVisible();
@@ -120,7 +125,7 @@ test('the real local backend rejects invalid credentials without closing the for
   await openLogin(page);
   await page.getByLabel('E-mail', { exact: true }).fill(`login-ui-${Date.now()}@example.invalid`);
   await page.getByLabel('Senha', { exact: true }).fill('invalid-test-password');
-  const response = page.waitForResponse(result => result.url().endsWith('/api/auth/login') && result.request().method() === 'POST');
+  const response = page.waitForResponse((result) => result.url().endsWith('/api/auth/login') && result.request().method() === 'POST');
   await page.locator('.login-form').getByRole('button', { name: 'Entrar', exact: true }).click();
   expect((await response).status()).toBe(401);
   await expect(page.getByRole('alert')).toHaveText('E-mail ou senha inválidos.');
@@ -131,7 +136,9 @@ test('small screens, enlarged fonts, landscape and desktop keep the form usable'
   await page.setViewportSize({ width: 320, height: 568 });
   await openLogin(page);
   await expect(page.locator('.login-brand')).toHaveAttribute('src', 'assets/brand/khki-logo.png');
-  await page.evaluate(() => { document.documentElement.style.fontSize = '20px'; });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = '20px';
+  });
   const submit = page.locator('.login-form').getByRole('button', { name: 'Entrar', exact: true });
   await submit.scrollIntoViewIfNeeded();
   await expect(submit).toBeInViewport();
@@ -139,7 +146,9 @@ test('small screens, enlarged fonts, landscape and desktop keep the form usable'
   await page.setViewportSize({ width: 600, height: 360 });
   await submit.scrollIntoViewIfNeeded();
   await expect(submit).toBeInViewport();
-  await page.evaluate(() => { document.documentElement.style.removeProperty('font-size'); });
+  await page.evaluate(() => {
+    document.documentElement.style.removeProperty('font-size');
+  });
   await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(page.locator('.login-brand')).toBeHidden();
   await expect(page.locator('.login-continue')).toBeHidden();

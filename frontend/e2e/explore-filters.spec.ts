@@ -2,7 +2,25 @@ import { expect, Page, test } from '@playwright/test';
 import type { Bathroom, BathroomDetails } from '../src/app/core/models';
 
 const details = (audience: BathroomDetails['audience'], charge: BathroomDetails['charge'], stepFreeAccess: boolean | null, adaptedCabin: boolean | null, grabBars: boolean | null): BathroomDetails => ({ audience, charge, stepFreeAccess, adaptedCabin, grabBars, elevator: null, feeAmount: null, bathroomTypes: [], lastVisited: null });
-const bathroom = (id: string, value: BathroomDetails, longitude: number, accessible: boolean | null, items: string[], category = 'Biblioteca'): Bathroom => ({ id, name: 'Local ' + id, address: 'Indaiatuba', complement: '', category, latitude: -23.1, longitude, access: 'FREE', accessDetails: null, hours: null, accessible, items, rating: 4, reviewCount: 1, photoIds: [], demo: false, details: value });
+const bathroom = (id: string, value: BathroomDetails, longitude: number, accessible: boolean | null, items: string[], category = 'Biblioteca'): Bathroom => ({
+  id,
+  name: 'Local ' + id,
+  address: 'Indaiatuba',
+  complement: '',
+  category,
+  latitude: -23.1,
+  longitude,
+  access: 'FREE',
+  accessDetails: null,
+  hours: null,
+  accessible,
+  items,
+  rating: 4,
+  reviewCount: 1,
+  photoIds: [],
+  demo: false,
+  details: value
+});
 const rows = [
   bathroom('a', details('PUBLIC', 'NO', true, true, false), -47.2, true, ['PAPER', 'SINK', 'CHANGING_TABLE']),
   bathroom('b', details('PUBLIC', 'YES', false, true, true), -47.198, false, ['SOAP', 'SINK'], 'Shopping'),
@@ -12,12 +30,12 @@ const rows = [
   bathroom('f', details('PUBLIC', 'UNKNOWN', true, true, true), -47.199, true, ['SOAP'])
 ];
 async function setup(page: Page, data = rows): Promise<void> {
-  await page.route('**/config.js', route => route.fulfill({ contentType: 'application/javascript', body: 'window.KHKI_CONFIG={geoapifyApiKey:"test",devRouteSimulation:false};' }));
-  await page.route('https://maps.geoapify.com/**', route => route.fulfill({ json: { version: 8, sources: {}, layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#173b45' } }] } }));
-  await page.route('**/api/auth/me', route => route.fulfill({ status: 401, json: {} }));
-  await page.route(/\/api\/bathrooms(?:\?.*)?$/, route => {
+  await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: 'window.KHKI_CONFIG={geoapifyApiKey:"test",devRouteSimulation:false};' }));
+  await page.route('https://maps.geoapify.com/**', (route) => route.fulfill({ json: { version: 8, sources: {}, layers: [{ id: 'background', type: 'background', paint: { 'background-color': '#173b45' } }] } }));
+  await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: {} }));
+  await page.route(/\/api\/bathrooms(?:\?.*)?$/, (route) => {
     const url = new URL(route.request().url());
-    const found = data.filter(row => row.name.toLowerCase().includes((url.searchParams.get('q') || '').toLowerCase()));
+    const found = data.filter((row) => row.name.toLowerCase().includes((url.searchParams.get('q') || '').toLowerCase()));
     const offset = Number(url.searchParams.get('offset') || 0);
     return route.fulfill({ json: found.slice(offset, offset + 200) });
   });
@@ -25,10 +43,19 @@ async function setup(page: Page, data = rows): Promise<void> {
   await expect(page.locator('.bathroom-card')).toHaveCount(data.length);
 }
 const panel = (page: Page) => page.locator('#explore-filters-panel');
-async function open(page: Page): Promise<void> { await page.getByRole('button', { name: /^Filtros(?: · \d+)?$/ }).click(); await expect(panel(page)).toBeVisible(); }
-async function apply(page: Page, count: number): Promise<void> { await panel(page).getByRole('button', { name: `Mostrar ${count} ${count === 1 ? 'banheiro' : 'banheiros'}`, exact: true }).click(); await expect(panel(page)).toHaveCount(0); await expect(page.locator('.bathroom-card')).toHaveCount(count); }
+async function open(page: Page): Promise<void> {
+  await page.getByRole('button', { name: /^Filtros(?: · \d+)?$/ }).click();
+  await expect(panel(page)).toBeVisible();
+}
+async function apply(page: Page, count: number): Promise<void> {
+  await panel(page)
+    .getByRole('button', { name: `Mostrar ${count} ${count === 1 ? 'banheiro' : 'banheiros'}`, exact: true })
+    .click();
+  await expect(panel(page)).toHaveCount(0);
+  await expect(page.locator('.bathroom-card')).toHaveCount(count);
+}
 async function markerIds(page: Page): Promise<string[]> {
-  return page.locator('.map-marker, .map-cluster').evaluateAll(elements => elements.flatMap(element => ((element as HTMLElement).dataset['bathroomIds'] || (element as HTMLElement).dataset['bathroomId'] || '').split(',').filter(Boolean)).sort());
+  return page.locator('.map-marker, .map-cluster').evaluateAll((elements) => elements.flatMap((element) => ((element as HTMLElement).dataset['bathroomIds'] || (element as HTMLElement).dataset['bathroomId'] || '').split(',').filter(Boolean)).sort());
 }
 
 test('access and charging are independent; draft cancel, clear and apply preserve context', async ({ page }) => {
@@ -36,7 +63,9 @@ test('access and charging are independent; draft cancel, clear and apply preserv
   const map = await page.locator('.maplibregl-canvas').elementHandle();
   await page.getByRole('combobox', { name: 'Ordenação' }).selectOption('rating');
   let calls = 0;
-  page.on('request', request => { if (/\/api\/bathrooms\?/.test(request.url())) calls++; });
+  page.on('request', (request) => {
+    if (/\/api\/bathrooms\?/.test(request.url())) calls++;
+  });
   await open(page);
   await panel(page).getByRole('radio', { name: 'Livre para todos', exact: true }).check();
   await expect(panel(page).getByRole('button', { name: 'Mostrar 3 banheiros' })).toBeEnabled();
@@ -59,7 +88,7 @@ test('access and charging are independent; draft cancel, clear and apply preserv
   await expect(page.locator('.bathroom-card')).toHaveCount(3);
   await apply(page, 6);
   await expect(page.getByRole('combobox', { name: 'Ordenação' })).toHaveValue('rating');
-  expect(await map!.evaluate(element => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
+  expect(await map!.evaluate((element) => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
   expect(calls).toBe(0);
 });
 
@@ -94,7 +123,12 @@ test('confirmed resources intersect, categories union, and shortcuts never doubl
 });
 
 test('distance is disabled without reference and does not ask GPS permission', async ({ page }) => {
-  await page.addInitScript(() => { (window as any).gpsCalls = 0; navigator.geolocation.getCurrentPosition = () => { (window as any).gpsCalls++; }; });
+  await page.addInitScript(() => {
+    (window as any).gpsCalls = 0;
+    navigator.geolocation.getCurrentPosition = () => {
+      (window as any).gpsCalls++;
+    };
+  });
   await setup(page);
   await open(page);
   await expect(panel(page).getByText('Defina uma localização para filtrar por distância.')).toBeVisible();
@@ -130,7 +164,7 @@ test('mobile filters overlay preserves sheet, blocks map and has reachable scrol
   await open(page);
   await expect(panel(page).getByRole('radio', { name: 'Sem preferência', exact: true }).last()).toBeChecked();
   for (const theme of ['dark', 'light']) {
-    await page.evaluate(value => document.documentElement.dataset['theme'] = value, theme);
+    await page.evaluate((value) => (document.documentElement.dataset['theme'] = value), theme);
     await expect(panel(page).getByRole('button', { name: 'Mostrar 6 banheiros' })).toBeInViewport();
     await panel(page).getByText('Categoria e estrutura', { exact: true }).click();
     await panel(page).getByRole('checkbox', { name: 'Fraldário', exact: true }).scrollIntoViewIfNeeded();
@@ -141,7 +175,7 @@ test('mobile filters overlay preserves sheet, blocks map and has reachable scrol
   await panel(page).getByRole('checkbox', { name: 'Acessível — informação geral' }).check();
   await apply(page, 3);
   await expect(page.locator('.map-workspace')).toHaveAttribute('class', sheet!);
-  expect(await canvas!.evaluate(element => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
+  expect(await canvas!.evaluate((element) => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
   await page.setViewportSize({ width: 320, height: 600 });
   await page.addStyleTag({ content: 'html { font-size: 21px; }' });
   await open(page);
@@ -168,7 +202,7 @@ test('errors never look like zero results and active filters can be removed from
   await expect(page.getByText('Ainda não encontramos um lugar aqui')).toBeVisible();
   await page.locator('.empty-filter-actions').getByRole('button', { name: 'Remover filtro: Pago' }).click();
   await expect(page.locator('.bathroom-card')).toHaveCount(1);
-  await page.route(/\/api\/bathrooms(?:\?.*)?$/, route => route.fulfill({ status: 503, json: {} }));
+  await page.route(/\/api\/bathrooms(?:\?.*)?$/, (route) => route.fulfill({ status: 503, json: {} }));
   await page.getByRole('button', { name: 'Buscar', exact: true }).click();
   await expect(page.getByText('Não conseguimos carregar os locais')).toBeVisible();
   await expect(page.locator('.results-heading strong').last()).toHaveText('Busca indisponível');
@@ -181,7 +215,7 @@ test('a failed later page never exposes a partial count and retry loads the full
   await setup(page);
   const data = Array.from({ length: 201 }, (_, index) => bathroom('complete-' + index, details('PUBLIC', 'NO', null, null, null), -47.2, null, index === 200 ? ['PAPER'] : []));
   let fail = true;
-  await page.route(/\/api\/bathrooms(?:\?.*)?$/, route => {
+  await page.route(/\/api\/bathrooms(?:\?.*)?$/, (route) => {
     const offset = Number(new URL(route.request().url()).searchParams.get('offset') || 0);
     if (offset && fail) return route.fulfill({ status: 503, json: {} });
     return route.fulfill({ json: data.slice(offset, offset + 200) });

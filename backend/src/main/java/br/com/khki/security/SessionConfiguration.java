@@ -8,6 +8,7 @@ import org.springframework.session.web.http.DefaultCookieSerializer;
 
 @Configuration
 public class SessionConfiguration {
+
   @Bean
   CookieSerializer cookieSerializer(SessionPolicy policy, @Value("${server.servlet.session.cookie.secure:false}") boolean secure) {
     var serializer = new DefaultCookieSerializer() {

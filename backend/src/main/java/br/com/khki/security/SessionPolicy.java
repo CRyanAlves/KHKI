@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class SessionPolicy {
+
   private static final String DEADLINE = SessionPolicy.class.getName() + ".deadline";
   private static final String REMEMBERED = SessionPolicy.class.getName() + ".remembered";
   private final Duration idle;
@@ -29,7 +30,12 @@ public class SessionPolicy {
 
   public void start(HttpSession session, boolean remember) {
     session.setMaxInactiveInterval(Math.toIntExact((remember ? remembered : idle).getSeconds()));
-    session.setAttribute(DEADLINE, Instant.now().plus(remember ? remembered : maximum).toEpochMilli());
+    session.setAttribute(
+      DEADLINE,
+      Instant.now()
+        .plus(remember ? remembered : maximum)
+        .toEpochMilli()
+    );
     session.setAttribute(REMEMBERED, remember);
   }
 

@@ -1,5 +1,6 @@
-<a class="skip-link" href="#main-content">Pular para o conteúdo</a>
-@if (auth.sessionError()) { <aside class="session-notice" role="status" aria-live="polite"><span>{{ auth.sessionError() }}</span><button type="button" class="button secondary" [disabled]="auth.status() === 'checking'" (click)="auth.sessionAction()">{{ auth.status() === 'checking' ? 'Verificando…' : auth.status() === 'guest' ? 'Entrar novamente' : 'Tentar novamente' }}</button></aside> }
+<a class="skip-link" href="#main-content">Pular para o conteúdo</a> @if (auth.sessionError()) {
+<aside class="session-notice" role="status" aria-live="polite"><span>{{ auth.sessionError() }}</span><button type="button" class="button secondary" [disabled]="auth.status() === 'checking'" (click)="auth.sessionAction()">{{ auth.status() === 'checking' ? 'Verificando…' : auth.status() === 'guest' ? 'Entrar novamente' : 'Tentar novamente' }}</button></aside>
+}
 <header class="site-header">
   <a class="brand" routerLink="/" aria-label="KHKI — página inicial"><img class="brand-logo" [src]="theme.mode() === 'dark' ? 'assets/brand/khki-logo-dark.png' : 'assets/brand/khki-logo.png'" alt="KHKI" width="1983" height="793" fetchpriority="high" /></a>
   <nav id="main-navigation" class="main-nav" [class.open]="menu" aria-label="Navegação principal">
@@ -31,10 +32,10 @@
   <router-outlet />
 </div>
 @if (mobileUi.navbar()) {
-<nav class="mobile-bottom-nav" aria-label="Navegação mobile">
-  <a routerLink="/" [class.active]="mobileUi.url() === '/'" [attr.aria-current]="mobileUi.url() === '/' ? 'page' : null"><app-icon name="Navigation" [size]="22" /><span>Explorar</span></a>
-  <a routerLink="/contribuicoes" [class.active]="mobileUi.url().startsWith('/contribuicoes')" [attr.aria-current]="mobileUi.url().startsWith('/contribuicoes') ? 'page' : null"><app-icon name="Upload" [size]="22" /><span>Contribuições</span></a>
-  <a routerLink="/cadastrar"><app-icon name="Plus" [size]="22" /><span>Cadastrar</span></a>
+<nav class="mobile-bottom-nav" aria-label="Navegação mobile" appMobileNavMotion>
+  <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page"><app-icon name="Navigation" [size]="24" /><span>Explorar</span></a>
+  <a routerLink="/contribuicoes" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page"><app-icon name="ListChecks" [size]="24" /><span>Contribuições</span></a>
+  <a routerLink="/cadastrar" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page"><app-icon name="Plus" [size]="24" /><span>Cadastrar</span></a>
 </nav>
 } @if (mobileUi.mobile() && mobileUi.accountOpen()) {
 <app-mobile-account (logoutRequested)="logout()" />
