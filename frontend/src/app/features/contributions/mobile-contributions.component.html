@@ -1,0 +1,33 @@
+<main class="contributions-mobile">
+  <div class="contributions-top"><a routerLink="/" aria-label="KHKI — página inicial"><img [src]="theme.mode() === 'dark' ? 'assets/brand/khki-logo-dark.png' : 'assets/brand/khki-logo.png'" alt="KHKI" width="1983" height="793" /></a></div>
+  <h1>Minhas contribuições</h1>
+  <p class="contributions-subtitle">Acompanhe seus cadastros, avaliações e fotos.</p>
+  <details class="contributions-notice"><summary><app-icon name="ShieldCheck" /><span>Envios em análise ainda não são públicos.</span><span class="notice-action">Entenda<app-icon name="ChevronDown" [size]="16" /></span></summary><p>Fotos anexadas a cadastros ou avaliações acompanham a análise do envio. Fotos avulsas são analisadas separadamente.</p></details>
+  <div class="contributions-types" role="group" aria-label="Tipo de contribuição">@for (option of types; track option.value) { <button type="button" [attr.aria-pressed]="type() === option.value" (click)="type.set(option.value)">{{ option.label }}</button> }</div>
+  <div class="contributions-selectors">
+    <label><span class="sr-only">Status da contribuição</span><select aria-label="Status da contribuição" [value]="status()" (change)="setStatus($event)"><option value="">Todos os status</option>@for (option of statuses; track option.value) { <option [value]="option.value">{{ option.label }}</option> }</select></label>
+    <label><span class="sr-only">Ordenar contribuições</span><select aria-label="Ordenar contribuições" [value]="order()" (change)="setOrder($event)"><option value="newest">Mais recentes</option><option value="oldest">Mais antigos</option></select></label>
+  </div>
+  @if (loading()) {
+    <app-skeleton variant="rows" label="Carregando contribuições…" />
+  } @else if (error()) {
+    <div class="state-box"><p role="alert">{{ error() }}</p><button class="button secondary" type="button" (click)="retry.emit()">Tentar novamente</button></div>
+  } @else {
+    <p class="contributions-count" role="status">{{ rows().length }} {{ rows().length === 1 ? 'contribuição' : 'contribuições' }}</p>
+    <div class="contributions-list" aria-label="Suas contribuições">
+      @for (item of rows(); track item.id) {
+        <article class="contributions-item">
+          <span class="contributions-thumbnail"><app-icon [name]="item.type === 'PHOTO' ? 'Camera' : item.type === 'REVIEW' ? 'Star' : 'MapPin'" [size]="28" /></span>
+          <div class="contributions-info"><small>{{ item.type === 'PHOTO' ? 'FOTO' : item.type === 'REVIEW' ? 'AVALIAÇÃO' : 'CADASTRO' }}</small><h2>{{ item.name }}</h2><p>Enviado em {{ item.createdAt | date: 'dd/MM/yyyy' }}</p></div>
+          <span class="contributions-status" [class.success]="item.status === 'APPROVED'" [class.warning]="item.status === 'PENDING' || item.status === 'NEEDS_INFORMATION'" [class.negative]="item.status === 'REJECTED' || item.status === 'HIDDEN' || item.status === 'REMOVED'">{{ item.label }}</span>
+          @if (item.decision) {
+            <div class="contributions-decision"><strong>Motivo da decisão</strong><p [id]="'decision-' + item.id" [class.truncated]="item.decision.length > 180 && !expanded().has(item.id)">{{ item.decision }}</p>@if (item.decision.length > 180) { <button class="text-button" type="button" [attr.aria-expanded]="expanded().has(item.id)" [attr.aria-controls]="'decision-' + item.id" (click)="toggle(item.id)">{{ expanded().has(item.id) ? 'Ver menos' : 'Ver mais' }}</button> }</div>
+          }
+          @if ((item.status === 'REJECTED' || item.status === 'NEEDS_INFORMATION') && item.type !== 'PHOTO') { <a class="text-button contributions-correct" [routerLink]="item.type === 'BATHROOM' ? ['/cadastrar'] : ['/banheiros', item.bathroomId, 'avaliar']" [queryParams]="{ edit: item.id }">Corrigir e reenviar<app-icon name="ArrowRight" [size]="16" /></a> }
+        </article>
+      } @empty {
+        <div class="state-box"><app-icon name="Heart" [size]="32" />@if (items().length) { <h2>Nenhuma contribuição com esses filtros.</h2><button class="button secondary" type="button" (click)="clear()">Limpar filtros</button> } @else { <h2>Sua primeira contribuição começa aqui.</h2><p>Cadastre um banheiro ou conte sua experiência em um local.</p> }</div>
+      }
+    </div>
+  }
+</main>

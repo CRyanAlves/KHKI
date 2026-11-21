@@ -20,12 +20,21 @@
     --mobile-layer-search: 35;
     --mobile-layer-nav: 40;
     --mobile-layer-account: 60;
+    --mobile-account-width: 360px;
+    --mobile-account-arrow-size: 12px;
+    --mobile-account-identity-size: 44px;
+    --mobile-account-label-spacing: 0.08em;
+    --mobile-account-overlay: color-mix(in srgb, var(--color-overlay) 45%, transparent);
     --header-height: 0px;
     --mobile-detail-photo-width: 160px;
     --mobile-detail-photo-height: 104px;
     --mobile-search-pin-width: 32px;
     --mobile-search-pin-height: 40px;
     --mobile-search-account-size: calc(var(--control-size) - var(--space-2));
+    --mobile-login-keyboard-threshold: 160;
+    --mobile-login-illustration-width: 240px;
+    --mobile-login-field-height: 52px;
+    --mobile-login-title-size: 1.75rem;
   }
   html.mobile-ui,
   html.mobile-ui body {
@@ -38,9 +47,12 @@
   }
   html.mobile-ui .mobile-account-avatar {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     place-items: center;
     width: var(--control-size);
     height: var(--control-size);
+    padding: 0;
     border-radius: var(--radius-pill);
     background: var(--color-surface-soft);
     color: var(--color-text);
@@ -276,17 +288,29 @@
   }
   html.mobile-ui .mobile-filter-row {
     display: flex;
+    flex-wrap: nowrap;
+    width: calc(100% + var(--space-6));
+    min-width: 0;
+    margin-inline: calc(-1 * var(--space-3));
     gap: var(--space-2);
     overflow-x: auto;
+    overflow-y: hidden;
     overscroll-behavior-inline: contain;
-    padding: var(--space-3) 0;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--space-3);
+    padding: var(--space-3);
     scrollbar-width: none;
     .chip {
       flex-shrink: 0;
+      scroll-snap-align: start;
+      white-space: nowrap;
       min-height: var(--control-size);
       font-size: var(--text-xs);
       padding: var(--space-2) var(--space-3);
       box-shadow: var(--shadow-sm);
+      &:last-child {
+        scroll-snap-align: end;
+      }
     }
   }
   html.mobile-ui .mobile-search-options,
@@ -332,24 +356,15 @@
     visibility: hidden;
   }
   html.mobile-ui .map-workspace .search-area {
-    top: var(--mobile-search-height);
-    right: var(--space-3);
-    left: auto;
-    transform: none;
+    top: auto;
+    right: auto;
+    bottom: calc(var(--map-bottom-inset) + var(--space-6));
+    left: 50%;
+    transform: translateX(-50%);
     min-height: var(--control-size);
     padding: var(--space-2) var(--space-3);
     border-radius: var(--radius-pill);
     font-size: var(--text-xs);
-  }
-  html.mobile-ui .mobile-search-area {
-    position: absolute;
-    top: var(--mobile-search-height);
-    left: var(--space-3);
-    min-height: var(--control-size);
-    padding: var(--space-2) var(--space-3);
-    font-size: var(--text-xs);
-    border-radius: var(--radius-pill);
-    box-shadow: var(--shadow-sm);
   }
   html.mobile-ui .workspace-locate,
   html.mobile-ui .map-workspace .maplibregl-ctrl-group button {
@@ -660,69 +675,169 @@
   html.mobile-ui .mobile-navigating .navigation-simulator {
     bottom: calc(var(--navigation-simulator-bottom, 0px) + var(--space-8) + env(safe-area-inset-bottom, 0px));
   }
-  html.mobile-ui .mobile-account-backdrop {
-    z-index: var(--mobile-layer-account);
-    padding: var(--space-4);
+  html.mobile-ui .modal-backdrop:has(.login-modal) {
+    top: var(--login-viewport-top, 0px);
+    bottom: auto;
+    height: var(--login-viewport-height, 100dvh);
+    max-height: none;
+    padding: 0;
+    overflow: hidden;
+    align-items: stretch;
+    background: var(--color-surface);
+    backdrop-filter: none;
   }
-  html.mobile-ui .mobile-account-panel {
-    position: relative;
+  html.mobile-ui .login-modal {
+    display: flex;
+    flex-direction: column;
     width: 100%;
-    max-height: calc(var(--mobile-viewport-height) - var(--space-8));
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
     overflow-y: auto;
-    padding: var(--space-6);
-    h2 {
-      margin-top: 0;
-    }
-    > a {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-      padding-block: var(--space-4);
-      border-bottom: var(--border-width) solid var(--color-border);
-      min-height: var(--control-size);
-      app-icon:last-child {
-        margin-left: auto;
-      }
-    }
+    overscroll-behavior: contain;
+    padding: 0 var(--space-6) calc(env(safe-area-inset-bottom, 0px) + var(--space-6));
+    scroll-padding-block: calc(env(safe-area-inset-top, 0px) + var(--control-size) + var(--space-6)) var(--space-4);
   }
-  html.mobile-ui .mobile-account-identity {
+  html.mobile-ui .login-header {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
-    padding-block: var(--space-4);
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    flex-shrink: 0;
+    z-index: 1;
+    gap: var(--space-4);
+    padding: calc(env(safe-area-inset-top, 0px) + var(--space-3)) 0 var(--space-3);
+    background: var(--color-surface);
   }
-  html.mobile-ui .mobile-theme-options {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    border: var(--border-width) solid var(--color-border);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-1);
-      min-height: var(--control-size);
-      padding: var(--space-2);
-      background: var(--color-surface);
-      color: var(--color-text);
-      font-size: var(--text-xs);
-      &[aria-pressed='true'] {
-        background: var(--color-accent);
-        color: var(--color-on-accent);
-      }
+  html.mobile-ui .login-brand {
+    display: block;
+    width: settings.$brand-width-mobile;
+    height: auto;
+  }
+  html.mobile-ui .login-header .modal-close {
+    position: static;
+    width: var(--control-size);
+    height: var(--control-size);
+    flex-shrink: 0;
+  }
+  html.mobile-ui .login-story {
+    display: block;
+    flex-shrink: 0;
+    padding: var(--space-2) 0 0;
+    background: transparent;
+    text-align: left;
+  }
+  html.mobile-ui .login-story .city-illustration {
+    display: block;
+    width: min(100%, var(--mobile-login-illustration-width));
+    margin: 0 auto var(--space-3);
+  }
+  html.mobile-ui .login-story .eyebrow,
+  html.mobile-ui .login-story .story-note,
+  html.mobile-ui .login-desktop-support,
+  html.mobile-ui .login-story h2 br,
+  html.mobile-ui .login-form > h3,
+  html.mobile-ui .login-form > p.muted {
+    display: none;
+  }
+  html.mobile-ui .login-story h2 {
+    font-size: var(--mobile-login-title-size);
+    line-height: 1.15;
+    letter-spacing: -0.04em;
+    margin: 0;
+  }
+  html.mobile-ui .login-mobile-support {
+    display: block;
+  }
+  html.mobile-ui .login-story > p {
+    max-width: none;
+    font-size: var(--text-base);
+    margin-top: var(--space-3);
+  }
+  html.mobile-ui .login-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 0 auto;
+    padding: var(--space-6) 0 0;
+  }
+  html.mobile-ui .login-form label {
+    font-size: var(--text-sm);
+    margin-top: var(--space-5);
+  }
+  html.mobile-ui .login-form label:first-of-type {
+    margin-top: 0;
+  }
+  html.mobile-ui .login-form input {
+    min-height: var(--mobile-login-field-height);
+    font-size: max(1rem, var(--text-base));
+  }
+  html.mobile-ui .login-form input[aria-invalid='true'] {
+    border-color: var(--color-error);
+  }
+  html.mobile-ui .password-field .icon-button {
+    top: 0;
+    right: 0;
+    height: var(--mobile-login-field-height);
+    width: var(--control-size);
+  }
+  html.mobile-ui .login-form .full {
+    min-height: var(--mobile-login-field-height);
+    font-size: var(--text-base);
+    margin-top: var(--space-6);
+  }
+  html.mobile-ui .login-form .account-switch {
+    font-size: var(--text-sm);
+    margin-top: var(--space-3);
+  }
+  html.mobile-ui .account-switch .text-button {
+    min-height: var(--control-size);
+    color: var(--color-nav-active);
+  }
+  html.mobile-ui .login-continue {
+    display: block;
+    align-self: center;
+    min-height: var(--control-size);
+    margin-top: auto;
+    padding: var(--space-3) 0;
+    font-size: var(--text-sm);
+    text-decoration: underline;
+    text-underline-offset: var(--space-1);
+  }
+  html.mobile-ui .login-form .privacy-note {
+    font-size: var(--text-xs);
+    margin-top: var(--space-3);
+    align-items: flex-start;
+  }
+  html.mobile-ui .login-compact {
+    .login-story .city-illustration,
+    .login-story > p,
+    .privacy-note,
+    .login-continue {
+      display: none;
+    }
+    .login-story {
+      padding-top: var(--space-2);
+    }
+    .login-form {
+      flex-grow: 0;
+      padding-top: var(--space-4);
+    }
+    .login-form label {
+      margin-top: var(--space-3);
+    }
+    .login-form .full {
+      margin-top: var(--space-4);
+    }
+    .login-form .account-switch {
+      margin-top: var(--space-2);
     }
   }
-  html.mobile-ui .mobile-signout {
-    margin-top: var(--space-5);
-    color: var(--color-error);
-    min-height: var(--control-size);
-  }
-  html.mobile-ui .modal-backdrop:has(.login-modal) {
-    overflow-y: auto;
-    padding: var(--space-3);
-    align-items: start;
-    max-height: var(--mobile-viewport-height);
+  @media (max-height: settings.$breakpoint-login-short) {
+    html.mobile-ui .login-story .city-illustration {
+      display: none;
+    }
   }
 }
 @media (max-width: settings.$breakpoint-mobile) and (prefers-reduced-motion: reduce) {
