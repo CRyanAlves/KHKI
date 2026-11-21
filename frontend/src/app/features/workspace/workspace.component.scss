@@ -1,0 +1,41 @@
+@use '../../../styles/settings';
+
+:host { display: block; }
+.map-workspace { display: block; --map-left-inset: var(--panel-width); --map-bottom-inset: 0%; height: calc(100dvh - var(--header-height)); min-height: 0; position: relative; overflow: hidden; background: var(--color-background); }
+.workspace-panel { position: absolute; z-index: settings.$layer-panel; top: 0; left: 0; bottom: 0; width: var(--panel-width); box-shadow: var(--shadow-md); min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; border-right: var(--border-width) solid var(--color-border); background: var(--color-background); transform: translateX(0); visibility: visible; transition: transform settings.$motion-panel-duration settings.$motion-panel-easing, visibility 0s; }
+.workspace-map > app-map { min-height: 0; }
+.workspace-map { position: absolute; inset: 0; min-width: 0; min-height: 0; overflow: hidden; }
+.panel-toggle { position: absolute; z-index: settings.$layer-panel-control; top: var(--space-4); left: var(--space-3); transform: translateX(var(--panel-width)); transition: transform settings.$motion-panel-duration settings.$motion-panel-easing; width: var(--control-size); min-height: var(--control-size); background: var(--color-surface); border: var(--border-width) solid var(--color-border); box-shadow: var(--shadow-md); }
+.panel-collapsed { --map-left-inset: 0%; --map-bottom-inset: 0%; }
+.panel-collapsed .workspace-panel { transform: translateX(-100%); visibility: hidden; transition: transform settings.$motion-panel-duration settings.$motion-panel-easing, visibility 0s settings.$motion-panel-duration; }
+.panel-collapsed .panel-toggle { transform: translateX(0); }
+.panel-toggle-icon { transform: rotate(settings.$motion-panel-icon-open); transition: transform settings.$motion-panel-duration settings.$motion-panel-easing; }
+.panel-collapsed .panel-toggle-icon { transform: rotate(settings.$motion-panel-icon-closed); }
+.mobile-panel-label { display: none; }
+.search-area { position: absolute; top: var(--space-4); left: calc(50% + var(--map-left-inset) / 2); transform: translateX(-50%); box-shadow: var(--shadow-md); white-space: nowrap; }
+.workspace-map-tools { position: absolute; left: calc(var(--map-left-inset) + var(--space-5)); bottom: calc(var(--map-bottom-inset) + var(--space-6)); display: flex; flex-wrap: wrap; gap: var(--space-2); max-width: calc(100% - settings.$map-tools-clearance); }
+@media (max-width: settings.$breakpoint-map-compact) and (min-width: settings.$breakpoint-mobile-min) { .map-workspace { --panel-width: var(--panel-width-compact); } .search-area { left: auto; right: var(--space-3); transform: none; } }
+@media (max-width: settings.$breakpoint-mobile) {
+  .map-workspace { --map-left-inset: 0%; --map-bottom-inset: var(--panel-mobile-height); }
+  .workspace-panel { top: auto; height: var(--panel-mobile-height); width: 100%; border-right: 0; border-top: var(--border-width) solid var(--color-border); border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .panel-toggle { transform: translateX(0); top: var(--space-3); width: auto; gap: var(--space-2); padding: var(--space-3); font-size: var(--text-xs); }
+  .mobile-panel-label { display: inline; }
+  .panel-collapsed { --map-bottom-inset: 0%; }
+  .workspace-panel { transform: translateY(0); }
+  .panel-collapsed .workspace-panel { transform: translateY(100%); }
+  .panel-toggle-icon { transform: rotate(settings.$motion-panel-icon-mobile-open); }
+  .panel-collapsed .panel-toggle-icon { transform: rotate(settings.$motion-panel-icon-mobile-closed); }
+  .search-area { left: auto; right: var(--space-3); top: var(--space-3); transform: none; font-size: var(--text-xs); padding: var(--space-3); }
+  .tool-label { display: none; }
+  .workspace-map-tools { left: var(--space-3); bottom: calc(var(--map-bottom-inset) + var(--space-4)); max-width: calc(100% - settings.$map-tools-clearance-mobile); }
+  .workspace-map-tools .button { min-height: settings.$control-size-small; padding: var(--space-2); font-size: var(--text-xs); }
+  .map-message { bottom: calc(var(--map-bottom-inset) + var(--space-12)); }
+}
+
+.workspace-locate { position: absolute; z-index: settings.$layer-map-control; right: settings.$map-control-offset; bottom: calc(var(--map-bottom-inset) + var(--space-6)); width: var(--space-8); height: var(--space-8); padding: 0; border: var(--border-width) solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface); }
+
+
+.workspace-map .maplibregl-ctrl-bottom-right { bottom: var(--map-bottom-inset); }
+.workspace-map.has-location-control .maplibregl-ctrl-bottom-right { bottom: calc(var(--map-bottom-inset) + settings.$map-control-clearance); }
+.workspace-map .maplibregl-ctrl-bottom-left { left: var(--map-left-inset); bottom: var(--map-bottom-inset); max-width: calc(100% - var(--map-left-inset) - settings.$map-control-clearance); }
+@media (prefers-reduced-motion: reduce) { .workspace-panel, .panel-collapsed .workspace-panel, .panel-toggle, .panel-toggle-icon { transition: none; } }
