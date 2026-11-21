@@ -64,6 +64,8 @@ Configure `GEOAPIFY_API_KEY` no ambiente ou no `.env`. O comando de configuraç�
 
 ## Estrutura do projeto
 
+No frontend, os casos de uso ficam em `features`. Cada funcionalidade separa apresentação em `view`, operações em `service` e contratos específicos em `model`, conforme necessário. Tipos de domínio compartilhados permanecem em `domain`.
+
 | Área                        | Arquivos                                   | Motivo                                                               |
 | --------------------------- | ------------------------------------------ | -------------------------------------------------------------------- |
 | Páginas                     | `frontend/src/app/features/`               | Fluxos separados, carregados sob demanda pelo router                 |
