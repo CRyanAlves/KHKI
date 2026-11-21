@@ -26,6 +26,8 @@
       >@if (passwordControl.invalid && (passwordControl.touched || attempted)) { <small id="login-password-error" class="login-field-error">{{ passwordControl.errors?.['required'] ? 'Informe sua senha.' : 'Use pelo menos 10 caracteres.' }}</small> }</label>
       @if (register) {
         <small class="muted">Use pelo menos 10 caracteres.</small>
+      } @else {
+        <label class="login-remember"><input type="checkbox" name="rememberMe" [(ngModel)]="rememberMe" /><span>Manter conectado neste dispositivo</span></label>
       }
       @if (error) {
         <p role="alert" class="error-message">{{ error }}</p>

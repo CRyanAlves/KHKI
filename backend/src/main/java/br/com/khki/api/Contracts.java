@@ -16,7 +16,7 @@ public final class Contracts {
 
   public record Register(@NotBlank @Size(max = 80) String name, @NotBlank @Email @Size(max = 254) String email, @NotBlank @Size(min = 10, max = 72) String password) {}
 
-  public record Login(@NotBlank @Email @Size(max = 254) String email, @NotBlank @Size(max = 72) String password) {}
+  public record Login(@NotBlank @Email @Size(max = 254) String email, @NotBlank @Size(max = 72) String password, boolean rememberMe) {}
 
   public record UserView(UUID id, String name, String role) {}
 

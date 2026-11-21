@@ -1,4 +1,7 @@
 spring:
+  session:
+    jdbc:
+      initialize-schema: never
   application:
     name: khki-api
   datasource:
@@ -29,6 +32,9 @@ server:
         same-site: lax
         secure: ${COOKIE_SECURE:false}
 khki:
+  session:
+    remember-duration: ${SESSION_REMEMBER_DURATION:14d}
+    maximum-duration: ${SESSION_MAXIMUM_DURATION:12h}
   frontend-origin: ${FRONTEND_ORIGIN:http://localhost:4200}
   admin-email: ${ADMIN_EMAIL:}
   admin-password: ${ADMIN_PASSWORD:}
