@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, OnInit, ViewChild, ViewEncapsulation, effect, inject } from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnInit, ViewChild, ViewEncapsulation, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ExplorationState } from './exploration-state.service';
@@ -13,7 +13,9 @@ export class WorkspaceComponent implements OnInit {
   readonly state = inject(ExplorationState);
   readonly maps = inject(MapsService);
   readonly navigation = inject(NavigationService);
+  readonly navigationBottomInset = signal(0);
   private wasNavigating = false;
+  private wasPickingOrigin = false;
   private previousPanelCollapsed = false;
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -26,12 +28,23 @@ export class WorkspaceComponent implements OnInit {
       this.restorePanel();
     });
     effect(() => {
-      const active = this.navigation.active();
+      const active = this.navigation.active() || this.state.originPicking();
       if (active && !this.wasNavigating) {
         this.previousPanelCollapsed = this.state.collapsed();
         if (window.matchMedia('(max-width: ' + getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-mobile').trim() + ')').matches) this.state.collapsed.set(true);
       } else if (!active && this.wasNavigating) this.state.collapsed.set(this.previousPanelCollapsed);
       this.wasNavigating = active;
+    });
+    effect(() => {
+      const picking = this.state.originPicking();
+      if (picking || this.wasPickingOrigin)
+        requestAnimationFrame(() => {
+          if (this.destroyRef.destroyed || (!picking && document.activeElement instanceof HTMLInputElement)) return;
+          const target = picking ? document.querySelector<HTMLElement>('.route-picking-tools button') : this.panel?.nativeElement.querySelector<HTMLElement>('h1');
+          if (target?.tagName === 'H1') target.tabIndex = -1;
+          target?.focus({ preventScroll: true });
+        });
+      this.wasPickingOrigin = picking;
     });
     this.destroyRef.onDestroy(() => this.navigation.stop());
     this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {

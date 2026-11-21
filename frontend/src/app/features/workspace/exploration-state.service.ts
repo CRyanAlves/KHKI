@@ -2,6 +2,7 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { ApiService } from '../../core/api.service';
 import { MapsService, TravelMode, TravelRoute } from '../../core/maps.service';
 import { Access, Bathroom, Location, MapArea } from '../../core/models';
+import { validPoint } from '../../core/navigation-geometry';
 
 export interface RouteDraft {
   origin: string;
@@ -38,6 +39,14 @@ export class ExplorationState {
   readonly message = signal('');
   readonly position = signal<Location | null>(null);
   readonly routeOrigin = signal<Location | null>(null);
+  readonly originPicking = signal(false);
+  readonly originSelection = signal<Location | null>(null);
+  chooseRouteOrigin(point: Location): void {
+    if (this.originPicking() && this.scene() === 'route' && validPoint(point)) {
+      this.originSelection.set(point);
+      this.originPicking.set(false);
+    }
+  }
   readonly path = signal<TravelRoute | null>(null);
   readonly bounds = signal<MapArea | null>(null);
   readonly area = signal<MapArea | null>(null);

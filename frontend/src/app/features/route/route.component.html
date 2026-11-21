@@ -1,0 +1,66 @@
+<section class="route-panel">
+  <a [routerLink]="['/banheiros', bathroom?.id]" class="back-link"><app-icon name="ArrowLeft" [size]="18" />Voltar aos detalhes</a>
+  <h1>Como chegar<span class="accent">.</span></h1>
+  @if (loading) {
+    <app-skeleton variant="form" label="Carregando destino…" />
+  } @else if (bathroom) {
+    <app-origin-picker [value]="origin" [selected]="!!position" [bias]="destination" (edited)="originChanged($event)" (chosen)="chooseOrigin($event)" (mapRequested)="selectOnMap()" />
+    @if (state.originPicking()) {
+      <p class="route-map-hint" role="status">Clique no mapa para definir sua origem. <button class="text-button" type="button" (click)="state.originPicking.set(false)">Cancelar seleção</button></p>
+    }
+    <span class="destination-label">Seu destino</span>
+    <div class="destination-box">
+      <app-icon name="MapPin" [size]="22" />
+      <div>
+        <strong>{{ bathroom.name }}</strong>
+        <p>{{ bathroom.address }}</p>
+      </div>
+    </div>
+    <div class="travel-mode" role="radiogroup" aria-label="Como você vai?">
+      @for (transport of modes; track transport.value; let index = $index) {
+        <button type="button" role="radio" [attr.aria-checked]="mode === transport.value" [attr.tabindex]="mode === transport.value ? 0 : -1" [class.selected]="mode === transport.value" (click)="setMode(transport.value)" (keydown)="modeKeydown($event, index)"><app-icon [name]="transport.icon" [size]="18" />{{ transport.label }}</button>
+      }
+    </div>
+    @if (bathroom.demo) {
+      <p class="demo-banner">Destino fictício de demonstração.</p>
+    }
+    @if (busy) {
+      <p class="route-updating" role="status">Atualizando rota…</p>
+      <app-skeleton variant="route" label="Atualizando rota…" />
+    } @else if (route) {
+      <div class="route-summary">
+        <app-icon [name]="transport.icon" [size]="27" />
+        <div>
+          <h2>{{ durationLabel }}</h2>
+          <p>{{ route.distanceMeters !== undefined ? (route.distanceMeters / 1000 | number: '1.1-2') + ' km ' + transport.phrase : 'Distância não informada' }}</p>
+        </div>
+        <span class="route-auto"><app-icon name="Info" [size]="16" />Atualizado automaticamente</span>
+      </div>
+      <div class="navigation-route-controls">
+        @if (!navigation.active()) {
+          <button class="button primary full" type="button" [disabled]="state.originPicking()" (click)="navigation.start()"><app-icon name="Navigation" />Iniciar navegação</button>
+        } @else {
+          <button class="button secondary full" type="button" (click)="navigation.stop()">Encerrar navegação</button>
+          @if (!navigation.simulated()) {
+            <button class="text-button" type="button" (click)="navigation.requestOrientation()">Ativar bússola do aparelho</button>
+          }
+          <small>{{ navigation.sensorStatus() }}</small>
+        }
+        @if (navigation.notice()) {
+          <p role="status">{{ navigation.notice() }}</p>
+        }
+      </div>
+      <p class="muted route-attribution">Dados de rota: Geoapify e OpenStreetMap. Confira a sinalização e as condições locais do trajeto {{ transport.phrase }}.</p>
+    } @else if (!error) {
+      <p class="route-empty">Escolha o ponto de partida para ver o trajeto, a distância e o tempo estimado.</p>
+    }
+    @if (error) {
+      <div class="error-message" role="alert">
+        <p>{{ error }}</p>
+        @if (position) {
+          <button class="text-button" type="button" (click)="calculate()">Tentar novamente</button>
+        }
+      </div>
+    }
+  }
+</section>
