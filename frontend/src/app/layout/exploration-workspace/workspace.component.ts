@@ -1,4 +1,4 @@
-import type { RegisterBathroomComponent } from '../../features/register-bathroom/register-bathroom.component';
+import type { RegisterBathroomComponent } from '../../features/bathroom/register/view/bathroom-registration-form.component';
 import { DecimalPipe } from '@angular/common';
 import { Bathroom } from '../../domain/bathrooms/bathroom.model';
 import { Location } from '../../domain/location/location.model';
@@ -10,14 +10,14 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ExplorationState } from './exploration-state.service';
 import { MapComponent } from '../../integrations/maps/map/map.component';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
-import { NavigationService } from '../../features/navigation/navigation.service';
-import { NavigationToolsComponent } from '../../features/navigation/tools/navigation-tools.component';
-import { ExploreComponent } from '../../features/explore-bathrooms/explore.component';
-import { MapPhotoViewerComponent } from '../../features/bathroom-details/gallery/map-photo-viewer.component';
+import { NavigationService } from '../../features/route/navigation/service/route-navigation.service';
+import { NavigationToolsComponent } from '../../features/route/navigation/view/panel/route-navigation-panel.component';
+import { ExploreComponent } from '../../features/bathroom/search/view/results/explore.component';
+import { MapPhotoViewerComponent } from '../../features/bathroom/details/view/gallery/bathroom-photo-gallery.component';
 import { MapsService } from '../../integrations/maps/maps.service';
 import { MobileUiService } from '../mobile/mobile-ui.service';
 import { MobileSheetDirective } from '../mobile/mobile-sheet.directive';
-import { MobileSearchComponent } from '../../features/explore-bathrooms/search/mobile-search.component';
+import { MobileSearchComponent } from '../../features/bathroom/search/view/search-input/mobile-bathroom-search-input.component';
 
 @Component({
   selector: 'app-workspace',

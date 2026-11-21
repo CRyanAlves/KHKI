@@ -2,7 +2,7 @@ import { DestroyRef, Injectable, computed, effect, inject, signal } from '@angul
 import { NavigationEnd, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ExplorationState } from '../exploration-workspace/exploration-state.service';
-import { NavigationService } from '../../features/navigation/navigation.service';
+import { NavigationService } from '../../features/route/navigation/service/route-navigation.service';
 
 @Injectable({ providedIn: 'root' })
 export class MobileUiService {
