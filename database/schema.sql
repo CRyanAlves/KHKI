@@ -1,9 +1,10 @@
--- Esquema vazio do KHKI. PostgreSQL 17. Não executar sobre um banco já populado.
 --
 -- PostgreSQL database dump
 --
 
 
+-- Dumped from database version 17.6
+-- Dumped by pg_dump version 17.6
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -18,17 +19,17 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: public; Type: SCHEMA; Schema: -; Owner: -
+-- Name: khki; Type: SCHEMA; Schema: -; Owner: -
 --
 
-CREATE SCHEMA IF NOT EXISTS khki;
+CREATE SCHEMA khki;
 
 
 --
 -- Name: SCHEMA khki; Type: COMMENT; Schema: -; Owner: -
 --
 
-
+COMMENT ON SCHEMA khki IS 'standard khki schema';
 
 
 SET default_tablespace = '';
@@ -36,7 +37,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: amenity_types; Type: TABLE; Schema: public; Owner: -
+-- Name: amenity_types; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.amenity_types (
@@ -45,7 +46,7 @@ CREATE TABLE khki.amenity_types (
 
 
 --
--- Name: app_users; Type: TABLE; Schema: public; Owner: -
+-- Name: app_users; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.app_users (
@@ -59,24 +60,7 @@ CREATE TABLE khki.app_users (
 
 
 --
--- Name: bathroom_images; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE khki.bathroom_images (
-    bathroom_id uuid NOT NULL,
-    image_order integer NOT NULL,
-    image_id uuid NOT NULL,
-    url character varying(500) NOT NULL,
-    status character varying(20) NOT NULL,
-    reason character varying(500),
-    created_at timestamp with time zone NOT NULL,
-    version bigint DEFAULT 0 NOT NULL,
-    CONSTRAINT bathroom_images_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'NEEDS_INFORMATION'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying, 'HIDDEN'::character varying, 'REMOVED'::character varying])::text[])))
-);
-
-
---
--- Name: bathroom_items; Type: TABLE; Schema: public; Owner: -
+-- Name: bathroom_items; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.bathroom_items (
@@ -86,7 +70,7 @@ CREATE TABLE khki.bathroom_items (
 
 
 --
--- Name: bathroom_type_options; Type: TABLE; Schema: public; Owner: -
+-- Name: bathroom_type_options; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.bathroom_type_options (
@@ -95,7 +79,7 @@ CREATE TABLE khki.bathroom_type_options (
 
 
 --
--- Name: bathroom_types; Type: TABLE; Schema: public; Owner: -
+-- Name: bathroom_types; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.bathroom_types (
@@ -105,7 +89,7 @@ CREATE TABLE khki.bathroom_types (
 
 
 --
--- Name: bathrooms; Type: TABLE; Schema: public; Owner: -
+-- Name: bathrooms; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.bathrooms (
@@ -134,13 +118,14 @@ CREATE TABLE khki.bathrooms (
     adapted_cabin boolean,
     grab_bars boolean,
     last_visited date,
+    image_urls jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT bathrooms_coordinates_check CHECK ((((latitude >= ('-90'::integer)::double precision) AND (latitude <= (90)::double precision)) AND ((longitude >= ('-180'::integer)::double precision) AND (longitude <= (180)::double precision)))),
     CONSTRAINT bathrooms_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'NEEDS_INFORMATION'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying, 'HIDDEN'::character varying, 'REMOVED'::character varying])::text[])))
 );
 
 
 --
--- Name: image_deletions; Type: TABLE; Schema: public; Owner: -
+-- Name: image_deletions; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.image_deletions (
@@ -150,7 +135,7 @@ CREATE TABLE khki.image_deletions (
 
 
 --
--- Name: moderation_audit; Type: TABLE; Schema: public; Owner: -
+-- Name: moderation_audit; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.moderation_audit (
@@ -164,14 +149,12 @@ CREATE TABLE khki.moderation_audit (
     duplicate_of_id uuid,
     bathroom_target_id uuid,
     review_target_id uuid,
-    bathroom_image_target_id uuid,
-    review_image_target_id uuid,
-    CONSTRAINT moderation_audit_target_fk_check CHECK (((((target_type)::text = 'BATHROOM'::text) AND (bathroom_target_id IS NOT NULL) AND (bathroom_target_id = target_id) AND (review_target_id IS NULL) AND (bathroom_image_target_id IS NULL) AND (review_image_target_id IS NULL)) OR (((target_type)::text = 'REVIEW'::text) AND (review_target_id IS NOT NULL) AND (review_target_id = target_id) AND (bathroom_target_id IS NULL) AND (bathroom_image_target_id IS NULL) AND (review_image_target_id IS NULL)) OR (((target_type)::text = 'PHOTO'::text) AND (bathroom_image_target_id IS NOT NULL) AND (bathroom_image_target_id = target_id) AND (bathroom_target_id IS NULL) AND (review_target_id IS NULL) AND (review_image_target_id IS NULL)) OR (((target_type)::text = 'PHOTO'::text) AND (review_image_target_id IS NOT NULL) AND (review_image_target_id = target_id) AND (bathroom_target_id IS NULL) AND (review_target_id IS NULL) AND (bathroom_image_target_id IS NULL))))
+    CONSTRAINT moderation_audit_target_fk_check CHECK (((((target_type)::text = 'BATHROOM'::text) AND (bathroom_target_id IS NOT NULL) AND (bathroom_target_id = target_id) AND (review_target_id IS NULL)) OR (((target_type)::text = 'REVIEW'::text) AND (review_target_id IS NOT NULL) AND (review_target_id = target_id) AND (bathroom_target_id IS NULL))))
 );
 
 
 --
--- Name: reports; Type: TABLE; Schema: public; Owner: -
+-- Name: reports; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.reports (
@@ -184,31 +167,12 @@ CREATE TABLE khki.reports (
     version bigint DEFAULT 0 NOT NULL,
     bathroom_target_id uuid,
     review_target_id uuid,
-    bathroom_image_target_id uuid,
-    review_image_target_id uuid,
-    CONSTRAINT reports_target_fk_check CHECK (((((target_type)::text = 'BATHROOM'::text) AND (bathroom_target_id IS NOT NULL) AND (bathroom_target_id = target_id) AND (review_target_id IS NULL) AND (bathroom_image_target_id IS NULL) AND (review_image_target_id IS NULL)) OR (((target_type)::text = 'REVIEW'::text) AND (review_target_id IS NOT NULL) AND (review_target_id = target_id) AND (bathroom_target_id IS NULL) AND (bathroom_image_target_id IS NULL) AND (review_image_target_id IS NULL)) OR (((target_type)::text = 'PHOTO'::text) AND (bathroom_image_target_id IS NOT NULL) AND (bathroom_image_target_id = target_id) AND (bathroom_target_id IS NULL) AND (review_target_id IS NULL) AND (review_image_target_id IS NULL)) OR (((target_type)::text = 'PHOTO'::text) AND (review_image_target_id IS NOT NULL) AND (review_image_target_id = target_id) AND (bathroom_target_id IS NULL) AND (review_target_id IS NULL) AND (bathroom_image_target_id IS NULL))))
+    CONSTRAINT reports_target_fk_check CHECK (((((target_type)::text = 'BATHROOM'::text) AND (bathroom_target_id IS NOT NULL) AND (bathroom_target_id = target_id) AND (review_target_id IS NULL)) OR (((target_type)::text = 'REVIEW'::text) AND (review_target_id IS NOT NULL) AND (review_target_id = target_id) AND (bathroom_target_id IS NULL))))
 );
 
 
 --
--- Name: review_images; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE khki.review_images (
-    review_id uuid NOT NULL,
-    image_order integer NOT NULL,
-    image_id uuid NOT NULL,
-    url character varying(500) NOT NULL,
-    status character varying(20) NOT NULL,
-    reason character varying(500),
-    created_at timestamp with time zone NOT NULL,
-    version bigint DEFAULT 0 NOT NULL,
-    CONSTRAINT review_images_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'NEEDS_INFORMATION'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying, 'HIDDEN'::character varying, 'REMOVED'::character varying])::text[])))
-);
-
-
---
--- Name: reviews; Type: TABLE; Schema: public; Owner: -
+-- Name: reviews; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.reviews (
@@ -223,6 +187,7 @@ CREATE TABLE khki.reviews (
     structure integer,
     comment character varying(1500),
     photo_only boolean DEFAULT false NOT NULL,
+    image_urls jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT reviews_cleanliness_check CHECK (((cleanliness >= 1) AND (cleanliness <= 5))),
     CONSTRAINT reviews_rating_kind_check CHECK (((photo_only AND (cleanliness IS NULL) AND (structure IS NULL) AND (comment IS NULL)) OR ((NOT photo_only) AND (cleanliness IS NOT NULL) AND (structure IS NOT NULL)))),
     CONSTRAINT reviews_status_check CHECK (((status)::text = ANY ((ARRAY['PENDING'::character varying, 'NEEDS_INFORMATION'::character varying, 'APPROVED'::character varying, 'REJECTED'::character varying, 'HIDDEN'::character varying, 'REMOVED'::character varying])::text[]))),
@@ -231,7 +196,7 @@ CREATE TABLE khki.reviews (
 
 
 --
--- Name: spring_session; Type: TABLE; Schema: public; Owner: -
+-- Name: spring_session; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.spring_session (
@@ -246,7 +211,7 @@ CREATE TABLE khki.spring_session (
 
 
 --
--- Name: spring_session_attributes; Type: TABLE; Schema: public; Owner: -
+-- Name: spring_session_attributes; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.spring_session_attributes (
@@ -257,7 +222,7 @@ CREATE TABLE khki.spring_session_attributes (
 
 
 --
--- Name: submission_receipts; Type: TABLE; Schema: public; Owner: -
+-- Name: submission_receipts; Type: TABLE; Schema: khki; Owner: -
 --
 
 CREATE TABLE khki.submission_receipts (
@@ -271,14 +236,12 @@ CREATE TABLE khki.submission_receipts (
     created_at timestamp with time zone NOT NULL,
     bathroom_target_id uuid,
     review_target_id uuid,
-    bathroom_image_target_id uuid,
-    review_image_target_id uuid,
-    CONSTRAINT submission_receipts_target_fk_check CHECK (((((target_type)::text = 'BATHROOM'::text) AND (bathroom_target_id IS NOT NULL) AND (bathroom_target_id = target_id) AND (review_target_id IS NULL) AND (bathroom_image_target_id IS NULL) AND (review_image_target_id IS NULL)) OR (((target_type)::text = 'REVIEW'::text) AND (review_target_id IS NOT NULL) AND (review_target_id = target_id) AND (bathroom_target_id IS NULL) AND (bathroom_image_target_id IS NULL) AND (review_image_target_id IS NULL)) OR (((target_type)::text = 'PHOTO'::text) AND (bathroom_image_target_id IS NOT NULL) AND (bathroom_image_target_id = target_id) AND (bathroom_target_id IS NULL) AND (review_target_id IS NULL) AND (review_image_target_id IS NULL)) OR (((target_type)::text = 'PHOTO'::text) AND (review_image_target_id IS NOT NULL) AND (review_image_target_id = target_id) AND (bathroom_target_id IS NULL) AND (review_target_id IS NULL) AND (bathroom_image_target_id IS NULL))))
+    CONSTRAINT submission_receipts_target_fk_check CHECK (((((target_type)::text = 'BATHROOM'::text) AND (bathroom_target_id IS NOT NULL) AND (bathroom_target_id = target_id) AND (review_target_id IS NULL)) OR (((target_type)::text = 'REVIEW'::text) AND (review_target_id IS NOT NULL) AND (review_target_id = target_id) AND (bathroom_target_id IS NULL))))
 );
 
 
 --
--- Name: amenity_types amenity_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: amenity_types amenity_types_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.amenity_types
@@ -286,7 +249,7 @@ ALTER TABLE ONLY khki.amenity_types
 
 
 --
--- Name: app_users app_users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: app_users app_users_email_key; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.app_users
@@ -294,7 +257,7 @@ ALTER TABLE ONLY khki.app_users
 
 
 --
--- Name: app_users app_users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: app_users app_users_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.app_users
@@ -302,23 +265,7 @@ ALTER TABLE ONLY khki.app_users
 
 
 --
--- Name: bathroom_images bathroom_images_image_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY khki.bathroom_images
-    ADD CONSTRAINT bathroom_images_image_id_key UNIQUE (image_id);
-
-
---
--- Name: bathroom_images bathroom_images_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY khki.bathroom_images
-    ADD CONSTRAINT bathroom_images_pkey PRIMARY KEY (bathroom_id, image_order);
-
-
---
--- Name: bathroom_items bathroom_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: bathroom_items bathroom_items_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.bathroom_items
@@ -326,7 +273,7 @@ ALTER TABLE ONLY khki.bathroom_items
 
 
 --
--- Name: bathroom_type_options bathroom_type_options_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: bathroom_type_options bathroom_type_options_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.bathroom_type_options
@@ -334,7 +281,7 @@ ALTER TABLE ONLY khki.bathroom_type_options
 
 
 --
--- Name: bathroom_types bathroom_types_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: bathroom_types bathroom_types_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.bathroom_types
@@ -342,7 +289,7 @@ ALTER TABLE ONLY khki.bathroom_types
 
 
 --
--- Name: bathrooms bathrooms_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: bathrooms bathrooms_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.bathrooms
@@ -350,7 +297,7 @@ ALTER TABLE ONLY khki.bathrooms
 
 
 --
--- Name: image_deletions image_deletions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: image_deletions image_deletions_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.image_deletions
@@ -358,7 +305,7 @@ ALTER TABLE ONLY khki.image_deletions
 
 
 --
--- Name: moderation_audit moderation_audit_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: moderation_audit moderation_audit_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.moderation_audit
@@ -366,7 +313,7 @@ ALTER TABLE ONLY khki.moderation_audit
 
 
 --
--- Name: reports reports_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: reports reports_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.reports
@@ -374,23 +321,7 @@ ALTER TABLE ONLY khki.reports
 
 
 --
--- Name: review_images review_images_image_id_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY khki.review_images
-    ADD CONSTRAINT review_images_image_id_key UNIQUE (image_id);
-
-
---
--- Name: review_images review_images_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY khki.review_images
-    ADD CONSTRAINT review_images_pkey PRIMARY KEY (review_id, image_order);
-
-
---
--- Name: reviews reviews_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: reviews reviews_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.reviews
@@ -398,7 +329,7 @@ ALTER TABLE ONLY khki.reviews
 
 
 --
--- Name: spring_session_attributes spring_session_attributes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: spring_session_attributes spring_session_attributes_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.spring_session_attributes
@@ -406,7 +337,7 @@ ALTER TABLE ONLY khki.spring_session_attributes
 
 
 --
--- Name: spring_session spring_session_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: spring_session spring_session_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.spring_session
@@ -414,7 +345,7 @@ ALTER TABLE ONLY khki.spring_session
 
 
 --
--- Name: submission_receipts submission_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: submission_receipts submission_receipts_pkey; Type: CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.submission_receipts
@@ -422,190 +353,126 @@ ALTER TABLE ONLY khki.submission_receipts
 
 
 --
--- Name: bathroom_images_status_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX bathroom_images_status_idx ON khki.bathroom_images USING btree (status);
-
-
---
--- Name: bathroom_items_code_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: bathroom_items_code_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX bathroom_items_code_idx ON khki.bathroom_items USING btree (item_code);
 
 
 --
--- Name: bathroom_types_code_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: bathroom_types_code_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX bathroom_types_code_idx ON khki.bathroom_types USING btree (type_code);
 
 
 --
--- Name: bathrooms_author_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: bathrooms_author_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX bathrooms_author_idx ON khki.bathrooms USING btree (author_id);
 
 
 --
--- Name: bathrooms_status_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: bathrooms_status_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX bathrooms_status_idx ON khki.bathrooms USING btree (status);
 
 
 --
--- Name: moderation_audit_bathroom_image_target_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX moderation_audit_bathroom_image_target_id_idx ON khki.moderation_audit USING btree (bathroom_image_target_id);
-
-
---
--- Name: moderation_audit_bathroom_target_id_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: moderation_audit_bathroom_target_id_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX moderation_audit_bathroom_target_id_idx ON khki.moderation_audit USING btree (bathroom_target_id);
 
 
 --
--- Name: moderation_audit_review_image_target_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX moderation_audit_review_image_target_id_idx ON khki.moderation_audit USING btree (review_image_target_id);
-
-
---
--- Name: moderation_audit_review_target_id_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: moderation_audit_review_target_id_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX moderation_audit_review_target_id_idx ON khki.moderation_audit USING btree (review_target_id);
 
 
 --
--- Name: moderation_audit_target_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: moderation_audit_target_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX moderation_audit_target_idx ON khki.moderation_audit USING btree (target_type, target_id, created_at);
 
 
 --
--- Name: reports_bathroom_image_target_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX reports_bathroom_image_target_id_idx ON khki.reports USING btree (bathroom_image_target_id);
-
-
---
--- Name: reports_bathroom_target_id_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: reports_bathroom_target_id_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX reports_bathroom_target_id_idx ON khki.reports USING btree (bathroom_target_id);
 
 
 --
--- Name: reports_review_image_target_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX reports_review_image_target_id_idx ON khki.reports USING btree (review_image_target_id);
-
-
---
--- Name: reports_review_target_id_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: reports_review_target_id_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX reports_review_target_id_idx ON khki.reports USING btree (review_target_id);
 
 
 --
--- Name: review_images_status_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX review_images_status_idx ON khki.review_images USING btree (status);
-
-
---
--- Name: reviews_author_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: reviews_author_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX reviews_author_idx ON khki.reviews USING btree (author_id);
 
 
 --
--- Name: reviews_bathroom_status_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: reviews_bathroom_status_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX reviews_bathroom_status_idx ON khki.reviews USING btree (bathroom_id, status);
 
 
 --
--- Name: spring_session_ix1; Type: INDEX; Schema: public; Owner: -
+-- Name: spring_session_ix1; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE UNIQUE INDEX spring_session_ix1 ON khki.spring_session USING btree (session_id);
 
 
 --
--- Name: spring_session_ix2; Type: INDEX; Schema: public; Owner: -
+-- Name: spring_session_ix2; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX spring_session_ix2 ON khki.spring_session USING btree (expiry_time);
 
 
 --
--- Name: spring_session_ix3; Type: INDEX; Schema: public; Owner: -
+-- Name: spring_session_ix3; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX spring_session_ix3 ON khki.spring_session USING btree (principal_name);
 
 
 --
--- Name: submission_receipts_author_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: submission_receipts_author_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX submission_receipts_author_idx ON khki.submission_receipts USING btree (author_id);
 
 
 --
--- Name: submission_receipts_bathroom_image_target_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX submission_receipts_bathroom_image_target_id_idx ON khki.submission_receipts USING btree (bathroom_image_target_id);
-
-
---
--- Name: submission_receipts_bathroom_target_id_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: submission_receipts_bathroom_target_id_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX submission_receipts_bathroom_target_id_idx ON khki.submission_receipts USING btree (bathroom_target_id);
 
 
 --
--- Name: submission_receipts_review_image_target_id_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX submission_receipts_review_image_target_id_idx ON khki.submission_receipts USING btree (review_image_target_id);
-
-
---
--- Name: submission_receipts_review_target_id_idx; Type: INDEX; Schema: public; Owner: -
+-- Name: submission_receipts_review_target_id_idx; Type: INDEX; Schema: khki; Owner: -
 --
 
 CREATE INDEX submission_receipts_review_target_id_idx ON khki.submission_receipts USING btree (review_target_id);
 
 
 --
--- Name: bathroom_images bathroom_images_bathroom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY khki.bathroom_images
-    ADD CONSTRAINT bathroom_images_bathroom_id_fkey FOREIGN KEY (bathroom_id) REFERENCES khki.bathrooms(id);
-
-
---
--- Name: bathroom_items bathroom_items_bathroom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bathroom_items bathroom_items_bathroom_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.bathroom_items
@@ -613,7 +480,7 @@ ALTER TABLE ONLY khki.bathroom_items
 
 
 --
--- Name: bathroom_items bathroom_items_item_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bathroom_items bathroom_items_item_code_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.bathroom_items
@@ -621,7 +488,7 @@ ALTER TABLE ONLY khki.bathroom_items
 
 
 --
--- Name: bathroom_types bathroom_types_bathroom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bathroom_types bathroom_types_bathroom_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.bathroom_types
@@ -629,7 +496,7 @@ ALTER TABLE ONLY khki.bathroom_types
 
 
 --
--- Name: bathroom_types bathroom_types_type_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bathroom_types bathroom_types_type_code_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.bathroom_types
@@ -637,7 +504,7 @@ ALTER TABLE ONLY khki.bathroom_types
 
 
 --
--- Name: bathrooms bathrooms_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: bathrooms bathrooms_author_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.bathrooms
@@ -645,15 +512,7 @@ ALTER TABLE ONLY khki.bathrooms
 
 
 --
--- Name: moderation_audit moderation_audit_bathroom_image_target_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY khki.moderation_audit
-    ADD CONSTRAINT moderation_audit_bathroom_image_target_id_fkey FOREIGN KEY (bathroom_image_target_id) REFERENCES khki.bathroom_images(image_id);
-
-
---
--- Name: moderation_audit moderation_audit_bathroom_target_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: moderation_audit moderation_audit_bathroom_target_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.moderation_audit
@@ -661,7 +520,7 @@ ALTER TABLE ONLY khki.moderation_audit
 
 
 --
--- Name: moderation_audit moderation_audit_duplicate_of_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: moderation_audit moderation_audit_duplicate_of_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.moderation_audit
@@ -669,7 +528,7 @@ ALTER TABLE ONLY khki.moderation_audit
 
 
 --
--- Name: moderation_audit moderation_audit_moderator_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: moderation_audit moderation_audit_moderator_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.moderation_audit
@@ -677,15 +536,7 @@ ALTER TABLE ONLY khki.moderation_audit
 
 
 --
--- Name: moderation_audit moderation_audit_review_image_target_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY khki.moderation_audit
-    ADD CONSTRAINT moderation_audit_review_image_target_id_fkey FOREIGN KEY (review_image_target_id) REFERENCES khki.review_images(image_id);
-
-
---
--- Name: moderation_audit moderation_audit_review_target_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: moderation_audit moderation_audit_review_target_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.moderation_audit
@@ -693,15 +544,7 @@ ALTER TABLE ONLY khki.moderation_audit
 
 
 --
--- Name: reports reports_bathroom_image_target_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY khki.reports
-    ADD CONSTRAINT reports_bathroom_image_target_id_fkey FOREIGN KEY (bathroom_image_target_id) REFERENCES khki.bathroom_images(image_id);
-
-
---
--- Name: reports reports_bathroom_target_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: reports reports_bathroom_target_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.reports
@@ -709,15 +552,7 @@ ALTER TABLE ONLY khki.reports
 
 
 --
--- Name: reports reports_review_image_target_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY khki.reports
-    ADD CONSTRAINT reports_review_image_target_id_fkey FOREIGN KEY (review_image_target_id) REFERENCES khki.review_images(image_id);
-
-
---
--- Name: reports reports_review_target_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: reports reports_review_target_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.reports
@@ -725,15 +560,7 @@ ALTER TABLE ONLY khki.reports
 
 
 --
--- Name: review_images review_images_review_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY khki.review_images
-    ADD CONSTRAINT review_images_review_id_fkey FOREIGN KEY (review_id) REFERENCES khki.reviews(id);
-
-
---
--- Name: reviews reviews_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: reviews reviews_author_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.reviews
@@ -741,7 +568,7 @@ ALTER TABLE ONLY khki.reviews
 
 
 --
--- Name: reviews reviews_bathroom_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: reviews reviews_bathroom_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.reviews
@@ -749,7 +576,7 @@ ALTER TABLE ONLY khki.reviews
 
 
 --
--- Name: spring_session_attributes spring_session_attributes_session_primary_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: spring_session_attributes spring_session_attributes_session_primary_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.spring_session_attributes
@@ -757,7 +584,7 @@ ALTER TABLE ONLY khki.spring_session_attributes
 
 
 --
--- Name: submission_receipts submission_receipts_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: submission_receipts submission_receipts_author_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.submission_receipts
@@ -765,15 +592,7 @@ ALTER TABLE ONLY khki.submission_receipts
 
 
 --
--- Name: submission_receipts submission_receipts_bathroom_image_target_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY khki.submission_receipts
-    ADD CONSTRAINT submission_receipts_bathroom_image_target_id_fkey FOREIGN KEY (bathroom_image_target_id) REFERENCES khki.bathroom_images(image_id);
-
-
---
--- Name: submission_receipts submission_receipts_bathroom_target_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: submission_receipts submission_receipts_bathroom_target_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.submission_receipts
@@ -781,15 +600,7 @@ ALTER TABLE ONLY khki.submission_receipts
 
 
 --
--- Name: submission_receipts submission_receipts_review_image_target_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY khki.submission_receipts
-    ADD CONSTRAINT submission_receipts_review_image_target_id_fkey FOREIGN KEY (review_image_target_id) REFERENCES khki.review_images(image_id);
-
-
---
--- Name: submission_receipts submission_receipts_review_target_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: submission_receipts submission_receipts_review_target_id_fkey; Type: FK CONSTRAINT; Schema: khki; Owner: -
 --
 
 ALTER TABLE ONLY khki.submission_receipts
@@ -803,19 +614,16 @@ ALTER TABLE ONLY khki.submission_receipts
 
 INSERT INTO khki.amenity_types (code) VALUES ('PAPER'), ('SOAP'), ('SINK'), ('DRYER'), ('BIN'), ('CHANGING_TABLE');
 INSERT INTO khki.bathroom_type_options (code) VALUES ('INDIVIDUAL'), ('FEMALE'), ('MALE');
-REVOKE ALL ON SCHEMA khki FROM PUBLIC;
 ALTER TABLE khki.app_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.bathrooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.moderation_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.submission_receipts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE khki.spring_session ENABLE ROW LEVEL SECURITY;
-ALTER TABLE khki.spring_session_attributes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE khki.amenity_types ENABLE ROW LEVEL SECURITY;
-ALTER TABLE khki.bathroom_type_options ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.bathroom_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.bathroom_types ENABLE ROW LEVEL SECURITY;
-ALTER TABLE khki.bathroom_images ENABLE ROW LEVEL SECURITY;
-ALTER TABLE khki.review_images ENABLE ROW LEVEL SECURITY;
+ALTER TABLE khki.amenity_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE khki.bathroom_type_options ENABLE ROW LEVEL SECURITY;
 ALTER TABLE khki.image_deletions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE khki.spring_session ENABLE ROW LEVEL SECURITY;
+ALTER TABLE khki.spring_session_attributes ENABLE ROW LEVEL SECURITY;

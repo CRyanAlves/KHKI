@@ -1,10 +1,9 @@
 import { Component, ElementRef, HostListener, OnDestroy, afterNextRender, inject, signal } from '@angular/core';
 import { ExplorationState } from '../features/workspace/exploration-state.service';
 import { IconComponent } from './icon.component';
-import { ReportComponent } from './report.component';
 import { MobileUiService } from '../core/mobile-ui.service';
 import { motionDurationMilliseconds } from './motion-duration';
-@Component({ selector: 'app-map-photo-viewer', imports: [IconComponent, ReportComponent], templateUrl: './map-photo-viewer.component.html', styleUrl: './map-photo-viewer.component.scss' })
+@Component({ selector: 'app-map-photo-viewer', imports: [IconComponent], templateUrl: './map-photo-viewer.component.html', styleUrl: './map-photo-viewer.component.scss' })
 export class MapPhotoViewerComponent implements OnDestroy {
   readonly state = inject(ExplorationState);
   readonly mobileUi = inject(MobileUiService);
@@ -14,7 +13,7 @@ export class MapPhotoViewerComponent implements OnDestroy {
     if (view && Number.isSafeInteger(index) && index >= 0 && index < view.photoIds.length) this.state.photoView.set({ ...view, index });
   }
   swipeStart(event: TouchEvent): void {
-    if (this.mobileUi.mobile() && !this.report && event.touches.length === 1) this.touch = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+    if (this.mobileUi.mobile() && event.touches.length === 1) this.touch = { x: event.touches[0].clientX, y: event.touches[0].clientY };
   }
   swipeEnd(event: TouchEvent): void {
     if (!this.touch || !event.changedTouches.length) return;
@@ -26,7 +25,6 @@ export class MapPhotoViewerComponent implements OnDestroy {
   readonly imageRatio = signal(1);
   readonly availableHeight = signal(0);
   private observer?: ResizeObserver;
-  report = '';
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly previous = this.state.photoOpener || (document.activeElement as HTMLElement | null);
   private readonly historyToken = crypto.randomUUID();
@@ -52,7 +50,7 @@ export class MapPhotoViewerComponent implements OnDestroy {
     if (image.naturalWidth > 0 && image.naturalHeight > 0) this.imageRatio.set(image.naturalWidth / image.naturalHeight);
   }
   @HostListener('keydown', ['$event']) keyboard(event: KeyboardEvent): void {
-    if (this.report || event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) return;
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) return;
     if (event.key === 'Escape') {
       event.preventDefault();
       this.close();

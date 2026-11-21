@@ -13,7 +13,6 @@
       <strong class="photo-count" aria-live="polite" aria-atomic="true">Foto {{ view.index + 1 }} de {{ view.photoIds.length }}</strong>
       <button class="icon-button photo-control photo-previous" type="button" aria-label="Anterior" title="Foto anterior" [disabled]="view.photoIds.length < 2" (click)="state.movePhoto(-1)"><app-icon name="ArrowLeft" /></button>
       <button class="icon-button photo-control photo-next" type="button" aria-label="Próxima" title="Próxima foto" [disabled]="view.photoIds.length < 2" (click)="state.movePhoto(1)"><app-icon name="ArrowRight" /></button>
-      <button class="photo-control photo-report" type="button" aria-label="Denunciar foto exibida" (click)="report = view.photoIds[view.index]"><app-icon name="Flag" [size]="17" />Denunciar foto</button>
     </div>
     @if (mobileUi.mobile()) {
       <div class="mobile-photo-thumbnails" aria-label="Miniaturas das fotos">
@@ -23,7 +22,4 @@
       </div>
     }
   </section>
-  @if (report) {
-    <app-report [target]="{ type: 'PHOTO', id: report }" (closed)="report = ''" />
-  }
 }
