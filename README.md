@@ -125,3 +125,9 @@ Antes de disponibilizar para usuários reais: validar Geoapify com a chave real,
 Acesse [KHKI](https://khki.cradev.workers.dev). O Angular está na Cloudflare, a API Java Spring no Render Free e o PostgreSQL no Supabase Free, em schema privado. O primeiro acesso à API pode demorar por suspensão do serviço gratuito. O Worker utiliza `cloudflare/wrangler.jsonc` e encaminha `/api` para `API_ORIGIN`. Após gerar o build Angular, execute os testes e o deploy na pasta `cloudflare`. O comando de publicação preserva as variáveis remotas com `--keep-vars`. Credenciais privadas devem permanecer no ambiente do serviço e fora do Git.
 
 A organização dos casos de uso e as mudanças de contrato estão no [guia do backend](backend/README.md).
+
+## Remoção de recibos e nome da tabela de usuários
+
+V15 remove `submission_receipts`, e V16 renomeia `app_users` para `"user"`, preservando dados, FKs e RLS. As migrações anteriores permanecem imutáveis para bancos antigos continuarem migrando. O Hibernate usa o nome delimitado de `user`. O DDL independente já representa a versão 16.
+
+O contrato `submissionId` e a rota `/api/me/submissions/{id}` foram removidos. Cadastro e upload não calculam hashes nem guardam recibos. O frontend compartilha a requisição em andamento, bloqueia o botão e mantém o ID de um cadastro cuja resposta foi confirmada. Fotos confirmadas não são reenviadas. Se a resposta se perder, o formulário bloqueia a repetição automática e orienta conferir Minhas contribuições. Isso não garante idempotência entre abas, recargas ou requisições independentes.

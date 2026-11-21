@@ -25,8 +25,8 @@ public class ImageController {
 
   @PostMapping(value = "/bathrooms/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @ResponseStatus(HttpStatus.CREATED)
-  public ContributionView upload(@PathVariable UUID id, @RequestParam(required = false) UUID reviewId, @RequestParam(required = false) UUID submissionId, @RequestParam(defaultValue = "false") boolean registrationAttachment, @RequestPart MultipartFile file, Principal principal) {
-    return imageService.upload(id, reviewId, accounts.current(principal).getId(), file, submissionId, registrationAttachment);
+  public ContributionView upload(@PathVariable UUID id, @RequestParam(required = false) UUID reviewId, @RequestParam(defaultValue = "false") boolean registrationAttachment, @RequestPart MultipartFile file, Principal principal) {
+    return imageService.upload(id, reviewId, accounts.current(principal).getId(), file, registrationAttachment);
   }
 
   @GetMapping("/photos/{id}")

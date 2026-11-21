@@ -4,11 +4,9 @@ import br.com.khki.infrastructure.storage.ImageStorage;
 import br.com.khki.shared.api.ApiException;
 import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.shared.domain.Status;
-import br.com.khki.shared.domain.TargetType;
 import br.com.khki.usecase.account.User;
 import br.com.khki.usecase.bathroom.BathroomRepository;
 import br.com.khki.usecase.contribution.ContributionService;
-import br.com.khki.usecase.contribution.SubmissionReceiptService;
 import br.com.khki.usecase.review.ReviewRepository;
 import org.springframework.transaction.support.*;
 import jakarta.persistence.EntityManager;
@@ -29,42 +27,34 @@ public class ImageService {
   private final BathroomRepository bathrooms;
   private final ReviewRepository reviews;
   private final ContributionService content;
-  private final SubmissionReceiptService submissions;
   private final EntityManager entityManager;
   private final ImageStorage storage;
 
-  public ImageService(BathroomRepository bathrooms, ReviewRepository reviews, ContributionService content, SubmissionReceiptService submissions, EntityManager entityManager, ImageStorage storage) {
+  public ImageService(BathroomRepository bathrooms, ReviewRepository reviews, ContributionService content, EntityManager entityManager, ImageStorage storage) {
     this.bathrooms = bathrooms;
     this.reviews = reviews;
     this.content = content;
-    this.submissions = submissions;
     this.entityManager = entityManager;
     this.storage = storage;
   }
 
-  public ContributionView upload(UUID bathroomId, UUID reviewId, UUID authorId, MultipartFile file, UUID submissionId, boolean registrationAttachment) {
+  public ContributionView upload(UUID bathroomId, UUID reviewId, UUID authorId, MultipartFile file, boolean registrationAttachment) {
     if (registrationAttachment && reviewId != null) throw new ApiException(HttpStatus.BAD_REQUEST, "Escolha apenas um vínculo para a foto.");
     var bathroom = bathrooms.findById(bathroomId).orElseThrow(ApiException::missing);
     br.com.khki.shared.domain.ModeratedContent parent;
     List<String> urls;
-    TargetType type;
     if (reviewId != null) {
       var review = reviews.findById(reviewId).orElseThrow(ApiException::missing);
       if (!review.getBathroomId().equals(bathroomId) || review.getPhotoOnly() || bathroom.getStatus() != Status.APPROVED) throw ApiException.missing();
       parent = review;
       urls = review.getImageUrls();
-      type = TargetType.REVIEW;
     } else {
       if (!registrationAttachment) throw new ApiException(HttpStatus.BAD_REQUEST, "Envie fotos junto com o cadastro de um banheiro ou uma avaliação. Fotos avulsas não são permitidas.");
       parent = bathroom;
       urls = bathroom.getImageUrls();
-      type = TargetType.BATHROOM;
     }
     if (!parent.getAuthorId().equals(authorId)) throw ApiException.missing();
     byte[] data = sanitize(file);
-    String fingerprint = submissions.fingerprint(List.of(bathroomId.toString(), reviewId == null ? "" : reviewId.toString(), submissions.digest(data)));
-    UUID previous = submissions.replay(submissionId, authorId, "PHOTO_UPLOAD", fingerprint);
-    if (previous != null) return content.contribution(content.target(type, previous));
     if (parent.getStatus() != Status.PENDING) throw new ApiException(HttpStatus.CONFLICT, "O conteúdo já foi analisado. Edite e reenvie antes de anexar fotos.");
     if (urls.size() >= 10) throw new ApiException(HttpStatus.BAD_REQUEST, "Limite de 10 fotos por cadastro ou avaliação.");
     entityManager.lock(parent, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
@@ -77,7 +67,6 @@ public class ImageService {
       }
     });
     urls.add(ImageUrls.url(imageId));
-    submissions.remember(submissionId, authorId, "PHOTO_UPLOAD", fingerprint, type, parent.getId());
     return content.contribution(parent);
   }
 

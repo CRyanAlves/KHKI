@@ -23,18 +23,11 @@ public class ContributionService {
   private final BathroomRepository bathrooms;
   private final ReviewRepository reviews;
   private final UserRepository users;
-  private final SubmissionReceiptService submissions;
 
-  public ContributionService(BathroomRepository bathrooms, ReviewRepository reviews, UserRepository users, SubmissionReceiptService submissions) {
+  public ContributionService(BathroomRepository bathrooms, ReviewRepository reviews, UserRepository users) {
     this.bathrooms = bathrooms;
     this.reviews = reviews;
     this.users = users;
-    this.submissions = submissions;
-  }
-
-  public ContributionView submission(UUID key, UUID authorId) {
-    var receipt = submissions.own(key, authorId);
-    return contribution(target(receipt.getTargetType(), receipt.getTargetId()));
   }
 
   public void editable(ModeratedContent content, UUID authorId) {
