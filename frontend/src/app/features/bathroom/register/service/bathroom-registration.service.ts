@@ -1,33 +1,28 @@
+import type { BathroomRegistrationPhotoDraft } from '../model/bathroom-registration-photo-draft.model';
+import { apiError } from '../../../../core/http/api-error';
+import { ContentImageUploadService } from '../../../image/service/content-image-upload.service';
+import { BathroomApiService } from '../../service/bathroom-api.service';
 import { Injectable, inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ApiService } from '../../../../core/http/api.service';
 import { BathroomInput } from '../../../../domain/bathrooms/bathroom.model';
 import { Contribution } from '../../../../domain/moderation/moderation.model';
 
-export interface PhotoDraft {
-  file: File;
-  preview: string;
-  key: string;
-  uploaded: boolean;
-  error: string;
-  uncertain?: boolean;
-}
-
 @Injectable()
-export class RegistrationSubmissionService {
-  private readonly api = inject(ApiService);
+export class BathroomRegistrationService {
+  private readonly images = inject(ContentImageUploadService);
+  private readonly bathrooms = inject(BathroomApiService);
   private request: Promise<boolean> | null = null;
   createdId = '';
   uncertain = false;
   uncertainUploads = false;
-  send(form: BathroomInput, editId: string, photos: PhotoDraft[]): Promise<boolean> {
+  send(form: BathroomInput, editId: string, photos: BathroomRegistrationPhotoDraft[]): Promise<boolean> {
     if (this.request) return this.request;
     this.request = this.perform(form, editId, photos).finally(() => {
       this.request = null;
     });
     return this.request;
   }
-  private async perform(form: BathroomInput, editId: string, photos: PhotoDraft[]): Promise<boolean> {
+  private async perform(form: BathroomInput, editId: string, photos: BathroomRegistrationPhotoDraft[]): Promise<boolean> {
     if (this.uncertain || this.uncertainUploads) throw new Error('Confira Minhas contribuições antes de iniciar outro envio: a resposta anterior não foi confirmada.');
     if (!this.createdId) {
       const input: BathroomInput = {
@@ -46,7 +41,7 @@ export class RegistrationSubmissionService {
       };
       let contribution: Contribution;
       try {
-        contribution = editId ? await this.api.put<Contribution>('/bathrooms/' + editId, input) : await this.api.post<Contribution>('/bathrooms', input);
+        contribution = await this.bathrooms.save(input, editId);
       } catch (error) {
         if (error instanceof HttpErrorResponse && error.status > 0 && error.status < 500) {
           this.uncertain = false;
@@ -59,16 +54,14 @@ export class RegistrationSubmissionService {
       this.uncertain = false;
     }
     for (const photo of photos.filter((photo) => !photo.uploaded)) {
-      const body = new FormData();
-      body.append('file', photo.file);
       photo.error = '';
       try {
-        await this.api.post('/bathrooms/' + this.createdId + '/photos?registrationAttachment=true', body);
+        await this.images.uploadRegistrationPhoto(this.createdId, photo.file);
         photo.uploaded = true;
         photo.uncertain = false;
       } catch (error) {
         photo.uncertain = !(error instanceof HttpErrorResponse) || error.status === 0 || error.status >= 500;
-        photo.error = photo.uncertain ? 'Recebimento não confirmado. Confira as fotos em Minhas contribuições antes de enviar novamente.' : this.api.error(error);
+        photo.error = photo.uncertain ? 'Recebimento não confirmado. Confira as fotos em Minhas contribuições antes de enviar novamente.' : apiError(error);
       }
     }
     this.uncertainUploads = photos.some((photo) => photo.uncertain);

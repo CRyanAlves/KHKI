@@ -2,12 +2,12 @@ import { expect, Page, test } from '@playwright/test';
 
 test.use({ viewport: { width: 393, height: 852 }, hasTouch: true });
 const rows = [
-  { id: '1', type: 'PHOTO', title: 'Foto: Foto: Apoio ao Viajante', status: 'PENDING', reason: null, createdAt: '2026-11-02T12:00:00Z', bathroomId: 'bathroom' },
+  { id: '1', type: 'REVIEW', title: 'Avaliação: Avaliação: Apoio ao Viajante', status: 'PENDING', reason: null, createdAt: '2026-11-02T12:00:00Z', bathroomId: 'bathroom' },
   { id: '2', type: 'BATHROOM', title: 'Biblioteca Municipal', status: 'APPROVED', reason: 'Cadastro aprovado.', createdAt: '2026-11-01T12:00:00Z', bathroomId: 'bathroom' },
   { id: '3', type: 'REVIEW', title: 'Avaliação: Parque Ecológico', status: 'REJECTED', reason: 'Confira as informações. '.repeat(25) + '<img src=x onerror=alert(1)>', createdAt: '2026-10-31T12:00:00Z', bathroomId: 'bathroom' },
-  { id: '4', type: 'PHOTO', title: 'Foto: Terminal', status: 'APPROVED', reason: 'Aprovada junto com o cadastro do banheiro 920e3f5b-9a13-47db-a9f6-863a53ff19f3.', createdAt: '2026-10-30T12:00:00Z', bathroomId: 'bathroom' },
+  { id: '4', type: 'REVIEW', title: 'Avaliação: Terminal', status: 'APPROVED', reason: 'Aprovada junto com o cadastro do banheiro 920e3f5b-9a13-47db-a9f6-863a53ff19f3.', createdAt: '2026-10-30T12:00:00Z', bathroomId: 'bathroom' },
   { id: '5', type: 'BATHROOM', title: 'Nome muito extenso de um espaço público '.repeat(4), status: 'NEEDS_INFORMATION', reason: 'Informe o acesso.', createdAt: '2026-10-29T12:00:00Z', bathroomId: 'bathroom' },
-  { id: '6', type: 'PHOTO', title: 'Foto: ', status: 'HIDDEN', reason: null, createdAt: '2026-10-28T12:00:00Z', bathroomId: 'bathroom' },
+  { id: '6', type: 'BATHROOM', title: 'Cadastro: ', status: 'HIDDEN', reason: null, createdAt: '2026-10-28T12:00:00Z', bathroomId: 'bathroom' },
   { id: '7', type: 'REVIEW', title: 'Avaliação: Praça', status: 'REMOVED', reason: null, createdAt: '2026-10-27T12:00:00Z', bathroomId: 'bathroom' }
 ];
 async function auth(page: Page): Promise<void> {
@@ -26,12 +26,13 @@ test('combined filters, sorting, count and clearing stay on one page', async ({ 
   await page.screenshot({ path: '../test-results/contributions-mobile-dark.png' });
   await expect(page.locator('.contributions-count')).toHaveText('7 contribuições');
   await expect(page.locator('.contributions-info h2').first()).toHaveText('Apoio ao Viajante');
-  await page.getByRole('button', { name: 'Fotos', exact: true }).click();
-  await expect(page.locator('.contributions-count')).toHaveText('3 contribuições');
+  await page.getByRole('button', { name: 'Avaliações', exact: true }).click();
+  await expect(page.locator('.contributions-count')).toHaveText('4 contribuições');
   await page.getByRole('combobox', { name: 'Status da contribuição' }).selectOption('APPROVED');
   await expect(page.locator('.contributions-count')).toHaveText('1 contribuição');
   await expect(page.locator('.contributions-info h2')).toHaveText('Terminal');
-  await page.getByRole('combobox', { name: 'Status da contribuição' }).selectOption('REJECTED');
+  await page.getByRole('combobox', { name: 'Status da contribuição' }).selectOption('NEEDS_INFORMATION');
+  await expect(page.locator('.contributions-count')).toHaveText('0 contribuições');
   await page.getByRole('button', { name: 'Limpar filtros' }).click();
   await page.getByRole('combobox', { name: 'Ordenar contribuições' }).selectOption('oldest');
   await expect(page.locator('.contributions-info h2').first()).toHaveText('Praça');
@@ -51,7 +52,7 @@ test('all real statuses, safe reasons, long text and existing correction action'
   await page.getByRole('button', { name: 'Ver menos' }).click();
   await expect(page.getByRole('link', { name: 'Corrigir e reenviar' })).toHaveCount(2);
   await page.getByText('Entenda', { exact: true }).click();
-  await expect(page.getByText('Fotos anexadas a cadastros ou avaliações acompanham a análise do envio. Fotos avulsas são analisadas separadamente.')).toBeVisible();
+  await expect(page.getByText('Fotos são enviadas somente com um cadastro ou uma avaliação e acompanham a análise desse conteúdo.')).toBeVisible();
 });
 test('loading, request failure with retry and genuine empty state', async ({ page }) => {
   await auth(page);

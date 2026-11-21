@@ -8,7 +8,7 @@ import { DialogFocusDirective } from '../../../../shared/directives/dialog-focus
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
 
 @Component({ selector: 'app-mobile-account', imports: [RouterLink, AccountAvatarComponent, DialogFocusDirective, IconComponent], templateUrl: './mobile-account-popover.component.html', styleUrl: './mobile-account-popover.component.scss' })
-export class MobileAccountComponent {
+export class MobileAccountPopoverComponent {
   readonly auth = inject(AuthService);
   readonly ui = inject(MobileUiService);
   readonly theme = inject(ThemeService);

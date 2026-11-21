@@ -8,7 +8,7 @@ import { DialogFocusDirective } from '../../../../../shared/directives/dialog-fo
 import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
 
 @Component({ selector: 'app-explore-filter-panel', imports: [DialogFocusDirective, IconComponent], templateUrl: './bathroom-search-filters-panel.component.html', styleUrl: './bathroom-search-filters-panel.component.scss' })
-export class ExploreFilterPanelComponent {
+export class BathroomSearchFiltersPanelComponent {
   readonly state = inject(ExplorationState);
   readonly ui = inject(MobileUiService);
   readonly mobile = input(false);

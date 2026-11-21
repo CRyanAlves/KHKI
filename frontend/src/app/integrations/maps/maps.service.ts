@@ -1,3 +1,4 @@
+import type { AddressSuggestion } from './model/address-suggestion.model';
 import { jsonObject } from '../../shared/utils/json-object';
 import { Injectable } from '@angular/core';
 import { Theme } from '../../core/preferences/theme.service';
@@ -5,18 +6,14 @@ import { Location } from '../../domain/location/location.model';
 import { validPoint } from '../../shared/geo/navigation-geometry';
 import type { Feature, MultiLineString } from 'geojson';
 import { isTravelMode, TravelMode } from './travel-modes';
-import { parseManeuvers, RouteManeuver } from '../../features/route/service/route-maneuver-guidance';
+import type { RouteManeuver } from '../../features/route/model/route-maneuver.model';
+import { parseManeuvers } from '../../features/route/service/route-maneuver-guidance';
 export type { TravelMode } from './travel-modes';
 
 declare global {
   interface Window {
     KHKI_CONFIG?: { geoapifyApiKey: string; geoapifyApiBaseUrl?: string; geoapifyMapsBaseUrl?: string; devRouteSimulation?: boolean };
   }
-}
-export interface AddressSuggestion {
-  label: string;
-  detail: string;
-  position: Location;
 }
 export interface TravelRoute {
   geometry: Feature<MultiLineString>;

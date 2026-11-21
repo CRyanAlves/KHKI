@@ -19,7 +19,7 @@ import {
 } from '@lucide/angular';
 
 @Component({ selector: 'app-maneuver-icon', imports: [LucideDynamicIcon], template: '<svg [lucideIcon]="icon" [size]="size" [strokeWidth]="1.8" aria-hidden="true" />', styleUrl: '../../../../../shared/ui/icon/icon.component.scss' })
-export class ManeuverIconComponent {
+export class RouteManeuverIconComponent {
   @Input() name = 'Navigation';
   @Input() size = 24;
   private readonly icons: Record<string, LucideIcon> = { Navigation, ArrowUp, ArrowUpLeft, ArrowUpRight, CornerUpLeft, CornerUpRight, CornerDownLeft, CornerDownRight, Undo2, Redo2, Merge, RotateCw, Ship, Flag };

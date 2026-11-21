@@ -1,30 +1,16 @@
-import { Bathroom, BathroomDetails, ITEM_LABELS } from '../../../../domain/bathrooms/bathroom.model';
+import { Bathroom, ITEM_LABELS } from '../../../../domain/bathrooms/bathroom.model';
 import { Location, MapArea } from '../../../../domain/location/location.model';
 import { AUDIENCE_LABELS, OBSERVED_ACCESSIBILITY } from '../../../../domain/bathrooms/bathroom-details';
 import { distanceMeters, validPoint } from '../../../../shared/geo/navigation-geometry';
+import { BathroomSearchFilters, BathroomSearchFilterTag } from '../model/bathroom-search-filters.model';
 
-export type AccessibilityResource = (typeof OBSERVED_ACCESSIBILITY)[number]['key'];
-export interface ExplorationFilters {
-  audience: '' | Exclude<BathroomDetails['audience'], 'UNKNOWN'>;
-  charge: '' | 'YES' | 'NO';
-  accessible: boolean;
-  resources: AccessibilityResource[];
-  categories: string[];
-  items: string[];
-  radius: number;
-}
-export interface ActiveFilter {
-  key: string;
-  label: string;
-}
-export const FILTER_DISTANCES = [0, 500, 1000, 3000] as const;
-export function emptyFilters(): ExplorationFilters {
+export function emptyFilters(): BathroomSearchFilters {
   return { audience: '', charge: '', accessible: false, resources: [], categories: [], items: [], radius: 0 };
 }
-export function copyFilters(filters: ExplorationFilters): ExplorationFilters {
+export function copyFilters(filters: BathroomSearchFilters): BathroomSearchFilters {
   return { ...filters, resources: [...filters.resources], categories: [...filters.categories], items: [...filters.items] };
 }
-export function filterBathrooms(bathrooms: Bathroom[], filters: ExplorationFilters, reference: Location | null, area: MapArea | null): Bathroom[] {
+export function filterBathrooms(bathrooms: Bathroom[], filters: BathroomSearchFilters, reference: Location | null, area: MapArea | null): Bathroom[] {
   return bathrooms.filter((bathroom) => {
     const details = bathroom.details;
     if (filters.audience && details?.audience !== filters.audience) return false;
@@ -38,7 +24,7 @@ export function filterBathrooms(bathrooms: Bathroom[], filters: ExplorationFilte
     return true;
   });
 }
-export function activeFilters(filters: ExplorationFilters): ActiveFilter[] {
+export function activeFilters(filters: BathroomSearchFilters): BathroomSearchFilterTag[] {
   return [
     ...(filters.audience ? [{ key: 'audience', label: AUDIENCE_LABELS[filters.audience] }] : []),
     ...(filters.charge ? [{ key: 'charge', label: filters.charge === 'NO' ? 'Gratuito' : 'Pago' }] : []),

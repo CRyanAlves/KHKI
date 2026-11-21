@@ -5,7 +5,7 @@ import { Bathroom, ACCESS_LABELS } from '../../../../../domain/bathrooms/bathroo
 import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
 
 @Component({ selector: 'app-bathroom-card', imports: [RouterLink, DecimalPipe, IconComponent], templateUrl: './bathroom-search-result-card.component.html' })
-export class BathroomCardComponent {
+export class BathroomSearchResultCardComponent {
   readonly bathroom = input.required<Bathroom>();
   readonly distance = input<number | null>(null);
   readonly selected = input(false);

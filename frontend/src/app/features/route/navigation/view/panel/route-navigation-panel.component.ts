@@ -2,15 +2,16 @@ import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnDestroy, O
 import { MobileUiService } from '../../../../../layout/mobile/mobile-ui.service';
 import { ExplorationState } from '../../../../../layout/exploration-workspace/exploration-state.service';
 import { DecimalPipe } from '@angular/common';
-import { NavigationService } from '../../service/route-navigation.service';
+import { RouteNavigationService } from '../../service/route-navigation.service';
 import type { TravelRoute } from '../../../../../integrations/maps/maps.service';
 import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
-import { DirectionPreview, formatRouteDuration, upcomingDirections } from '../../../service/route-maneuver-guidance';
-import { ManeuverIconComponent } from '../icons/route-maneuver-icon.component';
+import type { DirectionPreview } from '../../../model/route-maneuver.model';
+import { formatRouteDuration, upcomingDirections } from '../../../service/route-maneuver-guidance';
+import { RouteManeuverIconComponent } from '../icons/route-maneuver-icon.component';
 
-@Component({ selector: 'app-navigation-tools', imports: [IconComponent, ManeuverIconComponent, DecimalPipe], templateUrl: './route-navigation-panel.component.html' })
-export class NavigationToolsComponent implements AfterViewInit, OnDestroy {
-  readonly navigation = inject(NavigationService);
+@Component({ selector: 'app-navigation-tools', imports: [IconComponent, RouteManeuverIconComponent, DecimalPipe], templateUrl: './route-navigation-panel.component.html' })
+export class RouteNavigationPanelComponent implements AfterViewInit, OnDestroy {
+  readonly navigation = inject(RouteNavigationService);
   readonly mobileUi = inject(MobileUiService);
   readonly simulatorBottom = signal(0);
   readonly simulatorOpen = signal(false);

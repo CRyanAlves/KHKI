@@ -1,25 +1,26 @@
+import { apiError } from '../../../../../core/http/api-error';
+import { BathroomDetailsService } from '../../service/bathroom-details.service';
 import { BathroomMetadataComponent } from '../../../../../shared/bathroom-metadata/bathroom-metadata.component';
 import { ChangeDetectorRef, Component, DestroyRef, OnDestroy, OnInit, ViewEncapsulation, ElementRef, afterRenderEffect, inject, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ExplorationState } from '../../../../../layout/exploration-workspace/exploration-state.service';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
-import { ApiService } from '../../../../../core/http/api.service';
 import { AuthService } from '../../../../../core/session/auth.service';
 import { Bathroom, ACCESS_LABELS, ITEM_LABELS } from '../../../../../domain/bathrooms/bathroom.model';
 import { Review } from '../../../../../domain/reviews/review.model';
-import { TargetType } from '../../../../../domain/moderation/moderation.model';
+import type { ContentReportTarget } from '../../../../report/model/content-report-target.model';
 import { motionDurationMilliseconds } from '../../../../../shared/utils/motion-duration';
 import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
-import { ReportComponent } from '../../../../report/view/content-report-form.component';
+import { ContentReportFormComponent } from '../../../../report/view/content-report-form.component';
 import { MobileUiService } from '../../../../../layout/mobile/mobile-ui.service';
 
 import { SkeletonComponent } from '../../../../../shared/ui/skeleton/skeleton.component';
 
-@Component({ selector: 'app-details', imports: [BathroomMetadataComponent, SkeletonComponent, RouterLink, DatePipe, DecimalPipe, IconComponent, ReportComponent], templateUrl: './bathroom-details-panel.component.html', styleUrls: ['../../../../../../styles/workspace-details.scss', '../../../../../../styles/workspace-gallery.scss'], encapsulation: ViewEncapsulation.None })
-export class DetailsComponent implements OnInit, OnDestroy {
+@Component({ selector: 'app-details', imports: [BathroomMetadataComponent, SkeletonComponent, RouterLink, DatePipe, DecimalPipe, IconComponent, ContentReportFormComponent], templateUrl: './bathroom-details-panel.component.html', styleUrls: ['../../../../../../styles/workspace-details.scss', '../../../../../../styles/workspace-gallery.scss'], encapsulation: ViewEncapsulation.None })
+export class BathroomDetailsPanelComponent implements OnInit, OnDestroy {
+  private readonly details = inject(BathroomDetailsService);
   private readonly changeDetector = inject(ChangeDetectorRef);
-  private readonly api = inject(ApiService);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -36,7 +37,7 @@ export class DetailsComponent implements OnInit, OnDestroy {
   error = '';
   tab: 'overview' | 'photos' | 'reviews' = 'overview';
   readonly failedPhotos = new Set<string>();
-  report: { type: TargetType; id: string } | null = null;
+  report: ContentReportTarget | null = null;
   readonly accessLabels = ACCESS_LABELS;
   readonly itemLabels = ITEM_LABELS;
   private readonly detailsTitle = viewChild<ElementRef<HTMLElement>>('detailsTitle');
@@ -118,12 +119,13 @@ export class DetailsComponent implements OnInit, OnDestroy {
     this.failedPhotos.clear();
     this.error = '';
     try {
-      const [bathroom, reviews] = await Promise.all([this.state.select(id), this.api.get<Review[]>('/bathrooms/' + id + '/reviews')]);
+      const content = this.details.startLoad(id);
+      const [bathroom, reviews] = await Promise.all([this.state.select(id, content.bathroom), content.reviews]);
       if (request !== this.request || this.destroyRef.destroyed) return;
       this.bathroom = bathroom;
       this.reviews = reviews;
     } catch (error) {
-      if (request === this.request) this.error = this.api.error(error);
+      if (request === this.request) this.error = apiError(error);
     } finally {
       if (request === this.request && !this.destroyRef.destroyed) {
         this.changeDetector.markForCheck();

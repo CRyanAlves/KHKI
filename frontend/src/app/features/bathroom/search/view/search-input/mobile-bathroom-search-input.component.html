@@ -30,7 +30,7 @@
   @if (ui.searchOpen()) {
     <section class="mobile-search-options" aria-label="Sugestões de busca">
       <div id="mobile-search-options" role="listbox" aria-label="Endereços e banheiros">
-        @for (suggestion of suggestions; track $index; let index = $index) {
+        @for (suggestion of suggestions.items(); track $index; let index = $index) {
           <button type="button" role="option" [id]="'mobile-suggestion-' + index" [attr.aria-selected]="activeIndex === index" (pointerdown)="$event.preventDefault()" (click)="choose(index)">
             <app-icon name="MapPin" [size]="20" /><span
               ><strong>{{ suggestion.label }}</strong
@@ -39,15 +39,15 @@
           </button>
         }
       </div>
-      @if (busy) {
+      @if (suggestions.busy()) {
         <p role="status">Buscando sugestões…</p>
       } @else if (state.query.trim().length < 3) {
         <p>Digite pelo menos três caracteres para buscar.</p>
-      } @else if (!suggestions.length && !error) {
+      } @else if (!suggestions.items().length && !suggestions.error()) {
         <p role="status">Nenhum endereço ou banheiro encontrado.</p>
       }
-      @if (error) {
-        <p role="alert">{{ error }}</p>
+      @if (suggestions.error()) {
+        <p role="alert">{{ suggestions.error() }}</p>
       }
       <button class="button secondary full" type="button" (click)="submit()">Buscar locais cadastrados</button>
     </section>

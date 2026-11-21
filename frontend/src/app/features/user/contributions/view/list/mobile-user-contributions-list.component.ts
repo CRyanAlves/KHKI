@@ -1,3 +1,4 @@
+import { filterUserContributions } from '../../service/user-contributions-filtering';
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -7,7 +8,7 @@ import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
 import { SkeletonComponent } from '../../../../../shared/ui/skeleton/skeleton.component';
 
 @Component({ selector: 'app-mobile-contributions', imports: [DatePipe, RouterLink, IconComponent, SkeletonComponent], templateUrl: './mobile-user-contributions-list.component.html', styleUrl: './mobile-user-contributions-list.component.scss' })
-export class MobileContributionsComponent {
+export class MobileUserContributionsListComponent {
   readonly theme = inject(ThemeService);
   readonly items = input<Contribution[]>([]);
   readonly loading = input(false);
@@ -23,13 +24,7 @@ export class MobileContributionsComponent {
     { value: 'REVIEW', label: 'Avaliações' }
   ] as const;
   readonly statuses = Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label: value === 'REJECTED' ? 'Não aprovado' : label }));
-  readonly rows = computed(() =>
-    this.items()
-      .filter((item) => (!this.type() || item.type === this.type()) && (!this.status() || item.status === this.status()))
-      .sort((first, second) => (Date.parse(first.createdAt) - Date.parse(second.createdAt)) * (this.order() === 'oldest' ? 1 : -1))
-      .map((item) => ({ ...item, name: this.name(item), decision: this.reason(item), label: item.status === 'REJECTED' ? 'Não aprovado' : STATUS_LABELS[item.status] }))
-  );
-  private readonly identifier = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/giu;
+  readonly rows = computed(() => filterUserContributions(this.items(), this.type(), this.status(), this.order()));
   setStatus(event: Event): void {
     const value = (event.target as HTMLSelectElement).value;
     if (value === '' || Object.hasOwn(STATUS_LABELS, value)) this.status.set(value as Status | '');
@@ -47,21 +42,5 @@ export class MobileContributionsComponent {
     if (next.has(id)) next.delete(id);
     else next.add(id);
     this.expanded.set(next);
-  }
-  private name(item: Contribution): string {
-    const name = item.title
-      .replace(/^(?:(?:foto|avaliação|cadastro|banheiro)\s*:\s*)+/iu, '')
-      .replace(this.identifier, '')
-      .trim();
-    return name || 'Local relacionado ao envio';
-  }
-  private reason(item: Contribution): string {
-    const reason = (item.reason || '')
-      .replace(this.identifier, '')
-      .replace(/\s+([.,;:])/gu, '$1')
-      .replace(/\s+/gu, ' ')
-      .trim();
-    if (item.status === 'APPROVED' && /^(?:cadastro|foto|avaliação)?\s*aprova(?:do|da)\.?$/iu.test(reason)) return '';
-    return reason;
   }
 }

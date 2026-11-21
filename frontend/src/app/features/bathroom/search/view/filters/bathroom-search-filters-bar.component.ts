@@ -1,11 +1,11 @@
 import { Component, inject, input, output } from '@angular/core';
 import { ExplorationState } from '../../../../../layout/exploration-workspace/exploration-state.service';
 import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
-import { ExploreFilterPanelComponent } from './bathroom-search-filters-panel.component';
+import { BathroomSearchFiltersPanelComponent } from './bathroom-search-filters-panel.component';
 
 @Component({
   selector: 'app-explore-filter-bar',
-  imports: [IconComponent, ExploreFilterPanelComponent],
+  imports: [IconComponent, BathroomSearchFiltersPanelComponent],
   template: `
     <div [class.filter-row]="!mobile()" [class.mobile-filter-row]="mobile()" role="group" aria-label="Filtros da busca">
       <button class="chip" type="button" [class.selected]="!!state.filterDraft() || state.filterCount() > 0" [attr.aria-expanded]="!!state.filterDraft()" aria-controls="explore-filters-panel" (click)="state.filterDraft() ? state.closeFilters() : state.openFilters()">
@@ -34,7 +34,7 @@ import { ExploreFilterPanelComponent } from './bathroom-search-filters-panel.com
   `,
   styleUrl: './bathroom-search-filters-bar.component.scss'
 })
-export class ExploreFilterBarComponent {
+export class BathroomSearchFiltersBarComponent {
   readonly state = inject(ExplorationState);
   readonly mobile = input(false);
   readonly areaSearchAvailable = input(false);

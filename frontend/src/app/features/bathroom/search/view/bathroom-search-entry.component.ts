@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { ExplorationState } from '../../../../layout/exploration-workspace/exploration-state.service';
 @Component({ selector: 'app-search-state', template: '' })
-export class SearchStateComponent implements OnInit {
+export class BathroomSearchEntryComponent implements OnInit {
   private readonly state = inject(ExplorationState);
   ngOnInit(): void {
     this.state.enter('search');

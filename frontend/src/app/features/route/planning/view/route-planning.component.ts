@@ -1,28 +1,28 @@
+import { RoutePlanningService } from '../service/route-planning.service';
+import { apiError } from '../../../../core/http/api-error';
 import { ChangeDetectorRef, Component, DestroyRef, OnDestroy, OnInit, ViewEncapsulation, effect, inject, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { ExplorationState } from '../../../../layout/exploration-workspace/exploration-state.service';
-import { ApiService } from '../../../../core/http/api.service';
 import { Bathroom } from '../../../../domain/bathrooms/bathroom.model';
 import { Location } from '../../../../domain/location/location.model';
 import { MapsService, TravelMode, TravelRoute } from '../../../../integrations/maps/maps.service';
 import { TRAVEL_MODES, isTravelMode } from '../../../../integrations/maps/travel-modes';
 import { validPoint } from '../../../../shared/geo/navigation-geometry';
-import { NavigationService } from '../../navigation/service/route-navigation.service';
+import { RouteNavigationService } from '../../navigation/service/route-navigation.service';
 import { IconComponent } from '../../../../shared/ui/icon/icon.component';
 import { SkeletonComponent } from '../../../../shared/ui/skeleton/skeleton.component';
 import { OriginChoice, OriginPickerComponent } from '../../../../integrations/maps/address-picker/origin-picker.component';
 import { formatRouteDuration } from '../../service/route-maneuver-guidance';
 
-@Component({ selector: 'app-route', imports: [SkeletonComponent, RouterLink, DecimalPipe, IconComponent, OriginPickerComponent], styleUrl: '../../../../../styles/workspace-route.scss', encapsulation: ViewEncapsulation.None, templateUrl: './route-planning.component.html' })
-export class RouteComponent implements OnInit, OnDestroy {
+@Component({ selector: 'app-route', providers: [RoutePlanningService], imports: [SkeletonComponent, RouterLink, DecimalPipe, IconComponent, OriginPickerComponent], styleUrl: '../../../../../styles/workspace-route.scss', encapsulation: ViewEncapsulation.None, templateUrl: './route-planning.component.html' })
+export class RoutePlanningComponent implements OnInit, OnDestroy {
   readonly state = inject(ExplorationState);
-  readonly navigation = inject(NavigationService);
+  readonly navigation = inject(RouteNavigationService);
   readonly modes = TRAVEL_MODES;
   private readonly destroyRef = inject(DestroyRef);
   private readonly changeDetector = inject(ChangeDetectorRef);
-  private readonly api = inject(ApiService);
   private readonly activatedRoute = inject(ActivatedRoute);
   readonly maps = inject(MapsService);
   private loadSequence = 0;
@@ -30,7 +30,7 @@ export class RouteComponent implements OnInit, OnDestroy {
   private controller?: AbortController;
   private pendingKey = '';
   private wasPickingOrigin = false;
-  private readonly cache = new Map<string, TravelRoute>();
+  private readonly planning = inject(RoutePlanningService);
   bathroom: Bathroom | null = null;
   origin = '';
   position: Location | null = null;
@@ -118,7 +118,7 @@ export class RouteComponent implements OnInit, OnDestroy {
         if (startNavigation) this.navigation.start();
       } else if (this.position && this.bathroom) void this.calculate();
     } catch (error) {
-      if (sequence === this.loadSequence) this.error = this.api.error(error);
+      if (sequence === this.loadSequence) this.error = apiError(error);
     } finally {
       if (sequence === this.loadSequence) this.loading = false;
       this.changeDetector.markForCheck();
@@ -208,16 +208,14 @@ export class RouteComponent implements OnInit, OnDestroy {
     this.error = '';
     this.busy = true;
     try {
-      const route = this.cache.get(key) || (await this.maps.directions(position, destination, mode, controller.signal));
+      const route = await this.planning.findRoute(position, destination, mode, controller.signal);
       if (sequence !== this.calculation || controller.signal.aborted || this.destroyRef.destroyed) return;
-      if (this.cache.size >= 20) this.cache.delete(this.cache.keys().next().value!);
-      this.cache.set(key, route);
       this.route = route;
       this.navigation.prepare(route, mode);
       this.state.path.set(route);
       this.saveDraft();
     } catch (error) {
-      if (sequence === this.calculation && !controller.signal.aborted) this.error = this.api.error(error);
+      if (sequence === this.calculation && !controller.signal.aborted) this.error = apiError(error);
     } finally {
       if (sequence === this.calculation) {
         this.busy = false;

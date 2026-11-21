@@ -1,7 +1,6 @@
+import { apiError } from '../../../core/http/api-error';
 import { ChangeDetectorRef, Directive, ElementRef, Input, inject, output } from '@angular/core';
 import { NgForm } from '@angular/forms';
-import { AuthService } from '../../../core/session/auth.service';
-import { ApiService } from '../../../core/http/api.service';
 
 export interface AuthenticationFields {
   name: string;
@@ -16,8 +15,6 @@ export abstract class AuthenticationForm {
   readonly busyChange = output<boolean>();
   readonly modeChange = output<void>();
   readonly dismiss = output<void>();
-  protected readonly auth = inject(AuthService);
-  private readonly api = inject(ApiService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
   abstract readonly register: boolean;
@@ -47,7 +44,7 @@ export abstract class AuthenticationForm {
     try {
       await this.authenticate();
     } catch (error) {
-      this.error = this.api.error(error);
+      this.error = apiError(error);
     } finally {
       this.busy = false;
       this.busyChange.emit(false);
