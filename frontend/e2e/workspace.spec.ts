@@ -86,6 +86,7 @@ test('sidebar overlays a full-size map and selection flies without replacing map
   const before = await page.locator('.maplibregl-canvas').boundingBox(); const workspace = await page.locator('.map-workspace').boundingBox(); const panel = await page.locator('.workspace-panel').boundingBox();
   expect(before!.x).toBe(workspace!.x); expect(before!.width).toBe(workspace!.width); expect(panel!.x).toBe(before!.x);
   await page.evaluate(() => {
+    document.documentElement.style.setProperty('--motion-map-duration', '.6s');
     const runtime = window as unknown as { ng: { getComponent(element: Element | null): { map: { on(name: string, callback: () => void): void } } }; flight: { started: number; ended: number; elapsed: number } };
     runtime.flight = { started: 0, ended: 0, elapsed: 0 }; const map = runtime.ng.getComponent(document.querySelector('app-map')).map;
     map.on('movestart', () => { runtime.flight.started = performance.now(); }); map.on('moveend', () => { runtime.flight.ended = performance.now(); runtime.flight.elapsed = runtime.flight.ended - runtime.flight.started; });
