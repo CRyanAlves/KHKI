@@ -46,6 +46,7 @@ DATABASE_USER=khki
 DATABASE_PASSWORD=sua-senha-local
 ```
 
+Reinicie o backend com essas variáveis. O volume `khki-postgres` mantém os dados. H2 e PostgreSQL são bases independentes: mudar a URL não copia os registros. As migrações usam Flyway. Os testes rápidos usam H2 por padrão; o executor PostgreSQL utiliza uma base isolada.
 
 Neste computador, o Windows bloqueou a porta 5432. A configuração local em `.env` usa `DATABASE_PORT=15432` e `DATABASE_URL=jdbc:postgresql://localhost:15432/khki`. O Compose aceita `DATABASE_PORT` e usa 5432 quando a variável não está definida. A senha local foi gerada aleatoriamente e não é versionada. A aplicação em execução usa PostgreSQL; os registros da base H2 anterior não foram transferidos.
 
@@ -55,23 +56,26 @@ Não há administrador nem credenciais fixas no código. Antes de iniciar o back
 
 Se quiser manter H2 e configurar somente o administrador, crie `.env` com apenas `ADMIN_EMAIL` e `ADMIN_PASSWORD`. Copiar todas as variáveis de `.env.example` seleciona PostgreSQL e exige o banco em execução.
 
-Para carregar **três locais fictícios**, configure `DEMO_DATA=true` antes da primeira inicialização de uma base vazia. Os cards e detalhes identificam esses locais como demonstração. Eles não têm notas, fotos ou disponibilidade inventadas. O carregamento não se repete se já houver banheiros no banco. Desativar a variável não apaga dados previamente carregados. Não use a opção em um ambiente com usuários reais.
+Para carregar **três locais fictícios**, configure `DEMO_DATA=true` antes da primeira inicialização de uma base vazia. Eles não têm notas, fotos ou disponibilidade inventadas. O carregamento não se repete se já houver banheiros no banco. Desativar a variável não apaga dados previamente carregados. Não use a opção em um ambiente com usuários reais.
 
 ## Geoapify + MapLibre e rotas a pé
 
+Configure `GEOAPIFY_API_KEY` no ambiente ou no `.env`. O comando de configuração publica somente os parâmetros de navegador em `frontend/public/config.js`. MapLibre renderiza o mapa; Geoapify fornece estilos, geocodificação e rotas. Credenciais de banco e sessão permanecem no backend.
 
-## Organização e decisões para o reviewer
+## Estrutura do projeto
 
-| Área                       | Arquivos                                      | Motivo                                                               |
-| -------------------------- | --------------------------------------------- | -------------------------------------------------------------------- |
-| Páginas                    | `frontend/src/app/features/`                  | Fluxos separados, carregados sob demanda pelo router                 |
-| HTTP, sessão e mapa        | `frontend/src/app/core/`                      | Centraliza contrato, comunicação, autenticação e integração externa  |
-| Componentes compartilhados | `frontend/src/app/shared/`                    | Reutiliza ícones, cards, mapa, login e denúncia                      |
-| Controllers/DTOs           | `backend/.../api/`                            | Entrada validada e retorno explícito, sem expor usuários ou senhas   |
-| Regras                     | `backend/.../service/`                        | Publicação, média, privacidade e transições no servidor              |
-| Persistência               | `backend/.../domain/`, `repository/`          | Entidades JPA e repositórios injetados por construtor                |
-| Segurança                  | `backend/.../security/`                       | Sessão HttpOnly, CSRF, BCrypt, CORS, perfis e limite básico de POSTs |
-| Migração                   | `backend/src/main/resources/db/migration/`    | Schema versionado pelo Flyway                                        |
+| Área                       | Arquivos                                   | Motivo                                                               |
+| -------------------------- | ------------------------------------------ | -------------------------------------------------------------------- |
+| Páginas                    | `frontend/src/app/features/`               | Fluxos separados, carregados sob demanda pelo router                 |
+| HTTP, sessão e mapa        | `frontend/src/app/core/`                   | Centraliza contrato, comunicação, autenticação e integração externa  |
+| Componentes compartilhados | `frontend/src/app/shared/`                 | Reutiliza ícones, cards, mapa, login e denúncia                      |
+| Design system              | `frontend/src/styles/`                     | Temas e componentes usando tokens compartilhados                     |
+| Controllers/DTOs           | `backend/.../api/`                         | Entrada validada e retorno explícito, sem expor usuários ou senhas   |
+| Regras                     | `backend/.../service/`                     | Publicação, média, privacidade e transições no servidor              |
+| Persistência               | `backend/.../domain/`, `repository/`       | Entidades JPA e repositórios injetados por construtor                |
+| Segurança                  | `backend/.../security/`                    | Sessão HttpOnly, CSRF, BCrypt, CORS, perfis e limite básico de POSTs |
+| Migração                   | `backend/src/main/resources/db/migration/` | Schema versionado pelo Flyway                                        |
+| Testes de interface        | `frontend/e2e/`                            | Fluxos públicos, autenticados, moderação, cadastro e navegação       |
 
 Fotos ficam como bytes privados no banco, adequados ao MVP de pequeno volume. O backend valida assinatura/formato real, tamanho e resolução e regrava JPEG sem metadados originais. A aprovação é humana, sem promessa de detecção automática de pessoas/reflexos. Uma foto rejeitada não rejeita seu cadastro ou avaliação. Ao remover uma foto, os bytes são apagados, mantendo o registro de moderação.
 
@@ -82,8 +86,6 @@ O perfil ADMIN é exigido na cadeia Spring Security e no serviço de moderação
 ```powershell
 # Na pasta backend, banco em memória isolado
 mvn.cmd test
-
-# Na raiz, com API em execução: cria conta e contribuição PENDING de teste
 
 # Na raiz, PostgreSQL do Compose já iniciado e .env configurado
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/test-postgres.ps1
@@ -96,7 +98,9 @@ npx.cmd playwright install chromium
 npm.cmd test
 ```
 
+`npm.cmd test` inicia seus próprios serviços isolados nas portas **8082 e 4202**, além do servidor HTTP de mapas de teste na **4900**, com banco em memória, três locais de demonstração e senha administrativa aleatória mantida apenas no processo. O servidor de mapas está em `scripts/fixtures/geoapify.cjs` e utiliza somente o Node.js. Os serviços de teste são encerrados no final. O executor não depende dos serviços da apresentação nem altera seu banco. Requer Java, Maven, Node e Chromium instalado pelo Playwright; foi escrito para Windows. Para usar serviços já iniciados em 8080/4200, use `npm.cmd run test:running` (o teste administrativo exige variáveis próprias e será ignorado sem elas). Capturas e relatórios ficam em `test-results/`; falhas também têm trace.
 
+O executor PostgreSQL cria um banco com nome aleatório, executa os mesmos testes Spring e remove somente esse banco ao terminar. As variáveis `TEST_DATABASE_URL`, `TEST_DATABASE_USER` e `TEST_DATABASE_PASSWORD` permitem selecionar o banco de testes sem alterar o datasource padrão. Os testes de interface usam respostas HTTP locais; a integração externa real depende da chave Geoapify.
 
 ## Escopo pronto e limites
 
@@ -107,3 +111,5 @@ Limites deliberados: horário é texto informativo (sem indicador automático �
 Antes de disponibilizar para usuários reais: validar Geoapify com a chave real, configurar HTTPS e cookies Secure, backups e criptografia do disco/banco, retenção/exclusão de dados pessoais, responsável pela moderação, proxy confiável e limites distribuídos. As senhas já usam BCrypt; a aplicação não implementa criptografia própria do volume de fotos. Para produção, sirva o build Angular com fallback para `index.html` e encaminhe `/api` ao backend no mesmo domínio.
 
 ## Aplicação publicada
+
+Acesse [KHKI](https://khki.aiscript-study-backend.workers.dev). O Angular está na Cloudflare, a API Java Spring no Render Free e o PostgreSQL no Supabase Free, em schema privado. O primeiro acesso à API pode demorar por suspensão do serviço gratuito. O Worker utiliza `cloudflare/wrangler.jsonc` e encaminha `/api` para `API_ORIGIN`. Após gerar o build Angular, execute os testes e o deploy na pasta `cloudflare`. O comando de publicação preserva as variáveis remotas com `--keep-vars`. Credenciais privadas devem permanecer no ambiente do serviço e fora do Git.

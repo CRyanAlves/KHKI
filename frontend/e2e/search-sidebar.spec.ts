@@ -89,15 +89,21 @@ test('mobile and both themes keep the same map and avoid horizontal scrolling', 
   await expect(page.locator('.bathroom-card')).toHaveCount(3);
   const canvas = await page.locator('.maplibregl-canvas').elementHandle();
   for (const mode of ['escuro', 'claro']) {
-    await page.getByRole('button', { name: 'Ativar modo ' + mode, exact: true }).click();
+    await page.getByRole('button', { name: 'Abrir sua conta', exact: true }).click();
+    await page
+      .getByRole('dialog', { name: 'Sua conta', exact: true })
+      .getByRole('button', { name: mode === 'escuro' ? 'Escuro' : 'Claro', exact: true })
+      .click();
+    await page.getByRole('button', { name: 'Fechar conta', exact: true }).click();
     await expect(page.locator('.map-loading')).toHaveCount(0);
     expect(await page.locator('.result-list').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await expect(page.getByRole('button', { name: 'Filtros', exact: true })).toBeVisible();
   }
+  await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
+  await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
   await page.getByRole('button', { name: 'Recolher painel', exact: true }).click();
-  await expect(page.locator('.workspace-panel')).toBeHidden();
-  await page.getByRole('button', { name: 'Reabrir painel', exact: true }).click();
+  await expect(page.locator('.map-workspace')).toHaveClass(/mobile-sheet-peek/);
   await expect(page.locator('.workspace-panel')).toBeVisible();
   expect(await canvas!.evaluate((el) => el === document.querySelector('.maplibregl-canvas'))).toBe(true);
 });

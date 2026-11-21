@@ -122,17 +122,17 @@ test('review and human moderation publish a negative review and preserve audit',
 test('mobile layout, keyboard login and theme tokens', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
-  await expect(page.getByText('3 banheiros encontrados')).toBeVisible();
+  await expect(page.locator('.mobile-results-summary')).toContainText('3 resultados');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: '../test-results/explore-mobile.png', fullPage: true });
-  await page.getByRole('button', { name: 'Abrir navegação' }).click();
-  await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await page.getByRole('button', { name: 'Abrir sua conta', exact: true }).click();
+  await page.getByRole('button', { name: 'Entrar ou criar conta', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.evaluate(() => document.documentElement.style.setProperty('--color-accent', 'rgb(220, 180, 90)'));
-  await page.getByRole('button', { name: 'Abrir navegação' }).click();
-  await expect.poll(() => page.getByRole('button', { name: 'Entrar', exact: true }).evaluate((element) => getComputedStyle(element).backgroundColor)).toBe('rgb(220, 180, 90)');
+  await page.getByRole('button', { name: 'Abrir sua conta', exact: true }).click();
+  await expect.poll(() => page.getByRole('button', { name: 'Entrar ou criar conta', exact: true }).evaluate((element) => getComputedStyle(element).backgroundColor)).toBe('rgb(220, 180, 90)');
 });
 
 test('standalone photo upload stays private and can be rejected independently', async ({ page, browser, baseURL }) => {

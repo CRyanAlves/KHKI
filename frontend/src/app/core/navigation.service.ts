@@ -1,4 +1,4 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, inject, isDevMode, signal } from '@angular/core';
 import type { Location } from './models';
 import { MapsService, TravelMode, TravelRoute } from './maps.service';
 import { RouteTrack, bearing, buildTrack, compassHeading, distanceMeters, headingDelta, nearestProgress, normalizeHeading, remainingTrack, sampleTrack, validPoint } from './navigation-geometry';
@@ -16,7 +16,7 @@ type OrientationConstructor = typeof DeviceOrientationEvent & { requestPermissio
 
 @Injectable({ providedIn: 'root' })
 export class NavigationService {
-  readonly simulationEnabled = window.KHKI_CONFIG?.devRouteSimulation === true;
+  readonly simulationEnabled = isDevMode() && window.KHKI_CONFIG?.devRouteSimulation === true;
   readonly active = signal(false);
   readonly following = signal(true);
   readonly simulated = signal(false);

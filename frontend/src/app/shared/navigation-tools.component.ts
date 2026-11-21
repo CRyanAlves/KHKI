@@ -1,4 +1,6 @@
-import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild, inject, signal } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild, effect, inject, signal } from '@angular/core';
+import { MobileUiService } from '../core/mobile-ui.service';
+import { ExplorationState } from '../features/workspace/exploration-state.service';
 import { DecimalPipe } from '@angular/common';
 import { NavigationService } from '../core/navigation.service';
 import type { TravelRoute } from '../core/maps.service';
@@ -9,6 +11,35 @@ import { ManeuverIconComponent } from './maneuver-icon.component';
 @Component({ selector: 'app-navigation-tools', imports: [IconComponent, ManeuverIconComponent, DecimalPipe], templateUrl: './navigation-tools.component.html' })
 export class NavigationToolsComponent implements AfterViewInit, OnDestroy {
   readonly navigation = inject(NavigationService);
+  readonly mobileUi = inject(MobileUiService);
+  readonly simulatorBottom = signal(0);
+  readonly simulatorOpen = signal(false);
+  readonly toggleSimulator = (open: boolean): boolean => !open;
+  private readonly state = inject(ExplorationState);
+  constructor() {
+    effect(() => {
+      this.navigation.active();
+      this.navigation.notice();
+      this.mobileUi.mobile();
+      requestAnimationFrame(() => {
+        if (!this.stack?.nativeElement.isConnected) return;
+        const hud = this.stack.nativeElement.querySelector<HTMLElement>('.navigation-hud');
+        if (hud) this.observer?.observe(hud);
+        this.measureOcclusion();
+      });
+    });
+  }
+  editRoute(): void {
+    this.navigation.stop();
+    this.state.collapsed.set(false);
+    this.mobileUi.sheet.set(1);
+  }
+  private measureOcclusion(): void {
+    if (!this.stack) return;
+    const node = this.stack.nativeElement;
+    this.simulatorBottom.set((node.querySelector('.navigation-hud')?.getBoundingClientRect().height || 0) + (node.querySelector('.navigation-notice')?.getBoundingClientRect().height || 0));
+    this.occlusionChanged.emit(this.mobileUi.mobile() && this.navigation.active() ? (node.querySelector('.navigation-hud')?.getBoundingClientRect().height || 0) + Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--space-8')) : node.getBoundingClientRect().height);
+  }
   @Input() route: TravelRoute | null = null;
   @Output() occlusionChanged = new EventEmitter<number>();
   @ViewChild('stack') stack!: ElementRef<HTMLElement>;
@@ -31,7 +62,7 @@ export class NavigationToolsComponent implements AfterViewInit, OnDestroy {
     this.clock = setInterval(() => {
       if (this.navigation.active()) this.now.set(Date.now());
     }, 1000);
-    this.observer = new ResizeObserver(() => this.occlusionChanged.emit(this.stack.nativeElement.getBoundingClientRect().height));
+    this.observer = new ResizeObserver(() => this.measureOcclusion());
     this.observer.observe(this.stack.nativeElement);
   }
   ngOnDestroy(): void {
