@@ -37,6 +37,7 @@ export class MobileSheetDirective {
   private begin(x: number, y: number, target: EventTarget | null): void {
     if (!this.ui.mobile() || !(target instanceof Element)) return;
     const handle = !!target.closest('.mobile-sheet-handle');
+    if (!handle && target.closest('.detail-actions, .details-close')) return;
     if (!handle && target.closest('input, select, textarea, [role="listbox"]')) return;
     let scroll = target.closest<HTMLElement>('.registration-fields, .result-list, .workspace-content') || (target.closest('.workspace-results') ? this.element.nativeElement.querySelector<HTMLElement>('.result-list') : null);
     if (scroll?.matches('.workspace-content')) scroll = scroll.querySelector<HTMLElement>('.registration-fields') || scroll;

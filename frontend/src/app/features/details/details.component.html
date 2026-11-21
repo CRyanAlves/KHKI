@@ -1,4 +1,4 @@
-<section class="details-panel">
+<section class="details-panel" [class.details-compact]="mobileUi.detailsCompact()">
   <a routerLink="/" class="icon-button details-close" aria-label="Fechar detalhes"><app-icon name="X" /></a>
   @if (error) {
     <div class="state-box" role="alert">
@@ -32,145 +32,152 @@
         }
       </section>
     }
-    <div class="title-row">
-      <h1>{{ bathroom.name }}</h1>
-    </div>
-    <div class="details-rating-row">
-      <p class="rating detail-rating">
-        <app-icon name="Star" [size]="20" />
-        @if (bathroom.rating !== null && bathroom.reviewCount > 0) {
-          <strong>{{ bathroom.rating | number: '1.1-1' }}</strong
-          ><span>({{ bathroom.reviewCount }} {{ bathroom.reviewCount === 1 ? 'avaliação' : 'avaliações' }})</span>
-        } @else {
-          <span>Ainda sem avaliações</span>
-        }
-      </p>
-      <span class="tag success" title="Cadastro aprovado pela moderação; não é garantia de limpeza, segurança ou acessibilidade."><app-icon name="CheckCircle" [size]="14" />Aprovado</span>
-    </div>
-    @if (mobileUi.mobile()) {
-      <div class="mobile-details-summary">
-        <p><app-icon name="Coffee" [size]="16" />{{ bathroom.category }} · {{ accessLabels[bathroom.access] }}</p>
-        @if (bathroom.hours) {
-          <p><app-icon name="Clock" [size]="16" />{{ bathroom.hours }}</p>
-        }
+    <div class="details-primary">
+      <div class="title-row" #detailsTitle>
+        <h1 [attr.title]="mobileUi.detailsCompact() ? bathroom.name : null">{{ bathroom.name }}</h1>
       </div>
-    }
-    <div class="detail-actions" [attr.aria-busy]="routeOpening">
-      <a class="button primary" [href]="'/banheiros/' + bathroom.id + '/rota'" [attr.aria-disabled]="routeOpening" (click)="openRoute($event)"><app-icon name="Navigation" [size]="18" />Como chegar</a><a class="button secondary" [routerLink]="['/banheiros', bathroom.id, 'avaliar']"><app-icon name="Star" [size]="18" />Avaliar</a>
-    </div>
-    @if (mobileUi.mobile()) {
-      @if (bathroom.photoIds.length) {
-        <div class="mobile-detail-photos" role="region" aria-label="Fotos do local">
-          @for (id of bathroom.photoIds; track id; let index = $index) {
-            <button type="button" [attr.aria-label]="'Abrir foto ' + (index + 1)" (click)="openViewer(index, $event)">
-              @if (!failedPhotos.has(id)) {
-                <img [src]="'/api/photos/' + id" alt="Foto aprovada do banheiro" loading="lazy" (error)="failedPhotos.add(id)" />
+      <div class="detail-secondary" [inert]="mobileUi.detailsCompact()" [attr.aria-hidden]="mobileUi.detailsCompact() ? true : null">
+        <div class="detail-secondary-content">
+          <div class="details-rating-row">
+            <p class="rating detail-rating">
+              <app-icon name="Star" [size]="20" />
+              @if (bathroom.rating !== null && bathroom.reviewCount > 0) {
+                <strong>{{ bathroom.rating | number: '1.1-1' }}</strong><span>({{ bathroom.reviewCount }} {{ bathroom.reviewCount === 1 ? 'avaliação' : 'avaliações' }})</span>
               } @else {
-                <app-icon name="Camera" /><span>Foto indisponível</span>
+                <span>Ainda sem avaliações</span>
               }
-            </button>
-          }
-        </div>
-      }
-    }
-
-    @if (routeError) {
-      <p class="error-message" role="alert">{{ routeError }}</p>
-    }
-    <div class="detail-tabs" role="tablist" aria-label="Informações do banheiro">
-      <button id="details-overview-tab" role="tab" [attr.aria-selected]="tab === 'overview'" [attr.tabindex]="tab === 'overview' ? 0 : -1" aria-controls="details-tab-content" (keydown)="tabKeydown($event, 0)" (click)="chooseTab('overview')">Visão geral</button>
-      <button id="details-photos-tab" role="tab" [attr.aria-selected]="tab === 'photos'" [attr.tabindex]="tab === 'photos' ? 0 : -1" aria-controls="details-tab-content" (keydown)="tabKeydown($event, 1)" (click)="chooseTab('photos')">Fotos ({{ bathroom.photoIds.length }})</button>
-      <button id="details-reviews-tab" role="tab" [attr.aria-selected]="tab === 'reviews'" [attr.tabindex]="tab === 'reviews' ? 0 : -1" aria-controls="details-tab-content" (keydown)="tabKeydown($event, 2)" (click)="chooseTab('reviews')">Avaliações ({{ bathroom.reviewCount }})</button>
-    </div>
-    <div id="details-tab-content" role="tabpanel" [attr.aria-labelledby]="'details-' + tab + '-tab'" tabindex="0">
-      @if (tab === 'overview') {
-        <details class="registration-access-extra">
-          <summary>Acesso e estrutura informados</summary>
-          <app-bathroom-metadata [details]="bathroom.details" />
-        </details>
-        <div class="detail-facts">
-          <p class="detail-category-fact">
-            <app-icon name="Coffee" [size]="18" /><span>{{ bathroom.category }}</span>
-          </p>
-          <p>
-            <app-icon name="MapPin" [size]="18" /><span
-              >{{ bathroom.address }}
-              @if (bathroom.complement) {
-                · {{ bathroom.complement }}
-              }
-            </span>
-          </p>
-          <p class="detail-hours-fact">
-            <app-icon name="Clock" [size]="18" /><span>{{ bathroom.hours || 'Horário não informado' }}</span>
-          </p>
-          <p class="detail-access-fact">
-            <app-icon name="Info" [size]="18" /><span>{{ accessLabels[bathroom.access] }}</span>
-          </p>
-          @if (bathroom.accessDetails && !bathroom.demo) {
-            <p class="muted">{{ bathroom.accessDetails }}</p>
-          }
-        </div>
-        <section class="detail-section">
-          <h2>Itens e acessibilidade</h2>
-          <div class="item-grid">
-            @for (item of bathroom.items; track item) {
-              <span><app-icon name="Check" [size]="16" />{{ itemLabels[item] || item }}</span>
-            } @empty {
-              <span class="muted">Itens não informados</span>
-            }
-            <span><app-icon name="Accessibility" [size]="18" />{{ bathroom.accessible === null ? 'Acessibilidade não informada' : bathroom.accessible ? 'Acessível' : 'Não acessível' }}</span>
+            </p>
+            <span class="tag success" title="Cadastro aprovado pela moderação; não é garantia de limpeza, segurança ou acessibilidade."><app-icon name="CheckCircle" [size]="14" />Aprovado</span>
           </div>
-        </section>
-      }
-      @if (tab === 'photos') {
-        <section class="detail-section">
-          <h2>Fotos aprovadas ({{ bathroom.photoIds.length }})</h2>
-          <div class="thumbnails">
+          @if (mobileUi.mobile()) {
+            <div class="mobile-details-summary">
+              <p><app-icon name="Coffee" [size]="16" />{{ bathroom.category }} · {{ accessLabels[bathroom.access] }}</p>
+              @if (bathroom.hours) {
+                <p><app-icon name="Clock" [size]="16" />{{ bathroom.hours }}</p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+      <div class="detail-actions" #detailsActions [attr.aria-busy]="routeOpening">
+        <a class="button primary" [href]="'/banheiros/' + bathroom.id + '/rota'" [attr.aria-disabled]="routeOpening" (click)="openRoute($event)"><app-icon name="Navigation" [size]="18" />Como chegar</a><a class="button secondary" [routerLink]="['/banheiros', bathroom.id, 'avaliar']"><app-icon name="Star" [size]="18" />Avaliar</a>
+      </div>
+    </div>
+    <div class="details-extra" [inert]="mobileUi.detailsCompact()" [attr.aria-hidden]="mobileUi.detailsCompact() ? true : null">
+      @if (mobileUi.mobile()) {
+        @if (bathroom.photoIds.length) {
+          <div class="mobile-detail-photos" role="region" aria-label="Fotos do local">
             @for (id of bathroom.photoIds; track id; let index = $index) {
-              <button [class.active]="photo === index" (click)="openViewer(index, $event)" [attr.aria-label]="'Ver foto ' + (index + 1)" [attr.aria-pressed]="photo === index">
+              <button type="button" [attr.aria-label]="'Abrir foto ' + (index + 1)" (click)="openViewer(index, $event)">
                 @if (!failedPhotos.has(id)) {
-                  <img [src]="'/api/photos/' + id" alt="" loading="lazy" (error)="failedPhotos.add(id)" />
+                  <img [src]="'/api/photos/' + id" alt="Foto aprovada do banheiro" loading="lazy" (error)="failedPhotos.add(id)" />
                 } @else {
-                  <app-icon name="Camera" />
+                  <app-icon name="Camera" /><span>Foto indisponível</span>
                 }
               </button>
-            } @empty {
-              <p class="muted">Nenhuma foto aprovada.</p>
             }
           </div>
-        </section>
+        }
       }
-      <a class="button secondary full photo-invite" [routerLink]="['/banheiros', bathroom.id, 'fotos']"><app-icon name="Camera" [size]="20" />Adicionar foto<app-icon name="ChevronRight" [size]="18" /></a>
-      @if (tab !== 'photos') {
-        <section class="detail-section">
-          <div class="section-title">
-            <h2>Avaliações da comunidade</h2>
-            @if (tab === 'overview') {
-              <button class="text-button" (click)="chooseTab('reviews')">Ver todas ({{ bathroom.reviewCount }})</button>
-            } @else {
-              <a class="text-button" [routerLink]="['/banheiros', bathroom.id, 'avaliar']">Avaliar banheiro</a>
+
+      @if (routeError) {
+        <p class="error-message" role="alert">{{ routeError }}</p>
+      }
+      <div class="detail-tabs" role="tablist" aria-label="Informações do banheiro">
+        <button id="details-overview-tab" role="tab" [attr.aria-selected]="tab === 'overview'" [attr.tabindex]="tab === 'overview' ? 0 : -1" aria-controls="details-tab-content" (keydown)="tabKeydown($event, 0)" (click)="chooseTab('overview')">Visão geral</button>
+        <button id="details-photos-tab" role="tab" [attr.aria-selected]="tab === 'photos'" [attr.tabindex]="tab === 'photos' ? 0 : -1" aria-controls="details-tab-content" (keydown)="tabKeydown($event, 1)" (click)="chooseTab('photos')">Fotos ({{ bathroom.photoIds.length }})</button>
+        <button id="details-reviews-tab" role="tab" [attr.aria-selected]="tab === 'reviews'" [attr.tabindex]="tab === 'reviews' ? 0 : -1" aria-controls="details-tab-content" (keydown)="tabKeydown($event, 2)" (click)="chooseTab('reviews')">Avaliações ({{ bathroom.reviewCount }})</button>
+      </div>
+      <div id="details-tab-content" role="tabpanel" [attr.aria-labelledby]="'details-' + tab + '-tab'" tabindex="0">
+        @if (tab === 'overview') {
+          <details class="registration-access-extra">
+            <summary>Acesso e estrutura informados</summary>
+            <app-bathroom-metadata [details]="bathroom.details" />
+          </details>
+          <div class="detail-facts">
+            <p class="detail-category-fact">
+              <app-icon name="Coffee" [size]="18" /><span>{{ bathroom.category }}</span>
+            </p>
+            <p>
+              <app-icon name="MapPin" [size]="18" /><span
+                >{{ bathroom.address }}
+                @if (bathroom.complement) {
+                  · {{ bathroom.complement }}
+                }
+              </span>
+            </p>
+            <p class="detail-hours-fact">
+              <app-icon name="Clock" [size]="18" /><span>{{ bathroom.hours || 'Horário não informado' }}</span>
+            </p>
+            <p class="detail-access-fact">
+              <app-icon name="Info" [size]="18" /><span>{{ accessLabels[bathroom.access] }}</span>
+            </p>
+            @if (bathroom.accessDetails && !bathroom.demo) {
+              <p class="muted">{{ bathroom.accessDetails }}</p>
             }
           </div>
-          <small class="muted">Somente avaliações aprovadas compõem a nota.</small>
-          @for (review of displayedReviews; track review.id) {
-            <article class="review-card">
-              <div class="review-header">
-                <span class="avatar"><app-icon name="User" [size]="18" /></span>
-                <div>
-                  <strong>{{ review.author }}</strong>
-                  <p class="rating"><app-icon name="Star" [size]="14" />{{ (review.cleanliness + review.structure) / 2 | number: '1.1-1' }}</p>
+          <section class="detail-section">
+            <h2>Itens e acessibilidade</h2>
+            <div class="item-grid">
+              @for (item of bathroom.items; track item) {
+                <span><app-icon name="Check" [size]="16" />{{ itemLabels[item] || item }}</span>
+              } @empty {
+                <span class="muted">Itens não informados</span>
+              }
+              <span><app-icon name="Accessibility" [size]="18" />{{ bathroom.accessible === null ? 'Acessibilidade não informada' : bathroom.accessible ? 'Acessível' : 'Não acessível' }}</span>
+            </div>
+          </section>
+        }
+        @if (tab === 'photos') {
+          <section class="detail-section">
+            <h2>Fotos aprovadas ({{ bathroom.photoIds.length }})</h2>
+            <div class="thumbnails">
+              @for (id of bathroom.photoIds; track id; let index = $index) {
+                <button [class.active]="photo === index" (click)="openViewer(index, $event)" [attr.aria-label]="'Ver foto ' + (index + 1)" [attr.aria-pressed]="photo === index">
+                  @if (!failedPhotos.has(id)) {
+                    <img [src]="'/api/photos/' + id" alt="" loading="lazy" (error)="failedPhotos.add(id)" />
+                  } @else {
+                    <app-icon name="Camera" />
+                  }
+                </button>
+              } @empty {
+                <p class="muted">Nenhuma foto aprovada.</p>
+              }
+            </div>
+          </section>
+        }
+        <a class="button secondary full photo-invite" [routerLink]="['/banheiros', bathroom.id, 'fotos']"><app-icon name="Camera" [size]="20" />Adicionar foto<app-icon name="ChevronRight" [size]="18" /></a>
+        @if (tab !== 'photos') {
+          <section class="detail-section">
+            <div class="section-title">
+              <h2>Avaliações da comunidade</h2>
+              @if (tab === 'overview') {
+                <button class="text-button" (click)="chooseTab('reviews')">Ver todas ({{ bathroom.reviewCount }})</button>
+              } @else {
+                <a class="text-button" [routerLink]="['/banheiros', bathroom.id, 'avaliar']">Avaliar banheiro</a>
+              }
+            </div>
+            <small class="muted">Somente avaliações aprovadas compõem a nota.</small>
+            @for (review of displayedReviews; track review.id) {
+              <article class="review-card">
+                <div class="review-header">
+                  <span class="avatar"><app-icon name="User" [size]="18" /></span>
+                  <div>
+                    <strong>{{ review.author }}</strong>
+                    <p class="rating"><app-icon name="Star" [size]="14" />{{ (review.cleanliness + review.structure) / 2 | number: '1.1-1' }}</p>
+                  </div>
+                  <time>{{ review.createdAt | date: 'dd/MM/yyyy' }}</time>
                 </div>
-                <time>{{ review.createdAt | date: 'dd/MM/yyyy' }}</time>
-              </div>
-              <p>{{ review.comment || 'Sem comentário.' }}</p>
-              <small class="muted">Limpeza: {{ review.cleanliness }}/5 · Estrutura: {{ review.structure }}/5</small><button class="text-button subtle" (click)="report = { type: 'REVIEW', id: review.id }">Denunciar avaliação</button>
-            </article>
-          } @empty {
-            <div class="empty-reviews">Ainda sem avaliações. Compartilhe sua experiência.</div>
-          }
-        </section>
-      }
-      <button class="text-button subtle report-place" (click)="report = { type: 'BATHROOM', id: bathroom.id }"><app-icon name="Flag" [size]="15" />Denunciar informações deste local</button>
+                <p>{{ review.comment || 'Sem comentário.' }}</p>
+                <small class="muted">Limpeza: {{ review.cleanliness }}/5 · Estrutura: {{ review.structure }}/5</small><button class="text-button subtle" (click)="report = { type: 'REVIEW', id: review.id }">Denunciar avaliação</button>
+              </article>
+            } @empty {
+              <div class="empty-reviews">Ainda sem avaliações. Compartilhe sua experiência.</div>
+            }
+          </section>
+        }
+        <button class="text-button subtle report-place" (click)="report = { type: 'BATHROOM', id: bathroom.id }"><app-icon name="Flag" [size]="15" />Denunciar informações deste local</button>
+      </div>
     </div>
   }
   @if (report) {

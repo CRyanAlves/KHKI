@@ -1,5 +1,5 @@
 import { BathroomMetadataComponent } from '../../shared/bathroom-metadata.component';
-import { ChangeDetectorRef, Component, DestroyRef, OnDestroy, OnInit, ViewEncapsulation, ElementRef, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnDestroy, OnInit, ViewEncapsulation, ElementRef, afterRenderEffect, inject, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ExplorationState } from '../workspace/exploration-state.service';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -37,6 +37,49 @@ export class DetailsComponent implements OnInit, OnDestroy {
   report: { type: TargetType; id: string } | null = null;
   readonly accessLabels = ACCESS_LABELS;
   readonly itemLabels = ITEM_LABELS;
+  private readonly detailsTitle = viewChild<ElementRef<HTMLElement>>('detailsTitle');
+  private readonly detailsActions = viewChild<ElementRef<HTMLElement>>('detailsActions');
+  constructor() {
+    afterRenderEffect(onCleanup => {
+      const title = this.detailsTitle()?.nativeElement;
+      const actions = this.detailsActions()?.nativeElement;
+      if (!this.mobileUi.mobile() || !title || !actions) {
+        this.mobileUi.detailsMinimumHeight.set(0);
+        this.mobileUi.detailsExpandedHeight.set(0);
+        return;
+      }
+      const panel = title.closest<HTMLElement>('.details-panel')!;
+      const workspace = panel.closest<HTMLElement>('.map-workspace')!;
+      const handle = workspace.querySelector<HTMLElement>('.mobile-sheet-handle')!;
+      if (this.mobileUi.detailsCompact()) panel.closest<HTMLElement>('.workspace-content')!.scrollTop = 0;
+      const measure = () => {
+        if (this.destroyRef.destroyed || !this.mobileUi.mobile() || !actions.getClientRects().length) return;
+        const padding = getComputedStyle(panel);
+        const spacing = getComputedStyle(actions);
+        const heading = getComputedStyle(title.querySelector('h1')!);
+        const lineHeight = Number.parseFloat(heading.lineHeight) || Number.parseFloat(heading.fontSize);
+        const close = panel.querySelector<HTMLElement>('.details-close')!;
+        const border = getComputedStyle(panel.closest<HTMLElement>('.workspace-panel')!);
+        const minimum = handle.getBoundingClientRect().height + Math.max(close.getBoundingClientRect().height, lineHeight) + actions.getBoundingClientRect().height + Number.parseFloat(padding.paddingTop) + Number.parseFloat(padding.paddingBottom) + Number.parseFloat(spacing.marginTop) + Number.parseFloat(spacing.marginBottom) + Number.parseFloat(border.borderTopWidth) + Number.parseFloat(border.borderBottomWidth);
+        const headingElement = title.querySelector<HTMLElement>('h1')!;
+        const titleMeasure = headingElement.cloneNode(true) as HTMLElement;
+        titleMeasure.classList.add('details-title-measure');
+        titleMeasure.setAttribute('aria-hidden', 'true');
+        titleMeasure.inert = true;
+        titleMeasure.style.width = headingElement.getBoundingClientRect().width + 'px';
+        panel.appendChild(titleMeasure);
+        const titleHeight = titleMeasure.getBoundingClientRect().height;
+        titleMeasure.remove();
+        const secondary = panel.querySelector<HTMLElement>('.detail-secondary-content')!;
+        this.mobileUi.detailsMinimumHeight.set(Math.ceil(minimum));
+        this.mobileUi.detailsExpandedHeight.set(Math.ceil(minimum + Math.max(0, titleHeight - Math.max(close.getBoundingClientRect().height, lineHeight)) + secondary.scrollHeight));
+      };
+      const observer = new ResizeObserver(measure);
+      [title, actions, handle].forEach(element => observer.observe(element));
+      measure();
+      onCleanup(() => observer.disconnect());
+    });
+  }
   ngOnInit(): void {
     this.state.enter('details');
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
@@ -44,6 +87,8 @@ export class DetailsComponent implements OnInit, OnDestroy {
     });
   }
   ngOnDestroy(): void {
+    this.mobileUi.detailsMinimumHeight.set(0);
+    this.mobileUi.detailsExpandedHeight.set(0);
     this.request++;
     this.routeAnimation?.cancel();
     this.state.closePhoto();

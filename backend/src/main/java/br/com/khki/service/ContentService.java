@@ -40,6 +40,10 @@ public class ContentService {
   }
 
   public List<BathroomView> search(String query, Access access, Boolean accessible) {
+    return search(query, access, accessible, 0);
+  }
+
+  public List<BathroomView> search(String query, Access access, Boolean accessible, int offset) {
     String term = normalize(query);
     return bathrooms
       .findByStatus(Status.APPROVED)
@@ -47,7 +51,8 @@ public class ContentService {
       .filter(value -> normalize(value.name + " " + value.address).contains(term))
       .filter(value -> access == null || value.access == access)
       .filter(value -> accessible == null || accessible.equals(value.accessible))
-      .sorted(Comparator.comparing(value -> value.name))
+      .sorted(Comparator.comparing((Bathroom value) -> value.name).thenComparing(value -> value.id))
+      .skip(offset)
       .limit(200)
       .map(this::view)
       .toList();

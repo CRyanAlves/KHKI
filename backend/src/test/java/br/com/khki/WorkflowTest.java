@@ -56,6 +56,37 @@ class WorkflowTest {
     ((java.util.Map<?, ?>) org.springframework.test.util.ReflectionTestUtils.getField(abuse, "buckets")).clear();
   }
 
+  @Test
+  void publicSearchPaginatesBeforeClientFiltersWithoutExposingPendingContent() throws Exception {
+    var created = new java.util.ArrayList<Bathroom>();
+    var author = users.findAll().get(0).id;
+    for (int index = 0; index < 202; index++) {
+      var bathroom = new Bathroom();
+      bathroom.authorId = author;
+      bathroom.name = "Paginação dos filtros " + index;
+      bathroom.address = "Endereço de teste";
+      bathroom.category = "Biblioteca";
+      bathroom.access = Access.FREE;
+      bathroom.status = index == 201 ? Status.PENDING : Status.APPROVED;
+      created.add(bathroom);
+    }
+    bathrooms.saveAll(created);
+    try {
+      var first = body(mvc.perform(get("/api/bathrooms").param("q", "Paginação dos filtros")).andExpect(status().isOk()).andReturn());
+      var second = body(mvc.perform(get("/api/bathrooms").param("q", "Paginação dos filtros").param("offset", "200")).andExpect(status().isOk()).andReturn());
+      assertThat(first.size()).isEqualTo(200);
+      assertThat(second.size()).isEqualTo(1);
+      var ids = new java.util.HashSet<String>();
+      first.forEach(value -> ids.add(value.get("id").asText()));
+      assertThat(ids).doesNotContain(second.get(0).get("id").asText(), created.get(201).id.toString());
+      mvc.perform(get("/api/bathrooms").param("offset", "-1")).andExpect(status().isBadRequest());
+      mvc.perform(get("/api/bathrooms").param("offset", "100001")).andExpect(status().isBadRequest());
+      mvc.perform(get("/api/bathrooms").param("offset", "invalid")).andExpect(status().isBadRequest());
+    } finally {
+      bathrooms.deleteAll(created);
+    }
+  }
+
   private JsonNode body(MvcResult result) throws Exception {
     return json.readTree(result.getResponse().getContentAsString());
   }
