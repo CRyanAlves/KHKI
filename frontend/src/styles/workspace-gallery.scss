@@ -1,6 +1,18 @@
 .details-panel .gallery {
   margin: calc(-1 * var(--details-panel-padding)) calc(-1 * var(--details-panel-padding)) 0;
 }
+.details-panel .details-loading-desktop {
+  .skeleton-detail {
+    padding-top: 0;
+  }
+  .skeleton-cover {
+    width: calc(100% + var(--details-panel-padding) * 2);
+    height: var(--details-photo-height);
+    aspect-ratio: auto;
+    margin: calc(-1 * var(--details-panel-padding)) calc(-1 * var(--details-panel-padding)) 0;
+    border-radius: 0;
+  }
+}
 .details-panel .main-photo {
   position: relative;
 }
