@@ -21,7 +21,7 @@ export interface ModerationAudit extends AuditEntry {
   moderator: string;
   duplicateOfId: string | null;
 }
-export interface QueueRow {
+export interface ModerationQueueRow {
   id: string;
   type: TargetType;
   targetId: string;

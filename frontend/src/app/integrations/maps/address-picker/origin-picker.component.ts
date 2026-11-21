@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AddressSuggestion, MapsService } from '../maps.service';
+import { MapsService } from '../maps.service';
+import type { AddressSuggestion } from '../model/address-suggestion.model';
 import { Location } from '../../../domain/location/location.model';
 import { IconComponent } from '../../../shared/ui/icon/icon.component';
 

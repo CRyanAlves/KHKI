@@ -1,16 +1,8 @@
 import { jsonObject } from '../../../shared/utils/json-object';
 import { distanceMeters } from '../../../shared/geo/navigation-geometry';
 
-export interface RouteManeuver {
-  text: string;
-  type: string;
-  icon: string;
-  fromMeters: number | null;
-}
-export interface DirectionPreview extends RouteManeuver {
-  index: number;
-  distanceMeters: number | null;
-}
+import { RouteManeuver, DirectionPreview } from '../model/route-maneuver.model';
+
 const PASSED_MANEUVER_METERS = 8;
 const ICONS: Readonly<Record<string, string>> = {
   StartAt: 'ArrowUp',

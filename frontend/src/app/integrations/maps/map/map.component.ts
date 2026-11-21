@@ -7,7 +7,7 @@ import { ThemeService } from '../../../core/preferences/theme.service';
 import { IconComponent } from '../../../shared/ui/icon/icon.component';
 import { animateRoute } from '../../../features/route/navigation/view/map/route-path-animation';
 import { motionDurationMilliseconds } from '../../../shared/utils/motion-duration';
-import type { NavigationFrame } from '../../../features/route/navigation/service/route-navigation.service';
+import type { NavigationFrame } from '../../../features/route/navigation/model/navigation-frame.model';
 import { headingDelta } from '../../../shared/geo/navigation-geometry';
 
 import { SkeletonComponent } from '../../../shared/ui/skeleton/skeleton.component';

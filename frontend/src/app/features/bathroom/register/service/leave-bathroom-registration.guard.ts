@@ -1,4 +1,4 @@
 import { CanDeactivateFn } from '@angular/router';
-import type { RegisterBathroomComponent } from '../view/bathroom-registration-form.component';
+import type { BathroomRegistrationFormComponent } from '../view/bathroom-registration-form.component';
 
-export const leaveRegistration: CanDeactivateFn<RegisterBathroomComponent> = (component) => component.canLeave();
+export const leaveBathroomRegistration: CanDeactivateFn<BathroomRegistrationFormComponent> = (component) => component.canLeave();

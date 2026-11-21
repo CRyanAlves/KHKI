@@ -1,9 +1,13 @@
+import { prepareBathroomRegistrationEdit } from '../service/bathroom-registration-mapping';
+import { registrationLocationErrors, registrationFeeError, registrationVisitDateError } from '../service/bathroom-registration-validation';
+import { apiError } from '../../../../core/http/api-error';
+import { UserContributionsApiService } from '../../../user/contributions/service/user-contributions-api.service';
+import { BathroomApiService } from '../../service/bathroom-api.service';
 import { OriginPickerComponent, OriginChoice } from '../../../../integrations/maps/address-picker/origin-picker.component';
 import { ExplorationState } from '../../../../layout/exploration-workspace/exploration-state.service';
 import { ChangeDetectorRef, Component, ElementRef, HostListener, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { ApiService } from '../../../../core/http/api.service';
 import { ConfirmationService } from '../../../../shared/ui/confirmation/confirmation.service';
 import { MapsService } from '../../../../integrations/maps/maps.service';
 import { Bathroom, BathroomDetails, BathroomInput, ITEM_LABELS, NearbyResult, ACCESS_LABELS } from '../../../../domain/bathrooms/bathroom.model';
@@ -12,15 +16,17 @@ import { IconComponent } from '../../../../shared/ui/icon/icon.component';
 import { validPoint } from '../../../../shared/geo/navigation-geometry';
 import { validatePhoto } from '../../../../shared/validators/photo-validation';
 import { emptyBathroomDetails, legacyAccess, bathroomDetailRows, OBSERVED_ACCESSIBILITY, BATHROOM_TYPE_LABELS, triStateLabel } from '../../../../domain/bathrooms/bathroom-details';
-import { RegistrationHours } from '../model/bathroom-registration-hours.model';
-import { PhotoDraft, RegistrationSubmissionService } from '../service/bathroom-registration.service';
+import { BathroomRegistrationHours } from '../model/bathroom-registration-hours.model';
+import type { BathroomRegistrationPhotoDraft } from '../model/bathroom-registration-photo-draft.model';
+import { BathroomRegistrationService } from '../service/bathroom-registration.service';
 
 import { SkeletonComponent } from '../../../../shared/ui/skeleton/skeleton.component';
 
-@Component({ selector: 'app-register', imports: [OriginPickerComponent, SkeletonComponent, FormsModule, RouterLink, IconComponent], providers: [RegistrationSubmissionService], templateUrl: './bathroom-registration-form.component.html' })
-export class RegisterBathroomComponent implements OnInit, OnDestroy {
+@Component({ selector: 'app-register', imports: [OriginPickerComponent, SkeletonComponent, FormsModule, RouterLink, IconComponent], providers: [BathroomRegistrationService], templateUrl: './bathroom-registration-form.component.html' })
+export class BathroomRegistrationFormComponent implements OnInit, OnDestroy {
+  private readonly contributions = inject(UserContributionsApiService);
+  private readonly bathroomService = inject(BathroomApiService);
   private readonly changeDetector = inject(ChangeDetectorRef);
-  private readonly api = inject(ApiService);
   private readonly confirmation = inject(ConfirmationService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -51,8 +57,8 @@ export class RegisterBathroomComponent implements OnInit, OnDestroy {
     this.pickingAddress = false;
     this.workspace.collapsed.set(false);
   }
-  readonly submission = inject(RegistrationSubmissionService);
-  readonly hours = new RegistrationHours();
+  readonly submission = inject(BathroomRegistrationService);
+  readonly hours = new BathroomRegistrationHours();
   readonly accessLabels = ACCESS_LABELS;
   @ViewChild('existingDialog') existingDialog!: ElementRef<HTMLDialogElement>;
   @ViewChild('photoDialog') photoDialog!: ElementRef<HTMLDialogElement>;
@@ -75,7 +81,7 @@ export class RegisterBathroomComponent implements OnInit, OnDestroy {
   editId = '';
   changed = false;
   errors: Record<string, string> = {};
-  photos: PhotoDraft[] = [];
+  photos: BathroomRegistrationPhotoDraft[] = [];
   point: Location | null = null;
   bathrooms: Bathroom[] = [];
   preview: Bathroom | null = null;
@@ -107,7 +113,7 @@ export class RegisterBathroomComponent implements OnInit, OnDestroy {
   async loadInitialMap(): Promise<void> {
     this.initialMapLoading = true;
     try {
-      const bathrooms = await this.api.get<Bathroom[]>('/bathrooms');
+      const bathrooms = await this.bathroomService.search();
       if (!this.destroyed && !this.point) this.bathrooms = bathrooms;
     } catch {
       this.nearbyError = 'Não foi possível carregar os banheiros existentes. Você pode posicionar o novo cadastro e tentar a consulta novamente.';
@@ -120,27 +126,14 @@ export class RegisterBathroomComponent implements OnInit, OnDestroy {
     this.loadingEdit = true;
     this.initialMapLoading = false;
     try {
-      const bathroom = await this.api.get<Bathroom>('/me/contributions/BATHROOM/' + this.editId);
-      this.form = {
-        name: bathroom.name,
-        address: bathroom.address,
-        complement: bathroom.complement || '',
-        category: bathroom.category,
-        latitude: bathroom.latitude,
-        longitude: bathroom.longitude,
-        access: bathroom.access,
-        accessDetails: bathroom.accessDetails || '',
-        hours: bathroom.hours || '',
-        accessible: bathroom.accessible,
-        items: [...bathroom.items],
-        details: { ...emptyBathroomDetails(bathroom.access), ...bathroom.details, bathroomTypes: [...(bathroom.details?.bathroomTypes || [])] }
-      };
+      const bathroom = await this.contributions.bathroom(this.editId);
+      this.form = prepareBathroomRegistrationEdit(bathroom);
       this.hours.load(this.form.hours);
       this.point = { lat: bathroom.latitude, lng: bathroom.longitude };
       this.positionAddress = bathroom.address.trim();
       void this.checkNearby();
     } catch (error) {
-      this.error = this.api.error(error);
+      this.error = apiError(error);
     } finally {
       this.loadingEdit = false;
       this.changeDetector.markForCheck();
@@ -194,7 +187,7 @@ export class RegisterBathroomComponent implements OnInit, OnDestroy {
       this.positionHint = 'Endereço preenchido pela posição. Confira o número e a entrada do local.';
     } catch (error) {
       if (sequence === this.addressSequence && !controller.signal.aborted && !this.destroyed) {
-        this.errors['reverseAddress'] = this.api.error(error);
+        this.errors['reverseAddress'] = apiError(error);
         this.positionHint = 'O ponto foi mantido. Você pode preencher ou corrigir o endereço manualmente.';
       }
     } finally {
@@ -237,13 +230,13 @@ export class RegisterBathroomComponent implements OnInit, OnDestroy {
     this.nearby = null;
     const params: Record<string, string> = { name: this.form.name, address: this.form.address, complement: this.form.complement || '', latitude: String(this.point.lat), longitude: String(this.point.lng) };
     try {
-      const result = await this.api.get<NearbyResult>('/bathrooms/nearby', params);
+      const result = await this.bathroomService.nearby(params);
       if (sequence !== this.nearbySequence || this.destroyed) return;
       result.candidates = result.candidates.filter((candidate) => candidate.bathroom.id !== this.editId);
       this.nearby = result;
       this.bathrooms = result.candidates.map((candidate) => candidate.bathroom);
     } catch (error) {
-      if (sequence === this.nearbySequence) this.nearbyError = this.api.error(error);
+      if (sequence === this.nearbySequence) this.nearbyError = apiError(error);
     } finally {
       if (sequence === this.nearbySequence) {
         this.nearbyLoading = false;
@@ -255,7 +248,7 @@ export class RegisterBathroomComponent implements OnInit, OnDestroy {
     this.preview = bathroom;
     this.existingDialog.nativeElement.showModal();
   }
-  inspectPhoto(photo: PhotoDraft): void {
+  inspectPhoto(photo: BathroomRegistrationPhotoDraft): void {
     this.photoPreview = photo.preview;
     this.photoDialog.nativeElement.showModal();
   }
@@ -281,19 +274,14 @@ export class RegisterBathroomComponent implements OnInit, OnDestroy {
     this.photos.push(...incoming.map((file) => ({ file, preview: URL.createObjectURL(file), key: crypto.randomUUID(), uploaded: false, error: '' })));
     this.changed = true;
   }
-  removePhoto(photo: PhotoDraft): void {
+  removePhoto(photo: BathroomRegistrationPhotoDraft): void {
     if (this.busy || photo.uploaded || photo.uncertain) return;
     URL.revokeObjectURL(photo.preview);
     this.photos = this.photos.filter((value) => value !== photo);
     this.changed = true;
   }
   validateLocation(): boolean {
-    this.errors = {};
-    if (!this.form.name.trim()) this.errors['name'] = 'Informe o nome do local.';
-    if (!this.form.category.trim()) this.errors['category'] = 'Selecione a categoria do local.';
-    if (!this.form.address.trim()) this.errors['address'] = 'Informe o endereço do banheiro.';
-    if (!this.point || this.form.latitude === null || this.form.longitude === null || !validPoint({ lat: this.form.latitude, lng: this.form.longitude })) this.errors['location'] = 'Busque um endereço ou escolha um ponto válido no mapa.';
-    else if (this.addressChanged) this.errors['location'] = 'O endereço mudou. Busque novamente ou confirme que este ponto corresponde ao endereço informado.';
+    this.errors = registrationLocationErrors(this.form, this.point, this.addressChanged);
     return !Object.keys(this.errors).length;
   }
   validateAccess(): boolean {
@@ -302,10 +290,10 @@ export class RegisterBathroomComponent implements OnInit, OnDestroy {
     try {
       this.form.hours = this.hours.value();
     } catch (error) {
-      this.errors['hours'] = this.api.error(error);
+      this.errors['hours'] = apiError(error);
     }
-    const amount = this.details.feeAmount;
-    if (amount !== null && (!Number.isFinite(amount) || amount <= 0 || amount > 999999.99 || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.00001)) this.errors['fee'] = 'Informe um valor positivo com até duas casas decimais, ou deixe em branco.';
+    const feeError = registrationFeeError(this.details.feeAmount);
+    if (feeError) this.errors['fee'] = feeError;
     return !this.errors['hours'] && !this.errors['fee'];
   }
   goTo(step: number): void {
@@ -359,8 +347,9 @@ export class RegisterBathroomComponent implements OnInit, OnDestroy {
         return;
       }
       delete this.errors['lastVisited'];
-      if (this.details.lastVisited && (!/^\d{4}-\d{2}-\d{2}$/.test(this.details.lastVisited) || this.details.lastVisited > this.today)) {
-        this.errors['lastVisited'] = 'Informe uma data válida que não esteja no futuro.';
+      const visitDateError = registrationVisitDateError(this.details.lastVisited, this.today);
+      if (visitDateError) {
+        this.errors['lastVisited'] = visitDateError;
         return;
       }
       this.form.access = legacyAccess(this.details);
@@ -372,7 +361,7 @@ export class RegisterBathroomComponent implements OnInit, OnDestroy {
       this.success = await this.submission.send(this.form, this.editId, this.photos);
       if (!this.success) this.uploadWarning = 'O cadastro já foi salvo em análise. Algumas fotos não tiveram envio confirmado. Confira as mensagens de cada foto; fotos com recebimento confirmado não serão reenviadas.';
     } catch (error) {
-      this.error = this.api.error(error);
+      this.error = apiError(error);
     } finally {
       this.busy = false;
       this.changeDetector.markForCheck();

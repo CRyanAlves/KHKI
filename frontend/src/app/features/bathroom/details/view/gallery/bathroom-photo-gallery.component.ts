@@ -4,7 +4,7 @@ import { IconComponent } from '../../../../../shared/ui/icon/icon.component';
 import { MobileUiService } from '../../../../../layout/mobile/mobile-ui.service';
 import { motionDurationMilliseconds } from '../../../../../shared/utils/motion-duration';
 @Component({ selector: 'app-map-photo-viewer', imports: [IconComponent], templateUrl: './bathroom-photo-gallery.component.html', styleUrl: './bathroom-photo-gallery.component.scss' })
-export class MapPhotoViewerComponent implements OnDestroy {
+export class BathroomPhotoGalleryComponent implements OnDestroy {
   readonly state = inject(ExplorationState);
   readonly mobileUi = inject(MobileUiService);
   private touch: { x: number; y: number } | null = null;

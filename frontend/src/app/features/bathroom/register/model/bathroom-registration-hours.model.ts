@@ -1,4 +1,4 @@
-export class RegistrationHours {
+export class BathroomRegistrationHours {
   mode: 'unknown' | 'daily' | 'always' | 'custom' = 'unknown';
   opening = '';
   closing = '';

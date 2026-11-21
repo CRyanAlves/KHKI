@@ -1,24 +1,26 @@
+import { apiError } from '../../../core/http/api-error';
+import { UserContributionsApiService } from '../../user/contributions/service/user-contributions-api.service';
+import { BathroomReviewSubmissionService } from '../service/bathroom-review-submission.service';
 import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ExplorationState } from '../../../layout/exploration-workspace/exploration-state.service';
-import { ApiService } from '../../../core/http/api.service';
-import { Contribution } from '../../../domain/moderation/moderation.model';
-import { Review } from '../../../domain/reviews/review.model';
 import { IconComponent } from '../../../shared/ui/icon/icon.component';
 import { validatePhoto } from '../../../shared/validators/photo-validation';
 import { SkeletonComponent } from '../../../shared/ui/skeleton/skeleton.component';
 
 @Component({
   selector: 'app-review',
+  providers: [BathroomReviewSubmissionService],
   imports: [SkeletonComponent, FormsModule, RouterLink, IconComponent],
   templateUrl: './bathroom-review-form.component.html',
   styleUrl: './bathroom-review-form.component.scss'
 })
-export class ReviewComponent implements OnInit, OnDestroy {
+export class BathroomReviewFormComponent implements OnInit, OnDestroy {
+  private readonly contributions = inject(UserContributionsApiService);
+  private readonly submission = inject(BathroomReviewSubmissionService);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly exploration = inject(ExplorationState);
-  private readonly api = inject(ApiService);
   private readonly route = inject(ActivatedRoute);
   loading = true;
   id = '';
@@ -42,13 +44,13 @@ export class ReviewComponent implements OnInit, OnDestroy {
     try {
       this.name = (await this.exploration.select(this.id))?.name || '';
       if (this.editId) {
-        const review = await this.api.get<Review>('/me/contributions/REVIEW/' + this.editId);
+        const review = await this.contributions.review(this.editId);
         this.cleanliness = review.cleanliness;
         this.structure = review.structure;
         this.comment = review.comment || '';
       }
     } catch (error) {
-      this.error = this.api.error(error);
+      this.error = apiError(error);
     } finally {
       this.loading = false;
       this.changeDetector.markForCheck();
@@ -84,19 +86,11 @@ export class ReviewComponent implements OnInit, OnDestroy {
     this.error = '';
     try {
       const body = { cleanliness: this.cleanliness, structure: this.structure, comment: this.comment };
-      const contribution = this.editId ? await this.api.put<Contribution>('/reviews/' + this.editId, body) : await this.api.post<Contribution>('/bathrooms/' + this.id + '/reviews', body);
-      if (this.file) {
-        const data = new FormData();
-        data.append('file', this.file);
-        try {
-          await this.api.post('/bathrooms/' + this.id + '/photos?reviewId=' + contribution.id, data);
-        } catch (error) {
-          this.warning = 'Avaliação salva. A foto não foi enviada: ' + this.api.error(error);
-        }
-      }
+      const result = await this.submission.send(this.id, this.editId, body, this.file);
+      this.warning = result.warning;
       this.sent = true;
     } catch (error) {
-      this.error = this.api.error(error);
+      this.error = apiError(error);
     } finally {
       this.changeDetector.markForCheck();
       this.busy = false;

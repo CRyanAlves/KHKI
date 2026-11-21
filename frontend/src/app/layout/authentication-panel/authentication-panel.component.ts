@@ -2,13 +2,13 @@ import { Component, DestroyRef, ElementRef, HostListener, inject, signal } from 
 import { ThemeService } from '../../core/preferences/theme.service';
 import { AuthService } from '../../core/session/auth.service';
 import { IconComponent } from '../../shared/ui/icon/icon.component';
-import { LoginFormComponent } from '../../features/login/view/user-login-form.component';
-import { RegisterUserFormComponent } from '../../features/user/register/view/user-registration-form.component';
+import { UserLoginFormComponent } from '../../features/login/view/user-login-form.component';
+import { UserRegistrationFormComponent } from '../../features/user/register/view/user-registration-form.component';
 import { AuthenticationFields } from '../../shared/forms/authentication/authentication-form';
 import { DialogFocusDirective } from '../../shared/directives/dialog-focus.directive';
 
-@Component({ selector: 'app-authentication', imports: [LoginFormComponent, RegisterUserFormComponent, IconComponent, DialogFocusDirective], templateUrl: './authentication-panel.component.html' })
-export class AuthenticationComponent {
+@Component({ selector: 'app-authentication', imports: [UserLoginFormComponent, UserRegistrationFormComponent, IconComponent, DialogFocusDirective], templateUrl: './authentication-panel.component.html' })
+export class AuthenticationPanelComponent {
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly destroyRef = inject(DestroyRef);
   private readonly media = window.matchMedia('(max-width: ' + getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-mobile').trim() + ')');
