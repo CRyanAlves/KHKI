@@ -13,3 +13,6 @@ frontend/test-results/
 frontend/playwright-report/
 
 coverage/
+cloudflare/node_modules/
+cloudflare/.wrangler/
+supabase/.temp/
