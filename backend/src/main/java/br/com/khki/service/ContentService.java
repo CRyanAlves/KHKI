@@ -83,7 +83,8 @@ public class ContentService {
         .map(photo -> photo.id)
         .toList(),
       bathroom.demo,
-      bathroom.complement
+      bathroom.complement,
+      BathroomDetailsMapper.view(bathroom)
     );
   }
 
@@ -140,6 +141,7 @@ public class ContentService {
     bathroom.hours = input.hours();
     bathroom.accessible = input.accessible();
     bathroom.items = String.join(",", new TreeSet<>(input.items()));
+    BathroomDetailsMapper.apply(bathroom, input.details());
   }
 
   private void editable(ModeratedContent content, UUID authorId) {

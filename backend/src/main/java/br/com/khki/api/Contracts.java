@@ -1,8 +1,11 @@
 package br.com.khki.api;
 
 import br.com.khki.domain.*;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -29,12 +32,25 @@ public final class Contracts {
     Boolean accessible,
     @NotNull @Size(max = 8) Set<@Pattern(regexp = "PAPER|SOAP|SINK|DRYER|BIN|CHANGING_TABLE") String> items,
     @Size(max = 200) String complement,
-    UUID submissionId
+    UUID submissionId,
+    @Valid @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) BathroomDetails details
+  ) {}
+
+  public record BathroomDetails(
+    @Pattern(regexp = "PUBLIC|CUSTOMERS|AUTHORIZATION|OTHER|UNKNOWN") String audience,
+    @Pattern(regexp = "YES|NO|UNKNOWN") String charge,
+    @DecimalMin("0.01") @Digits(integer = 6, fraction = 2) BigDecimal feeAmount,
+    @Size(max = 3) Set<@NotNull @Pattern(regexp = "INDIVIDUAL|FEMALE|MALE") String> bathroomTypes,
+    Boolean stepFreeAccess,
+    Boolean elevator,
+    Boolean adaptedCabin,
+    Boolean grabBars,
+    @PastOrPresent LocalDate lastVisited
   ) {}
 
   public record ReviewInput(@Min(1) @Max(5) int cleanliness, @Min(1) @Max(5) int structure, @Size(max = 1500) String comment) {}
 
-  public record BathroomView(UUID id, String name, String address, String category, double latitude, double longitude, Access access, String accessDetails, String hours, Boolean accessible, List<String> items, Double rating, int reviewCount, List<UUID> photoIds, boolean demo, String complement) {}
+  public record BathroomView(UUID id, String name, String address, String category, double latitude, double longitude, Access access, String accessDetails, String hours, Boolean accessible, List<String> items, Double rating, int reviewCount, List<UUID> photoIds, boolean demo, String complement, BathroomDetails details) {}
 
   public record ReviewView(UUID id, String author, int cleanliness, int structure, String comment, Instant createdAt) {}
 

@@ -35,7 +35,15 @@ public class ModerationService {
     var result = new ArrayList<ContributionView>();
     bathrooms.findByStatus(status).forEach(value -> result.add(content.contribution(value)));
     reviews.findByStatus(status).forEach(value -> result.add(content.contribution(value)));
-    photos.findByStatus(status).forEach(value -> result.add(content.contribution(value)));
+    photos.findByStatusAndReviewIdIsNullAndRegistrationAttachmentFalse(status).forEach(value -> result.add(content.contribution(value)));
+    if (status == Status.PENDING) {
+      var included = new HashSet<UUID>();
+      result.forEach(item -> included.add(item.id()));
+      for (Photo photo : photos.findByStatus(Status.PENDING)) {
+        ModeratedContent parent = photo.reviewId != null ? reviews.findById(photo.reviewId).orElse(null) : photo.registrationAttachment ? bathrooms.findById(photo.bathroomId).orElse(null) : null;
+        if (parent != null && parent.status == Status.APPROVED && included.add(parent.id)) result.add(content.contribution(parent));
+      }
+    }
     result.sort(Comparator.comparing(ContributionView::createdAt));
     return result;
   }
@@ -48,7 +56,7 @@ public class ModerationService {
     var pictures = photos
       .findByBathroomIdAndStatusNotOrderByCreatedAtDesc(bathroom.id, Status.REMOVED)
       .stream()
-      .filter(photo -> !(target instanceof Review) || Objects.equals(photo.reviewId, target.id))
+      .filter(photo -> attachedTo(photo, target))
       .map(content::contribution)
       .toList();
     return new ModerationDetail(contribution, details, content.authorName(target.authorId), target.version, content.view(bathroom), pictures);
@@ -66,7 +74,7 @@ public class ModerationService {
             ? item.id()
             : pictures
                 .stream()
-                .filter(photo -> photo.status != Status.REJECTED && photo.status != Status.HIDDEN)
+                .filter(photo -> attachedTo(photo, target) && photo.status != Status.REJECTED && photo.status != Status.HIDDEN)
                 .map(photo -> photo.id)
                 .findFirst()
                 .orElse(null);
@@ -81,7 +89,7 @@ public class ModerationService {
     boolean valid = switch (target.status) {
       case PENDING -> input.status() == Status.APPROVED || input.status() == Status.REJECTED || (input.status() == Status.NEEDS_INFORMATION && type != TargetType.PHOTO);
       case NEEDS_INFORMATION -> input.status() == Status.APPROVED || input.status() == Status.REJECTED || input.status() == Status.NEEDS_INFORMATION;
-      case APPROVED -> input.status() == Status.HIDDEN || input.status() == Status.REMOVED;
+      case APPROVED -> input.status() == Status.HIDDEN || input.status() == Status.REMOVED || (input.status() == Status.APPROVED && type != TargetType.PHOTO && hasPendingAttachments(target));
       case HIDDEN -> input.status() == Status.APPROVED || input.status() == Status.REMOVED;
       case REJECTED -> input.status() == Status.REMOVED;
       case REMOVED -> false;
@@ -94,13 +102,40 @@ public class ModerationService {
     target.status = input.status();
     target.reason = input.reason().strip();
     if (target instanceof Photo photo && input.status() == Status.REMOVED) photo.data = new byte[0];
+    recordDecision(type, target, moderatorId, target.reason, input.duplicateOfId());
+    if (input.status() == Status.APPROVED && !(target instanceof Photo)) {
+      UUID bathroomId = target instanceof Bathroom ? target.id : ((Review) target).bathroomId;
+      for (Photo photo : photos.findByBathroomIdAndStatus(bathroomId, Status.PENDING)) {
+        if (!attachedTo(photo, target)) continue;
+        photo.status = Status.APPROVED;
+        photo.reason = "Aprovada junto com " + (type == TargetType.BATHROOM ? "o cadastro do banheiro " : "a avaliação ") + id + ".";
+        recordDecision(TargetType.PHOTO, photo, moderatorId, photo.reason, null);
+      }
+    }
+  }
+
+  private boolean hasPendingAttachments(ModeratedContent target) {
+    UUID bathroomId = target instanceof Bathroom ? target.id : ((Review) target).bathroomId;
+    return photos
+      .findByBathroomIdAndStatus(bathroomId, Status.PENDING)
+      .stream()
+      .anyMatch(photo -> attachedTo(photo, target));
+  }
+
+  private boolean attachedTo(Photo photo, ModeratedContent target) {
+    if (target instanceof Review) return Objects.equals(photo.reviewId, target.id);
+    if (target instanceof Bathroom) return photo.registrationAttachment && photo.reviewId == null && photo.bathroomId.equals(target.id);
+    return photo.id.equals(target.id);
+  }
+
+  private void recordDecision(TargetType type, ModeratedContent target, UUID moderatorId, String reason, UUID duplicateOfId) {
     var audit = new ModerationAudit();
     audit.targetType = type;
-    audit.targetId = id;
+    audit.targetId = target.id;
     audit.moderatorId = moderatorId;
-    audit.decision = input.status();
-    audit.reason = target.reason;
-    audit.duplicateOfId = input.duplicateOfId();
+    audit.decision = target.status;
+    audit.reason = reason;
+    audit.duplicateOfId = duplicateOfId;
     audits.save(audit);
   }
 

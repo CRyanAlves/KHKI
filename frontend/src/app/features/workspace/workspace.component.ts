@@ -1,3 +1,6 @@
+import type { RegisterComponent } from '../register/register.component';
+import { DecimalPipe } from '@angular/common';
+import { Location } from '../../core/models';
 import { Component, DestroyRef, ElementRef, OnInit, ViewChild, ViewEncapsulation, effect, inject, signal } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -6,14 +9,44 @@ import { MapComponent } from '../../shared/map.component';
 import { IconComponent } from '../../shared/icon.component';
 import { NavigationService } from '../../core/navigation.service';
 import { NavigationToolsComponent } from '../../shared/navigation-tools.component';
+import { ExploreComponent } from '../explore/explore.component';
+import { MapPhotoViewerComponent } from '../../shared/map-photo-viewer.component';
 import { MapsService } from '../../core/maps.service';
 
-@Component({ selector: 'app-workspace', imports: [RouterOutlet, MapComponent, IconComponent, NavigationToolsComponent], templateUrl: './workspace.component.html', styleUrls: ['./workspace.component.scss', '../../../styles/workspace.scss'], encapsulation: ViewEncapsulation.None })
+@Component({
+  selector: 'app-workspace',
+  imports: [DecimalPipe, MapPhotoViewerComponent, ExploreComponent, RouterOutlet, MapComponent, IconComponent, NavigationToolsComponent],
+  templateUrl: './workspace.component.html',
+  styleUrls: ['./workspace.component.scss', '../../../styles/workspace.scss', '../../../styles/workspace-split.scss', '../../../styles/workspace-registration.scss', '../../../styles/workspace-picking.scss'],
+  encapsulation: ViewEncapsulation.None
+})
 export class WorkspaceComponent implements OnInit {
   readonly state = inject(ExplorationState);
   readonly maps = inject(MapsService);
   readonly navigation = inject(NavigationService);
   readonly navigationBottomInset = signal(0);
+  readonly registration = signal<RegisterComponent | null>(null);
+  activatePanel(component: unknown, path: string | undefined): void {
+    if (path !== 'cadastrar') return;
+    this.registration.set(component as RegisterComponent);
+    this.navigation.stop();
+    this.state.enter('registration');
+  }
+  deactivatePanel(component: unknown): void {
+    if (this.registration() === component) this.registration.set(null);
+  }
+  movePoint(point: Location): void {
+    const registration = this.registration();
+    if (registration) registration.moved(point);
+    else this.state.chooseRouteOrigin(point);
+  }
+  locate(): void {
+    const registration = this.registration();
+    if (registration) void registration.locate();
+    else void this.state.locate();
+  }
+  private wasViewingPhoto = false;
+  private beforePhotoCollapsed = false;
   private wasNavigating = false;
   private wasPickingOrigin = false;
   private previousPanelCollapsed = false;
@@ -23,6 +56,14 @@ export class WorkspaceComponent implements OnInit {
   private currentUrl = this.router.url;
   private needsFocus = false;
   constructor() {
+    effect(() => {
+      const viewing = !!this.state.photoView();
+      if (viewing && !this.wasViewingPhoto) {
+        this.beforePhotoCollapsed = this.state.collapsed();
+        if (window.matchMedia('(max-width: ' + getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-mobile').trim() + ')').matches) this.state.collapsed.set(true);
+      } else if (!viewing && this.wasViewingPhoto) this.state.collapsed.set(this.beforePhotoCollapsed);
+      this.wasViewingPhoto = viewing;
+    });
     effect(() => {
       this.state.panelReady();
       this.restorePanel();
@@ -46,9 +87,17 @@ export class WorkspaceComponent implements OnInit {
         });
       this.wasPickingOrigin = picking;
     });
-    this.destroyRef.onDestroy(() => this.navigation.stop());
+    this.destroyRef.onDestroy(() => {
+      this.navigation.stop();
+      this.state.closePhoto();
+    });
     this.router.events.pipe(takeUntilDestroyed()).subscribe((event) => {
-      if (event instanceof NavigationStart && this.panel) this.state.panelScrolls.set(this.currentUrl, this.panel.nativeElement.scrollTop);
+      if (event instanceof NavigationStart && this.panel) {
+        const list = this.panel.nativeElement.querySelector<HTMLElement>('.result-list');
+        if (list && this.state.scene() !== 'registration') this.state.panelScrolls.set('/', list.scrollTop);
+        if (this.currentUrl !== '/') this.state.panelScrolls.set(this.currentUrl, this.scrollContainer().scrollTop);
+        if (event.navigationTrigger === 'imperative' && /^\/banheiros\/[^/]+$/.test(event.url) && event.url !== this.currentUrl) this.state.panelScrolls.delete(event.url);
+      }
       if (event instanceof NavigationEnd) {
         this.currentUrl = event.urlAfterRedirects;
         this.needsFocus = true;
@@ -56,11 +105,15 @@ export class WorkspaceComponent implements OnInit {
       }
     });
   }
+  private scrollContainer(): HTMLElement {
+    const panel = this.panel!.nativeElement;
+    return panel.querySelector<HTMLElement>(this.currentUrl === '/' ? '.result-list' : '.workspace-content') || panel;
+  }
   private restorePanel(): void {
     requestAnimationFrame(() => {
       if (this.destroyRef.destroyed || !this.panel) return;
       const panel = this.panel.nativeElement;
-      panel.scrollTop = this.state.panelScrolls.get(this.currentUrl) || 0;
+      this.scrollContainer().scrollTop = this.state.panelScrolls.get(this.currentUrl) || 0;
       if (this.needsFocus) {
         const focus = this.currentUrl === '/' ? panel.querySelector<HTMLElement>('a[href="/banheiros/' + this.state.lastSelected + '"]') : panel.querySelector<HTMLElement>('h1');
         if (focus) {
@@ -76,7 +129,9 @@ export class WorkspaceComponent implements OnInit {
     await this.state.restoreLocation();
   }
   open(id: string): void {
-    void this.router.navigate(['/banheiros', id]);
+    const registration = this.registration();
+    if (registration) registration.selectExisting(id);
+    else void this.router.navigate(['/banheiros', id]);
   }
   async searchArea(): Promise<void> {
     await this.router.navigate(['/']);

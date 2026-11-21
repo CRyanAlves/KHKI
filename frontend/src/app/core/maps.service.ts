@@ -96,6 +96,16 @@ export class MapsService {
     const [lng, lat] = this.coordinate([result['lon'], result['lat']]);
     return { lat, lng };
   }
+  async reverseGeocode(point: Location, signal?: AbortSignal): Promise<string> {
+    if (!validPoint(point)) throw new Error('Informe coordenadas válidas para buscar o endereço.');
+    const response = await this.request('/geocode/reverse', { lat: String(point.lat), lon: String(point.lng), format: 'json', limit: '1', lang: 'pt' }, signal);
+    if (!Array.isArray(response['results'])) throw new Error('O serviço de endereços retornou uma resposta inválida.');
+    const result = record(response['results'][0]);
+    const address = result['formatted'];
+    if (typeof address !== 'string' || !address.trim()) throw new Error('Nenhum endereço foi encontrado para este ponto. Preencha o endereço manualmente.');
+    if (address.length > 300) throw new Error('O endereço encontrado é muito longo. Preencha uma versão resumida manualmente.');
+    return address.trim();
+  }
   async autocomplete(address: string, signal?: AbortSignal, bias?: Location | null): Promise<AddressSuggestion[]> {
     const text = address.trim();
     if (text.length < 3 || text.length > 300) throw new Error('Digite entre 3 e 300 caracteres para buscar um endereço.');

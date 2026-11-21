@@ -92,8 +92,8 @@ public class ContentController {
 
   @PostMapping(value = "/bathrooms/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @ResponseStatus(HttpStatus.CREATED)
-  public ContributionView upload(@PathVariable UUID id, @RequestParam(required = false) UUID reviewId, @RequestParam(required = false) UUID submissionId, @RequestPart MultipartFile file, Principal principal) {
-    return photos.upload(id, reviewId, accounts.current(principal).id, file, submissionId);
+  public ContributionView upload(@PathVariable UUID id, @RequestParam(required = false) UUID reviewId, @RequestParam(required = false) UUID submissionId, @RequestParam(defaultValue = "false") boolean registrationAttachment, @RequestPart MultipartFile file, Principal principal) {
+    return photos.upload(id, reviewId, accounts.current(principal).id, file, submissionId, registrationAttachment);
   }
 
   @GetMapping("/photos/{id}")

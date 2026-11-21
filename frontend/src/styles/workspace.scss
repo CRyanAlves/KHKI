@@ -1,83 +1,12 @@
+@use './settings';
+
 /* O layout pai mantém uma única instância do mapa e limita a rolagem ao painel. */
-.search-panel,
-.details-panel,
+.details-panel {
+  --details-panel-padding: var(--space-5);
+  padding: var(--details-panel-padding);
+}
 .workspace-panel .route-panel {
   padding: var(--space-5);
-}
-.search-panel-title {
-  margin: var(--space-1) 0 var(--space-5);
-}
-.search-panel-title .eyebrow {
-  font-size: 0.56rem;
-  color: var(--color-muted);
-}
-.search-panel-title h1 {
-  font-size: 1.28rem;
-  margin-top: var(--space-2);
-}
-.workspace-panel .filter-row {
-  flex-wrap: wrap;
-  padding: var(--space-4) 0 var(--space-5);
-}
-.workspace-panel .results-heading {
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: var(--space-4);
-}
-.workspace-panel .results-heading strong {
-  font-size: var(--text-xs);
-}
-.workspace-panel .result-list {
-  gap: 0;
-}
-.workspace-panel .bathroom-card {
-  border: 0;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: 0;
-  padding: var(--space-4) 0;
-  background: transparent;
-  box-shadow: none;
-  gap: var(--space-3);
-}
-.workspace-panel .bathroom-card:hover,
-.workspace-panel app-bathroom-card.is-highlighted .bathroom-card {
-  background: var(--color-surface-raised);
-}
-.workspace-panel .card-photo {
-  width: 112px;
-  min-width: 112px;
-  height: 132px;
-  min-height: 132px;
-  overflow: hidden;
-}
-.workspace-panel .card-heading h3 {
-  font-size: 0.98rem;
-  line-height: 1.35;
-  letter-spacing: -0.02em;
-}
-.workspace-panel .card-address {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.card-hours {
-  font-size: 0.64rem;
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-1);
-  color: var(--color-muted);
-  margin-top: var(--space-2);
-}
-.workspace-panel .card-tags {
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  margin-top: var(--space-2);
-}
-.card-distance {
-  color: var(--color-muted);
-}
-.workspace-panel .community-note {
-  padding-top: var(--space-5);
 }
 .workspace-panel .back-link {
   margin-bottom: var(--space-5);
@@ -92,22 +21,16 @@
 .workspace-panel .form-surface h1 {
   font-size: 1.6rem;
 }
-@media (max-width: 640px) {
-  .search-panel,
-  .details-panel,
+@media (max-width: settings.$breakpoint-mobile) {
+  .details-panel {
+    --details-panel-padding: var(--space-4);
+  }
   .workspace-panel .route-panel {
     padding: var(--space-4);
   }
-  .search-panel-title {
-    margin-bottom: var(--space-4);
-  }
-  .workspace-panel .card-photo {
-    width: 100px;
-    min-width: 100px;
-  }
 }
 
-@media (max-width: 640px) {
+@media (max-width: settings.$breakpoint-mobile) {
   .workspace-map .map-notice {
     max-width: 240px;
     padding: var(--space-3);
@@ -122,4 +45,151 @@
   .workspace-map .map-notice-icon {
     display: none;
   }
+}
+/* Linhas restritas à busca preservam os estilos dos demais fluxos. */
+.search-scene .workspace-panel {
+  overflow: hidden;
+}
+.search-panel .bathroom-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--result-thumbnail-size);
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 0;
+  border-bottom: var(--border-width) solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.search-panel .bathroom-card:hover,
+.search-panel app-bathroom-card.is-highlighted .bathroom-card:not(.is-selected) {
+  background: var(--color-surface-soft);
+}
+.search-panel .bathroom-card.is-selected {
+  background: var(--color-accent-soft);
+}
+.search-panel .bathroom-card.is-selected::before {
+  content: '';
+  position: absolute;
+  inset: var(--space-2) auto var(--space-2) 0;
+  width: var(--result-selection-width);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+.search-panel .bathroom-card:focus-visible {
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+.search-panel .card-body {
+  padding: 0;
+}
+.search-panel .card-body h3 {
+  font-size: var(--text-base);
+  line-height: var(--result-line-height);
+  font-weight: var(--weight-medium);
+  letter-spacing: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.search-panel .card-photo {
+  width: var(--result-thumbnail-size);
+  min-width: 0;
+  height: var(--result-thumbnail-size);
+  min-height: 0;
+  align-self: start;
+  overflow: hidden;
+}
+.search-panel .card-photo span {
+  font-size: var(--text-xs);
+}
+.search-panel .rating {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+.search-panel .card-stars {
+  position: relative;
+  display: inline-flex;
+  color: var(--color-border);
+}
+.search-panel .card-stars-empty,
+.search-panel .card-stars-filled {
+  display: flex;
+  gap: var(--result-stars-gap);
+}
+.search-panel .card-stars-filled {
+  position: absolute;
+  inset: 0 auto 0 0;
+  overflow: hidden;
+  color: var(--color-accent);
+}
+.search-panel .card-stars app-icon {
+  flex: 0 0 auto;
+  color: inherit;
+}
+.search-panel .card-stars svg {
+  fill: currentColor;
+}
+.search-panel .card-review-count,
+.search-panel .card-category,
+.search-panel .card-hours,
+.search-panel .card-address {
+  font-size: var(--text-sm);
+  line-height: var(--result-line-height);
+  color: var(--color-text-muted);
+}
+.search-panel .card-category,
+.search-panel .card-hours,
+.search-panel .card-address {
+  margin-top: var(--space-1);
+}
+.search-panel .card-hours,
+.search-panel .card-address {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.search-panel .card-hours app-icon,
+.search-panel .card-address app-icon {
+  flex: 0 0 auto;
+  margin-top: var(--space-1);
+}
+.search-panel .card-address span,
+.search-panel .card-category {
+  overflow-wrap: anywhere;
+}
+.search-panel .card-tags {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: 0;
+}
+.search-panel .card-access {
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+.search-panel .card-access {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  background: var(--color-surface-soft);
+  color: var(--color-text);
+}
+.search-panel .card-access.is-paid {
+  color: var(--color-error);
+  background: var(--color-error-soft);
+}
+.search-panel .card-feature {
+  display: inline-flex;
+  color: var(--color-success);
 }

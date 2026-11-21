@@ -86,29 +86,8 @@
     margin-bottom: var(--space-5);
   }
 }
-.registration-address-field {
-  display: flex;
-  align-items: center;
-  margin-top: var(--space-2);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-raised);
-  input:not([type='checkbox']):not([type='radio']):not([type='file']) {
-    margin: 0;
-    border: 0;
-    min-width: 0;
-    background: transparent;
-  }
-  button {
-    flex-shrink: 0;
-    margin-right: var(--space-2);
-  }
-  &:focus-within {
-    outline: var(--border-width) solid var(--color-focus);
-  }
-}
-.registration-location-action {
-  margin-block: var(--space-1) var(--space-4);
+.registration-location-fields app-origin-picker {
+  margin-bottom: var(--space-5);
 }
 .registration-position-note {
   display: flex;
@@ -137,78 +116,6 @@
   color: var(--color-error);
   font-size: var(--text-sm);
   margin: var(--space-2) 0 var(--space-4);
-}
-.registration-coordinates {
-  margin-block: var(--space-4);
-  font-size: var(--text-xs);
-  summary {
-    color: var(--color-focus);
-    cursor: pointer;
-  }
-  .two-columns {
-    gap: var(--space-3);
-  }
-}
-.registration-nearby {
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3);
-  margin-top: var(--space-5);
-  font-size: var(--text-sm);
-  > small {
-    display: block;
-    margin-top: var(--space-3);
-    color: var(--color-text-muted);
-  }
-}
-.registration-nearby-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  h2 {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-size: var(--text-base);
-  }
-  label {
-    max-width: 45%;
-  }
-  select {
-    padding: var(--space-2);
-    margin: 0;
-    font-size: var(--text-xs);
-  }
-}
-.registration-nearby-card {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: var(--border-width) solid var(--color-border);
-  > img {
-    width: var(--moderation-thumbnail-size);
-    height: var(--moderation-thumbnail-size);
-    object-fit: cover;
-    border-radius: var(--radius-sm);
-  }
-  > div {
-    flex: 1;
-    min-width: 0;
-  }
-  small {
-    display: block;
-    color: var(--color-text-muted);
-  }
-  &.possible-duplicate {
-    border-color: var(--color-accent);
-  }
-  .button {
-    padding: var(--space-2) var(--space-3);
-  }
 }
 .registration-place-summary {
   display: flex;
@@ -357,20 +264,6 @@
 .registration-map .maplibregl-ctrl-bottom-right {
   bottom: calc(var(--control-size) + var(--space-4));
 }
-.registration-map .maplibregl-ctrl-group button {
-  width: var(--control-size);
-  height: var(--control-size);
-}
-.registration-map-location {
-  position: absolute;
-  right: settings.$map-control-offset;
-  bottom: settings.$map-control-offset;
-  width: var(--control-size);
-  height: var(--control-size);
-  background: var(--color-surface);
-  border: var(--border-width) solid var(--color-border);
-  box-shadow: var(--shadow-sm);
-}
 .registration-map-coordinates {
   position: absolute;
   bottom: var(--space-8);
@@ -504,4 +397,99 @@
   label {
     margin-top: var(--space-3);
   }
+}
+
+.registration-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-base);
+  margin-block: var(--space-4);
+  &::after {
+    content: '';
+    flex: 1;
+    height: var(--border-width);
+    background: var(--color-border);
+  }
+}
+.registration-accessibility > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-weight: var(--weight-medium);
+}
+.registration-accessibility {
+  margin-top: var(--space-5);
+  > p {
+    font-size: var(--text-xs);
+    margin-block: var(--space-3);
+  }
+  > label {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-2);
+    font-size: var(--text-sm);
+    select {
+      margin: 0;
+      padding: var(--space-2);
+    }
+  }
+}
+.registration-last-visit {
+  display: block;
+  margin-block: var(--space-6);
+}
+.registration-review {
+  font-size: var(--text-sm);
+  > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: var(--space-3);
+    align-items: center;
+    padding-block: var(--space-3);
+    border-bottom: var(--border-width) solid var(--color-border);
+  }
+  dt {
+    color: var(--color-text-muted);
+  }
+  dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  button {
+    font-size: var(--text-xs);
+  }
+}
+.registration-progress li > span {
+  width: var(--space-8);
+  height: var(--space-8);
+  flex-shrink: 0;
+}
+.registration-progress {
+  gap: var(--space-2);
+  li {
+    gap: var(--space-1);
+    font-size: var(--text-xs);
+  }
+}
+
+.registration-draft-pin::before {
+  content: 'Entrada do local';
+  position: absolute;
+  bottom: calc(100% + var(--space-3));
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  pointer-events: none;
 }

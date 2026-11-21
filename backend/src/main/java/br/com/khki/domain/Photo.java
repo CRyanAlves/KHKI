@@ -12,6 +12,9 @@ public class Photo extends ModeratedContent {
 
   public UUID reviewId;
 
+  @Column(nullable = false)
+  public boolean registrationAttachment;
+
   @Column(nullable = false, columnDefinition = "bytea")
   public byte[] data;
 }
