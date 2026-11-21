@@ -3,19 +3,16 @@ package br.com.khki.shared.domain;
 import br.com.khki.usecase.account.User;
 import jakarta.persistence.*;
 import java.time.Instant;
-import java.util.UUID;
+import java.util.*;
 
 @MappedSuperclass
-public abstract class ModeratedContent {
+public abstract class BaseModeratedEntity {
 
   @Id
   private UUID id = UUID.randomUUID();
 
-  @Column(name = "author_id", nullable = false)
-  private UUID authorId;
-
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "author_id", insertable = false, updatable = false)
+  @JoinColumn(name = "author_id", nullable = false)
   @com.fasterxml.jackson.annotation.JsonIgnore
   private User author;
 
@@ -29,14 +26,15 @@ public abstract class ModeratedContent {
   @Column(nullable = false)
   private Instant createdAt = Instant.now();
 
+  @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+  @Column(name = "image_urls", nullable = false, columnDefinition = "jsonb")
+  private List<String> imageUrls = new ArrayList<>();
+
   @Version
   private long version;
 
   public UUID getId() { return id; }
   public void setId(UUID value) { id = value; }
-
-  public UUID getAuthorId() { return authorId; }
-  public void setAuthorId(UUID value) { authorId = value; }
 
   public User getAuthor() { return author; }
   public void setAuthor(User value) { author = value; }
@@ -49,6 +47,9 @@ public abstract class ModeratedContent {
 
   public Instant getCreatedAt() { return createdAt; }
   public void setCreatedAt(Instant value) { createdAt = value; }
+
+  public List<String> getImageUrls() { return imageUrls; }
+  public void setImageUrls(List<String> value) { imageUrls = value; }
 
   public long getVersion() { return version; }
   public void setVersion(long value) { version = value; }

@@ -37,7 +37,7 @@ public class ContributionController {
   @GetMapping("/me/contributions/{type}/{id}")
   public Object own(@PathVariable TargetType type, @PathVariable UUID id, Principal principal) {
     var target = contributionService.target(type, id);
-    if (!target.getAuthorId().equals(accounts.current(principal).getId())) throw ApiException.missing();
+    if (!target.getAuthor().getId().equals(accounts.current(principal).getId())) throw ApiException.missing();
     if (target instanceof Bathroom bathroom) return bathrooms.view(bathroom);
     if (target instanceof Review review) return new ReviewView(review.getId(), "Sua avaliação", review.getCleanliness(), review.getStructure(), review.getComment(), review.getCreatedAt());
     return contributionService.contribution(target);

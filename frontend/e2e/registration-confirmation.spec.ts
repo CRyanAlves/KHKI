@@ -4,10 +4,11 @@ for (const viewport of [
   { width: 393, height: 852 },
   { width: 1440, height: 950 }
 ]) {
-  test(`registration confirms discard inside the application at ${viewport.width}px`, async ({ page }) => {
+  test(`registration confirms discard inside the application at ${viewport.width}px`, async ({ page, baseURL }) => {
     await page.setViewportSize(viewport);
     await page.route('**/api/auth/csrf', (route) => route.fulfill({ json: {} }));
     await page.route('**/api/auth/me', (route) => route.fulfill({ json: { id: 'test', name: 'Pessoa Teste', role: 'USER' } }));
+    await page.route('**/api/bathrooms/nearby?**', (route) => route.fulfill({ json: { radiusMeters: 150, candidates: [] } }));
     let nativeDialogs = 0;
     page.on('dialog', async (dialog) => {
       nativeDialogs++;
@@ -26,6 +27,7 @@ for (const viewport of [
     await expect(name).toHaveValue('Rascunho preservado');
     await expect(page).toHaveURL(/\/cadastrar$/);
     await cancel.click();
+    await expect(confirmation).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(confirmation).toHaveCount(0);
     await expect(name).toHaveValue('Rascunho preservado');
@@ -34,13 +36,14 @@ for (const viewport of [
     await expect(confirmation).toHaveCount(0);
     await expect(name).toHaveValue('Rascunho preservado');
     await cancel.click();
+    await expect(confirmation).toBeVisible();
     await page.mouse.click(5, 5);
     await expect(confirmation).toHaveCount(0);
     await expect(name).toHaveValue('Rascunho preservado');
     await cancel.click();
     await page.screenshot({ path: `../test-results/registration-discard-${viewport.width}.png` });
     await confirmation.getByRole('button', { name: 'Descartar e sair' }).click();
-    await expect(page).toHaveURL('http://127.0.0.1:4200/');
+    await expect(page).toHaveURL(new URL('/', baseURL).href);
     await expect(confirmation).toHaveCount(0);
     expect(nativeDialogs).toBe(0);
   });

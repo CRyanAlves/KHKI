@@ -64,9 +64,171 @@ class WorkflowTest {
   @Autowired
   org.springframework.jdbc.core.JdbcTemplate jdbc;
 
+  @Autowired
+  jakarta.persistence.EntityManager entityManager;
+
+  @Autowired
+  org.springframework.transaction.PlatformTransactionManager transactionManager;
+
   @BeforeEach
   void isolateRateLimitState() {
     ((java.util.Map<?, ?>) org.springframework.test.util.ReflectionTestUtils.getField(abuse, "buckets")).clear();
+  }
+
+  @Test
+  void bathroomDetailsReadTheApprovedReviewsOnlyOnce() throws Exception {
+    var bathroom = moderationBathroom("Consulta única de avaliações", Status.APPROVED, null, -23.1);
+    UUID reviewId = pendingReview(bathroom.getId());
+    decide("REVIEW", reviewId, "APPROVED");
+    var statistics = entityManager.getEntityManagerFactory().unwrap(org.hibernate.SessionFactory.class).getStatistics();
+    boolean wasEnabled = statistics.isStatisticsEnabled();
+    statistics.setStatisticsEnabled(true);
+    statistics.clear();
+    try {
+      mvc.perform(get("/api/bathrooms/" + bathroom.getId())).andExpect(status().isOk()).andExpect(jsonPath("$.reviewCount").value(1)).andExpect(jsonPath("$.rating").value(3.5));
+      assertThat(statistics.getQueryExecutionCount()).isEqualTo(1);
+    } finally {
+      statistics.setStatisticsEnabled(wasEnabled);
+    }
+  }
+
+  @Test
+  void authorAssociationsPersistForBothContentTypesAndKeepOwnershipChecks() throws Exception {
+    var alternate = alternateUser();
+    var bathroom = moderationBathroom("Autoria por associação", Status.APPROVED, null, -23.1);
+    UUID reviewId = pendingReview(bathroom.getId());
+    new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
+      var persistedBathroom = entityManager.find(Bathroom.class, bathroom.getId());
+      var persistedReview = entityManager.find(br.com.khki.usecase.review.Review.class, reviewId);
+      assertThat(org.hibernate.Hibernate.isInitialized(persistedBathroom.getAuthor())).isFalse();
+      assertThat(org.hibernate.Hibernate.isInitialized(persistedReview.getAuthor())).isFalse();
+      var newAuthor = entityManager.getReference(User.class, alternate.getId());
+      persistedBathroom.setAuthor(newAuthor);
+      persistedReview.setAuthor(newAuthor);
+      persistedReview.setStatus(Status.NEEDS_INFORMATION);
+      entityManager.flush();
+      entityManager.clear();
+      assertThat(entityManager.find(Bathroom.class, bathroom.getId()).getAuthor().getName()).isEqualTo(alternate.getName());
+      assertThat(entityManager.find(br.com.khki.usecase.review.Review.class, reviewId).getAuthor().getName()).isEqualTo(alternate.getName());
+      assertThat(bathrooms.findByAuthor_IdOrderByCreatedAtDesc(alternate.getId())).extracting(value -> value.getId()).containsExactly(bathroom.getId());
+      assertThat(reviews.findByAuthor_IdOrderByCreatedAtDesc(alternate.getId())).extracting(value -> value.getId()).containsExactly(reviewId);
+    });
+    assertThat(jdbc.queryForObject("SELECT author_id FROM bathrooms WHERE id = ?", UUID.class, bathroom.getId())).isEqualTo(alternate.getId());
+    assertThat(jdbc.queryForObject("SELECT author_id FROM reviews WHERE id = ?", UUID.class, reviewId)).isEqualTo(alternate.getId());
+    mvc.perform(get("/api/me/contributions/REVIEW/" + reviewId).with(user("admin@khki.test").roles("ADMIN"))).andExpect(status().isNotFound());
+    mvc.perform(get("/api/me/contributions/REVIEW/" + reviewId).with(user(alternate.getEmail()))).andExpect(status().isOk()).andExpect(jsonPath("$.id").value(reviewId.toString())).andExpect(jsonPath("$.author").value("Sua avaliação"));
+    String input = "{\"cleanliness\":2,\"structure\":3,\"comment\":\"Correção do autor\"}";
+    mvc.perform(put("/api/reviews/" + reviewId).with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(input)).andExpect(status().isForbidden());
+    mvc.perform(put("/api/reviews/" + reviewId).with(user(alternate.getEmail())).with(csrf()).contentType("application/json").content(input)).andExpect(status().isOk()).andExpect(jsonPath("$.bathroomId").value(bathroom.getId().toString()));
+  }
+
+  @Test
+  void typedReferencesAndAuditAssociationsPersistWithoutChangingJsonContracts() throws Exception {
+    var moderator = users.findByEmail("admin@khki.test").orElseThrow();
+    var alternate = alternateUser();
+    var bathroom = moderationBathroom("Referências por associação", Status.APPROVED, null, -23.1);
+    UUID reviewId = pendingReview(bathroom.getId());
+    decide("REVIEW", reviewId, "APPROVED");
+    var pending = moderationBathroom("Referência duplicada", Status.PENDING, null, -23.1);
+    mvc.perform(post("/api/admin/content/BATHROOM/" + pending.getId() + "/decision").with(user(moderator.getEmail()).roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"status\":\"REJECTED\",\"reason\":\"Duplicado confirmado\",\"duplicateOfId\":\"" + bathroom.getId() + "\"}")).andExpect(status().isOk());
+    var audit = audits.findByReference_Bathroom_IdOrderByCreatedAtDesc(pending.getId()).get(0);
+    assertThat(jdbc.queryForObject("SELECT moderator_id FROM moderation_audit WHERE id = ?", UUID.class, audit.getId())).isEqualTo(moderator.getId());
+    assertThat(jdbc.queryForObject("SELECT duplicate_of_id FROM moderation_audit WHERE id = ?", UUID.class, audit.getId())).isEqualTo(bathroom.getId());
+    for (var target : java.util.Map.of("BATHROOM", bathroom.getId(), "REVIEW", reviewId).entrySet()) {
+      mvc.perform(post("/api/reports").with(user(moderator.getEmail()).roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"targetType\":\"" + target.getKey() + "\",\"targetId\":\"" + target.getValue() + "\",\"reason\":\"INCORRECT\"}")).andExpect(status().isAccepted());
+    }
+    UUID reportId = jdbc.queryForObject("SELECT id FROM reports WHERE target_id = ?", UUID.class, bathroom.getId());
+    UUID reviewReportId = jdbc.queryForObject("SELECT id FROM reports WHERE target_id = ?", UUID.class, reviewId);
+    new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
+      var persistedAudit = entityManager.find(br.com.khki.usecase.moderation.ModerationAudit.class, audit.getId());
+      assertThat(org.hibernate.Hibernate.isInitialized(persistedAudit.getModerator())).isFalse();
+      assertThat(persistedAudit.getDuplicateOf().getId()).isEqualTo(bathroom.getId());
+      assertThat(persistedAudit.getReference().getBathroom().getId()).isEqualTo(pending.getId());
+      assertThat(persistedAudit.getTargetType()).isEqualTo(TargetType.BATHROOM);
+      assertThat(persistedAudit.getTargetId()).isEqualTo(pending.getId());
+      assertThat(org.hibernate.Hibernate.isInitialized(persistedAudit.getReference().getBathroom())).isFalse();
+      var report = entityManager.find(Report.class, reportId);
+      assertThat(report.getReference().getBathroom().getId()).isEqualTo(bathroom.getId());
+      assertThat(report.getReference().getReview()).isNull();
+      var reviewReport = entityManager.find(Report.class, reviewReportId);
+      assertThat(reviewReport.getReference().getReview().getId()).isEqualTo(reviewId);
+      assertThat(reviewReport.getReference().getBathroom()).isNull();
+      var review = entityManager.getReference(br.com.khki.usecase.review.Review.class, reviewId);
+      persistedAudit.setModerator(entityManager.getReference(User.class, alternate.getId()));
+      persistedAudit.setDuplicateOf(null);
+      persistedAudit.setReference(ContentReference.of(review));
+      report.setTargetType(TargetType.REVIEW);
+      report.setTargetId(reviewId);
+      report.setReference(ContentReference.of(review));
+      entityManager.flush();
+      entityManager.clear();
+      assertThat(entityManager.find(Report.class, reportId).getReference().getReview().getId()).isEqualTo(reviewId);
+      assertThat(entityManager.find(br.com.khki.usecase.moderation.ModerationAudit.class, audit.getId()).getModerator().getName()).isEqualTo(alternate.getName());
+    });
+    assertThat(jdbc.queryForObject("SELECT moderator_id FROM moderation_audit WHERE id = ?", UUID.class, audit.getId())).isEqualTo(alternate.getId());
+    assertThat(jdbc.queryForObject("SELECT duplicate_of_id FROM moderation_audit WHERE id = ?", UUID.class, audit.getId())).isNull();
+    assertThat(jdbc.queryForObject("SELECT review_target_id FROM reports WHERE id = ?", UUID.class, reportId)).isEqualTo(reviewId);
+    assertThat(jdbc.queryForObject("SELECT review_target_id FROM moderation_audit WHERE id = ?", UUID.class, audit.getId())).isEqualTo(reviewId);
+    assertThat(audits.findByReference_Bathroom_IdOrderByCreatedAtDesc(pending.getId())).isEmpty();
+    assertThat(audits.findByReference_Review_IdOrderByCreatedAtDesc(reviewId)).extracting(value -> value.getId()).contains(audit.getId());
+    mvc.perform(get("/api/admin/content/REVIEW/" + reviewId + "/history").with(user(moderator.getEmail()).roles("ADMIN"))).andExpect(status().isOk()).andExpect(jsonPath("$[0].targetType").value("REVIEW")).andExpect(jsonPath("$[0].targetId").value(reviewId.toString()));
+    var response = body(mvc.perform(get("/api/admin/audit").with(user(moderator.getEmail()).roles("ADMIN"))).andExpect(status().isOk()).andReturn());
+    var entry = java.util.stream.StreamSupport.stream(response.spliterator(), false).filter(value -> value.get("id").asText().equals(audit.getId().toString())).findFirst().orElseThrow();
+    assertThat(entry.size()).isEqualTo(8);
+    assertThat(entry.get("targetType").asText()).isEqualTo("REVIEW");
+    assertThat(entry.get("targetId").asText()).isEqualTo(reviewId.toString());
+    assertThat(entry.get("moderatorId").asText()).isEqualTo(alternate.getId().toString());
+    assertThat(entry.get("duplicateOfId").isNull()).isTrue();
+    assertThat(entry.has("moderator")).isFalse();
+    assertThat(entry.has("reference")).isFalse();
+    mvc.perform(get("/api/admin/audit")).andExpect(status().isUnauthorized());
+    mvc.perform(get("/api/admin/audit").with(user(alternate.getEmail()))).andExpect(status().isForbidden());
+  }
+
+  private User alternateUser() {
+    var alternate = new User();
+    alternate.setName("Outro autor do teste");
+    alternate.setEmail("author-" + UUID.randomUUID() + "@khki.test");
+    alternate.setPassword(users.findByEmail("admin@khki.test").orElseThrow().getPassword());
+    return users.save(alternate);
+  }
+
+  @Test
+  void reviewAssociationOwnsTheForeignKeyAndPreservesContributionContract() throws Exception {
+    var author = users.findByEmail("admin@khki.test").orElseThrow();
+    var locations = new java.util.ArrayList<Bathroom>();
+    for (String name : java.util.List.of("Banheiro original da avaliação", "Banheiro corrigido da avaliação")) {
+      var bathroom = new Bathroom();
+      bathroom.setAuthor(author);
+      bathroom.setName(name);
+      bathroom.setAddress("Rua de teste");
+      bathroom.setCategory("Biblioteca");
+      bathroom.setAccess(AccessType.FREE);
+      bathroom.setStatus(Status.APPROVED);
+      locations.add(bathrooms.save(bathroom));
+    }
+    var original = locations.get(0);
+    var replacement = locations.get(1);
+    UUID reviewId = pendingReview(original.getId());
+    assertThat(jdbc.queryForObject("SELECT bathroom_id FROM reviews WHERE id = ?", UUID.class, reviewId)).isEqualTo(original.getId());
+    var contributions = body(mvc.perform(get("/api/me/contributions").with(user(author.getEmail()).roles("ADMIN"))).andExpect(status().isOk()).andReturn());
+    var contribution = java.util.stream.StreamSupport.stream(contributions.spliterator(), false).filter(value -> value.get("id").asText().equals(reviewId.toString())).findFirst().orElseThrow();
+    assertThat(contribution.get("bathroomId").asText()).isEqualTo(original.getId().toString());
+    new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(transaction -> {
+      var review = entityManager.find(br.com.khki.usecase.review.Review.class, reviewId);
+      assertThat(org.hibernate.Hibernate.isInitialized(review.getBathroom())).isFalse();
+      assertThat(review.getBathroom().getId()).isEqualTo(original.getId());
+      review.setBathroom(entityManager.getReference(Bathroom.class, replacement.getId()));
+      review.setStatus(Status.APPROVED);
+      entityManager.flush();
+      entityManager.clear();
+      var reloaded = entityManager.find(br.com.khki.usecase.review.Review.class, reviewId);
+      assertThat(reloaded.getBathroom().getName()).isEqualTo(replacement.getName());
+      assertThat(reviews.findByBathroom_IdAndStatusOrderByCreatedAtDesc(original.getId(), Status.APPROVED)).isEmpty();
+      assertThat(reviews.findByBathroom_IdAndStatusOrderByCreatedAtDesc(replacement.getId(), Status.APPROVED)).extracting(value -> value.getId()).containsExactly(reviewId);
+    });
+    assertThat(jdbc.queryForObject("SELECT bathroom_id FROM reviews WHERE id = ?", UUID.class, reviewId)).isEqualTo(replacement.getId());
+    mvc.perform(get("/api/bathrooms/" + replacement.getId() + "/reviews")).andExpect(status().isOk()).andExpect(jsonPath("$[0].id").value(reviewId.toString())).andExpect(jsonPath("$[0].bathroom").doesNotExist());
   }
 
   @Test
@@ -75,7 +237,7 @@ class WorkflowTest {
     var author = users.findAll().get(0).getId();
     for (int index = 0; index < 202; index++) {
       var bathroom = new Bathroom();
-      bathroom.setAuthorId(author);
+      bathroom.setAuthor(users.findById(author).orElseThrow());
       bathroom.setName("Paginação dos filtros " + index);
       bathroom.setAddress("Endereço de teste");
       bathroom.setCategory("Biblioteca");
@@ -273,7 +435,7 @@ class WorkflowTest {
   void rejectsDisguisedUploads() throws Exception {
     var admin = users.findByEmail("admin@khki.test").orElseThrow();
     var bathroom = new Bathroom();
-    bathroom.setAuthorId(admin.getId());
+    bathroom.setAuthor(admin);
     bathroom.setName("Upload");
     bathroom.setAddress("Teste");
     bathroom.setCategory("Teste");
@@ -295,7 +457,7 @@ class WorkflowTest {
   void rejectedContributionCanOnlyBeResubmittedByAuthor() throws Exception {
     var admin = users.findByEmail("admin@khki.test").orElseThrow();
     var bathroom = new Bathroom();
-    bathroom.setAuthorId(admin.getId());
+    bathroom.setAuthor(admin);
     bathroom.setName("Rejeitado");
     bathroom.setAddress("Teste");
     bathroom.setCategory("Teste");
@@ -346,7 +508,7 @@ class WorkflowTest {
     outsider.setPassword("unused-test-hash");
     users.save(outsider);
     var bathroom = new Bathroom();
-    bathroom.setAuthorId(admin.getId());
+    bathroom.setAuthor(admin);
     bathroom.setName("Privado");
     bathroom.setAddress("Teste");
     bathroom.setCategory("Teste");
@@ -377,7 +539,7 @@ class WorkflowTest {
   private Bathroom moderationBathroom(String name, Status status, String complement, double latitude) {
     var author = users.findByEmail("admin@khki.test").orElseThrow();
     var bathroom = new Bathroom();
-    bathroom.setAuthorId(author.getId());
+    bathroom.setAuthor(author);
     bathroom.setName(name);
     bathroom.setAddress("Rua das Flores, 123, Indaiatuba");
     bathroom.setComplement(complement);
@@ -491,7 +653,7 @@ class WorkflowTest {
     report.setTargetType(TargetType.BATHROOM);
     report.setTargetId(bathroom.getId());
     report.setReason("INCORRECT");
-    report.setReference(ContentReference.of(report.getTargetType(), report.getTargetId()));
+    report.setReference(ContentReference.of(bathrooms.findById(report.getTargetId()).orElseThrow()));
     reports.save(report);
     String endpoint = "/api/admin/reports/" + report.getId() + "/resolve";
     mvc.perform(post(endpoint).with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content("{\"reason\":\"Conferido\",\"status\":\"HIDDEN\",\"expectedVersion\":0,\"contentVersion\":0}")).andExpect(status().isConflict());
@@ -649,7 +811,7 @@ class WorkflowTest {
       )
       .andExpect(status().isConflict());
     mvc.perform(get("/api/photos/" + photo)).andExpect(status().isNotFound());
-    assertThat(audits.findByTargetTypeAndTargetIdOrderByCreatedAtDesc(TargetType.BATHROOM, bathroomId)).isEmpty();
+    assertThat(audits.findByReference_Bathroom_IdOrderByCreatedAtDesc(bathroomId)).isEmpty();
     decide("BATHROOM", bathroomId, "APPROVED");
     var image = new ByteArrayOutputStream();
     ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB), "png", image);
@@ -721,7 +883,7 @@ class WorkflowTest {
     assertThat(jdbc.queryForObject("SELECT count(*) FROM \"user\"", Integer.class)).isPositive();
     var result = mvc.perform(post("/api/bathrooms").with(user("admin@khki.test").roles("ADMIN")).with(csrf()).contentType("application/json").content(bathroomInput("Cadastro sem recibo"))).andExpect(status().isCreated()).andReturn();
     UUID id = UUID.fromString(body(result).get("id").asText());
-    assertThat(bathrooms.findById(id).orElseThrow().getAuthorId()).isEqualTo(users.findByEmail("admin@khki.test").orElseThrow().getId());
+    assertThat(bathrooms.findById(id).orElseThrow().getAuthor().getId()).isEqualTo(users.findByEmail("admin@khki.test").orElseThrow().getId());
     mvc.perform(get("/api/me/submissions/" + UUID.randomUUID()).with(user("admin@khki.test").roles("ADMIN"))).andExpect(status().isNotFound());
     mvc.perform(get("/api/me/contributions/BATHROOM/" + id).with(user("admin@khki.test").roles("ADMIN"))).andExpect(status().isOk());
   }

@@ -4,6 +4,7 @@ import br.com.khki.infrastructure.storage.ImageStorage;
 import br.com.khki.shared.api.ApiException;
 import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.shared.domain.Status;
+import br.com.khki.shared.domain.BaseModeratedEntity;
 import br.com.khki.usecase.account.User;
 import br.com.khki.usecase.bathroom.BathroomRepository;
 import br.com.khki.usecase.contribution.ContributionService;
@@ -41,19 +42,17 @@ public class ImageService {
   public ContributionView upload(UUID bathroomId, UUID reviewId, UUID authorId, MultipartFile file, boolean registrationAttachment) {
     if (registrationAttachment && reviewId != null) throw new ApiException(HttpStatus.BAD_REQUEST, "Escolha apenas um vínculo para a foto.");
     var bathroom = bathrooms.findById(bathroomId).orElseThrow(ApiException::missing);
-    br.com.khki.shared.domain.ModeratedContent parent;
-    List<String> urls;
+    BaseModeratedEntity parent;
     if (reviewId != null) {
       var review = reviews.findById(reviewId).orElseThrow(ApiException::missing);
-      if (!review.getBathroomId().equals(bathroomId) || review.getPhotoOnly() || bathroom.getStatus() != Status.APPROVED) throw ApiException.missing();
+      if (!review.getBathroom().getId().equals(bathroomId) || review.getPhotoOnly() || bathroom.getStatus() != Status.APPROVED) throw ApiException.missing();
       parent = review;
-      urls = review.getImageUrls();
     } else {
       if (!registrationAttachment) throw new ApiException(HttpStatus.BAD_REQUEST, "Envie fotos junto com o cadastro de um banheiro ou uma avaliação. Fotos avulsas não são permitidas.");
       parent = bathroom;
-      urls = bathroom.getImageUrls();
     }
-    if (!parent.getAuthorId().equals(authorId)) throw ApiException.missing();
+    var urls = parent.getImageUrls();
+    if (!parent.getAuthor().getId().equals(authorId)) throw ApiException.missing();
     byte[] data = sanitize(file);
     if (parent.getStatus() != Status.PENDING) throw new ApiException(HttpStatus.CONFLICT, "O conteúdo já foi analisado. Edite e reenvie antes de anexar fotos.");
     if (urls.size() >= 10) throw new ApiException(HttpStatus.BAD_REQUEST, "Limite de 10 fotos por cadastro ou avaliação.");
@@ -111,14 +110,14 @@ public class ImageService {
       if (bathroom.getImageUrls().contains(url) && visible(bathroom, user, true)) return storage.read(id);
     }
     for (var review : reviews.findImageOwners("%" + url + "%")) {
-      boolean bathroomApproved = bathrooms.findById(review.getBathroomId()).filter(value -> value.getStatus() == Status.APPROVED).isPresent();
+      boolean bathroomApproved = review.getBathroom().getStatus() == Status.APPROVED;
       if (review.getImageUrls().contains(url) && visible(review, user, bathroomApproved)) return storage.read(id);
     }
     throw ApiException.missing();
   }
 
-  private boolean visible(br.com.khki.shared.domain.ModeratedContent parent, User user, boolean parentApproved) {
+  private boolean visible(BaseModeratedEntity parent, User user, boolean parentApproved) {
     if (parent.getStatus() == Status.REMOVED) return false;
-    return parentApproved && parent.getStatus() == Status.APPROVED || user != null && (user.getRole().equals("ADMIN") || user.getId().equals(parent.getAuthorId()));
+    return parentApproved && parent.getStatus() == Status.APPROVED || user != null && (user.getRole().equals("ADMIN") || user.getId().equals(parent.getAuthor().getId()));
   }
 }

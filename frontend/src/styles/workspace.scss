@@ -11,16 +11,6 @@
 .workspace-panel .back-link {
   margin-bottom: var(--space-5);
 }
-.workspace-panel .narrow-page {
-  padding: var(--space-5);
-  margin: 0;
-}
-.workspace-panel .form-surface {
-  padding: var(--space-4);
-}
-.workspace-panel .form-surface h1 {
-  font-size: 1.6rem;
-}
 @media (max-width: settings.$breakpoint-mobile) {
   .details-panel {
     --details-panel-padding: var(--space-4);

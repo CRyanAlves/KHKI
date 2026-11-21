@@ -2,7 +2,7 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { ApiService } from '../../core/api.service';
 import { MapsService, TravelMode, TravelRoute } from '../../core/maps.service';
 import { Bathroom, ITEM_LABELS, Location, MapArea } from '../../core/models';
-import { validPoint } from '../../core/navigation-geometry';
+import { distanceMeters, validPoint } from '../../core/navigation-geometry';
 import { OBSERVED_ACCESSIBILITY } from '../../core/bathroom-details';
 import { ExplorationFilters, activeFilters, copyFilters, emptyFilters, filterBathrooms, FILTER_DISTANCES } from '../explore/exploration-filters';
 
@@ -195,11 +195,7 @@ export class ExplorationState {
   distance(bathroom: Bathroom): number | null {
     const point = this.position();
     if (!point) return null;
-    const radians = Math.PI / 180;
-    const deltaLatitude = (bathroom.latitude - point.lat) * radians;
-    const deltaLongitude = (bathroom.longitude - point.lng) * radians;
-    const haversine = Math.sin(deltaLatitude / 2) ** 2 + Math.cos(point.lat * radians) * Math.cos(bathroom.latitude * radians) * Math.sin(deltaLongitude / 2) ** 2;
-    return Math.round(6371000 * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(Math.max(0, 1 - haversine))));
+    return Math.round(distanceMeters(point, { lat: bathroom.latitude, lng: bathroom.longitude }));
   }
   async select(id: string): Promise<Bathroom | null> {
     const sequence = ++this.selectedSequence;

@@ -1,3 +1,4 @@
+import { jsonObject } from './json-object';
 import { Injectable } from '@angular/core';
 import { Theme } from './theme.service';
 import { Location } from './models';
@@ -23,10 +24,6 @@ export interface TravelRoute {
   durationMillis?: number;
   instructions: string[];
   maneuvers?: RouteManeuver[];
-}
-export type WalkingRoute = TravelRoute;
-function record(value: unknown): Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 function list(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
@@ -68,7 +65,7 @@ export class MapsService {
       const body = await response.text();
       if (body.length > 2000000) throw new Error('A resposta do serviço de mapas excedeu o limite permitido.');
       try {
-        return record(JSON.parse(body));
+        return jsonObject(JSON.parse(body));
       } catch {
         throw new Error('O serviço de mapas retornou uma resposta inválida.');
       }
@@ -91,7 +88,7 @@ export class MapsService {
     if (!text || text.length > 300) throw new Error('Informe um endereço com até 300 caracteres.');
     const response = await this.request('/geocode/search', { text, format: 'json', limit: '1', lang: 'pt', filter: 'countrycode:br' }, signal);
     if (!Array.isArray(response['results'])) throw new Error('O serviço de mapas retornou uma resposta inválida.');
-    const result = record(response['results'][0]);
+    const result = jsonObject(response['results'][0]);
     if (!Object.keys(result).length) throw new Error('Endereço não encontrado. Tente informar cidade e número.');
     const [lng, lat] = this.coordinate([result['lon'], result['lat']]);
     return { lat, lng };
@@ -100,7 +97,7 @@ export class MapsService {
     if (!validPoint(point)) throw new Error('Informe coordenadas válidas para buscar o endereço.');
     const response = await this.request('/geocode/reverse', { lat: String(point.lat), lon: String(point.lng), format: 'json', limit: '1', lang: 'pt' }, signal);
     if (!Array.isArray(response['results'])) throw new Error('O serviço de endereços retornou uma resposta inválida.');
-    const result = record(response['results'][0]);
+    const result = jsonObject(response['results'][0]);
     const address = result['formatted'];
     if (typeof address !== 'string' || !address.trim()) throw new Error('Nenhum endereço foi encontrado para este ponto. Preencha o endereço manualmente.');
     if (address.length > 300) throw new Error('O endereço encontrado é muito longo. Preencha uma versão resumida manualmente.');
@@ -114,14 +111,11 @@ export class MapsService {
     const response = await this.request('/geocode/autocomplete', parameters, signal);
     if (!Array.isArray(response['results'])) throw new Error('O serviço de endereços retornou uma resposta inválida.');
     return response['results'].slice(0, 5).map((value) => {
-      const result = record(value);
+      const result = jsonObject(value);
       const [lng, lat] = this.coordinate([result['lon'], result['lat']]);
       if (typeof result['formatted'] !== 'string' || !result['formatted'].trim() || result['formatted'].length > 500) throw new Error('O serviço de endereços retornou uma resposta inválida.');
       return { label: result['formatted'], detail: typeof result['address_line2'] === 'string' ? result['address_line2'].slice(0, 300) : '', position: { lat, lng } };
     });
-  }
-  walking(origin: string | Location, destination: Location): Promise<WalkingRoute> {
-    return this.directions(origin, destination, 'walk');
   }
   async directions(origin: string | Location, destination: Location, mode: TravelMode = 'drive', signal?: AbortSignal): Promise<TravelRoute> {
     if (!isTravelMode(mode)) throw new Error('Selecione um modo de transporte válido.');
@@ -129,10 +123,10 @@ export class MapsService {
     if (!validPoint(start) || !validPoint(destination)) throw new Error('Informe uma origem e um destino com coordenadas válidas.');
     const response = await this.request('/routing', { waypoints: `${start.lat},${start.lng}|${destination.lat},${destination.lng}`, mode, format: 'geojson', units: 'metric', lang: 'pt-BR', details: 'instruction_details' }, signal);
     if (!Array.isArray(response['features'])) throw new Error('O serviço de mapas retornou uma resposta inválida.');
-    const feature = record(response['features'][0]);
+    const feature = jsonObject(response['features'][0]);
     if (!Object.keys(feature).length) throw new Error('Nenhuma rota disponível para esse trajeto com o transporte selecionado.');
-    const geometry = record(feature['geometry']),
-      properties = record(feature['properties']);
+    const geometry = jsonObject(feature['geometry']),
+      properties = jsonObject(feature['properties']);
     const segments = geometry['type'] === 'LineString' ? [geometry['coordinates']] : geometry['type'] === 'MultiLineString' ? list(geometry['coordinates']) : [];
     let count = 0;
     const coordinates = segments.map((segment) =>

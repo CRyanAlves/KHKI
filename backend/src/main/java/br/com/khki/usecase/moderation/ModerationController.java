@@ -79,7 +79,7 @@ public class ModerationController {
   }
 
   @GetMapping("/audit")
-  public List<ModerationAudit> audit() {
+  public List<AuditEntryView> audit() {
     return moderation.audit();
   }
 }

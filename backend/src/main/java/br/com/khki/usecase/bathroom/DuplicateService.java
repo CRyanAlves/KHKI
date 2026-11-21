@@ -2,6 +2,7 @@ package br.com.khki.usecase.bathroom;
 
 import br.com.khki.shared.api.Contracts.*;
 import br.com.khki.shared.domain.Status;
+import br.com.khki.shared.domain.GeographicDistance;
 import java.text.Normalizer;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,7 +53,7 @@ public class DuplicateService {
       .stream()
       .filter(value -> !value.getId().equals(target.getId()))
       .map(value -> {
-        double distance = distance(target.getLatitude(), target.getLongitude(), value.getLatitude(), value.getLongitude());
+        double distance = GeographicDistance.meters(target.getLatitude(), target.getLongitude(), value.getLatitude(), value.getLongitude());
         boolean differentComplement = !normalize(target.getComplement()).isBlank() && !normalize(value.getComplement()).isBlank() && !normalize(target.getComplement()).equals(normalize(value.getComplement()));
         boolean similar = similarity(target.getName(), value.getName()) >= nameSimilarity || similarity(target.getAddress(), value.getAddress()) >= addressSimilarity;
         return new NearbyCandidate(content.view(value), Math.round(distance * 10) / 10.0, similar, differentComplement);
@@ -80,12 +81,5 @@ public class DuplicateService {
     var common = new HashSet<>(leftTokens);
     common.retainAll(rightTokens);
     return (2.0 * common.size()) / (leftTokens.size() + rightTokens.size());
-  }
-
-  private double distance(double latitude, double longitude, double otherLatitude, double otherLongitude) {
-    double deltaLatitude = Math.toRadians(otherLatitude - latitude),
-      deltaLongitude = Math.toRadians(otherLongitude - longitude);
-    double haversine = Math.pow(Math.sin(deltaLatitude / 2), 2) + Math.cos(Math.toRadians(latitude)) * Math.cos(Math.toRadians(otherLatitude)) * Math.pow(Math.sin(deltaLongitude / 2), 2);
-    return 6371000 * 2 * Math.asin(Math.sqrt(Math.max(0, Math.min(1, haversine))));
   }
 }

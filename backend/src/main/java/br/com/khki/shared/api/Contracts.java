@@ -69,6 +69,8 @@ public final class Contracts {
 
   public record ModerationQueueItem(ContributionView contribution, String author, String address, String complement, String category, UUID thumbnailId, long version) {}
 
+  public record AuditEntryView(UUID id, TargetType targetType, UUID targetId, UUID moderatorId, UUID duplicateOfId, Status decision, String reason, Instant createdAt) {}
+
   public record AuditView(UUID id, TargetType targetType, UUID targetId, UUID moderatorId, String moderator, Status decision, String reason, Instant createdAt, UUID duplicateOfId) {}
 
   public record NearbyCandidate(BathroomView bathroom, double distanceMeters, boolean possibleDuplicate, boolean differentComplement) {}
