@@ -2,7 +2,7 @@
 <jmeterTestPlan version="1.2" properties="5.0" jmeter="5.6.3">
   <hashTree>
     <TestPlan guiclass="TestPlanGui" testclass="TestPlan" testname="KHKI produção — consultas públicas somente leitura" enabled="true">
-      <stringProp name="TestPlan.comments">Plano local isolado. Não mede renderização Angular, GPS, mapas externos ou capacidade de produção.</stringProp>
+      <stringProp name="TestPlan.comments">Consultas públicas de produção, somente leitura. Não mede renderização Angular, GPS ou mapas externos.</stringProp>
       <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">true</boolProp>
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="Variáveis">
@@ -10,7 +10,7 @@
       </elementProp>
     </TestPlan>
     <hashTree>
-      <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP — destino local" enabled="true">
+      <ConfigTestElement guiclass="HttpDefaultsGui" testclass="ConfigTestElement" testname="HTTP — produção" enabled="true">
         <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
           <collectionProp name="Arguments.arguments" />
         </elementProp>
@@ -25,6 +25,10 @@
       <hashTree />
       <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="Cabeçalhos JSON" enabled="true">
         <collectionProp name="HeaderManager.headers">
+          <elementProp name="" elementType="Header">
+            <stringProp name="Header.name">User-Agent</stringProp>
+            <stringProp name="Header.value">KHKI-PerformanceTest/1.0</stringProp>
+          </elementProp>
           <elementProp name="" elementType="Header">
             <stringProp name="Header.name">Accept</stringProp>
             <stringProp name="Header.value">application/json</stringProp>
@@ -48,8 +52,8 @@
         </elementProp>
         <stringProp name="ThreadGroup.num_threads">${__P(users,1)}</stringProp>
         <stringProp name="ThreadGroup.ramp_time">${__P(ramp,1)}</stringProp>
-        <boolProp name="ThreadGroup.scheduler">true</boolProp>
-        <stringProp name="ThreadGroup.duration">60</stringProp>
+        <stringProp name="ThreadGroup.scheduler">${__P(scheduled,true)}</stringProp>
+        <stringProp name="ThreadGroup.duration">${__P(duration,60)}</stringProp>
         <stringProp name="ThreadGroup.delay">0</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
       </ThreadGroup>
@@ -57,6 +61,18 @@
         <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Pausa entre requisições" enabled="true">
           <stringProp name="ConstantTimer.delay">1000</stringProp>
         </ConstantTimer>
+        <hashTree />
+        <JSR223PostProcessor guiclass="TestBeanGUI" testclass="JSR223PostProcessor" testname="Encerrar no limite de consultas" enabled="true">
+          <stringProp name="scriptLanguage">groovy</stringProp>
+          <stringProp name="cacheKey">true</stringProp>
+          <stringProp name="script">int limit = Integer.parseInt(props.getProperty('requests', '0'))
+if (limit &gt; 0) {
+  int completed = Integer.parseInt(vars.get('completedRequests') ?: '0') + 1
+  vars.put('completedRequests', Integer.toString(completed))
+  if (completed &gt;= limit) prev.setStopThread(true)
+}
+</stringProp>
+        </JSR223PostProcessor>
         <hashTree />
         <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="P01 Saúde" enabled="true">
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
