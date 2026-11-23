@@ -12,7 +12,7 @@ async function enter(page: Page): Promise<void> {
   await page.locator('#login-password').fill('Test-password-123');
 }
 
-test('temporary startup failure retries the saved session and resumes the protected action without login', async ({ page }) => {
+test('Recupera a sessão após falha temporária na inicialização e retoma a ação protegida sem novo login', async ({ page }) => {
   await prepare(page);
   let available = false;
   await page.route('**/api/auth/me', (route) => route.fulfill({ status: available ? 200 : 503, json: available ? user : { detail: 'Indisponível' } }));
@@ -27,7 +27,7 @@ test('temporary startup failure retries the saved session and resumes the protec
   await expect(page.locator('.session-notice')).toHaveCount(0);
 });
 
-test('401 means visitor while an offline session check offers retry and recovers online', async ({ page }) => {
+test('Trata HTTP 401 como visitante e permite recuperar a sessão após falha de conexão', async ({ page }) => {
   await prepare(page);
   await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: {} }));
   await page.goto('/');
@@ -42,7 +42,7 @@ test('401 means visitor while an offline session check offers retry and recovers
   await expect(page.locator('.session-notice')).toHaveCount(0);
 });
 
-test('remember option is sent only by explicit choice and login retains its contextual destination', async ({ page }) => {
+test('Envia a opção de manter conectado apenas por escolha explícita e preserva o destino do login', async ({ page }) => {
   await prepare(page);
   await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: {} }));
   let payload: Record<string, unknown> = {};
@@ -62,7 +62,7 @@ test('remember option is sent only by explicit choice and login retains its cont
   expect(payload['rememberMe']).toBe(true);
 });
 
-test('failed login does not pretend the session expired and late startup responses cannot undo a successful login', async ({ page }) => {
+test('Preserva o login após falha de autenticação e ignora respostas antigas da inicialização', async ({ page }) => {
   await prepare(page);
   let release!: () => void;
   const gate = new Promise<void>((resolve) => {
@@ -86,7 +86,7 @@ test('failed login does not pretend the session expired and late startup respons
   await expect(page.locator('.session-notice')).toHaveCount(0);
 });
 
-test('server and permission errors preserve the account; protected 401 expires it', async ({ page }) => {
+test('Preserva a conta em erros de servidor ou permissão e encerra a sessão em HTTP 401 protegido', async ({ page }) => {
   await prepare(page);
   await page.route('**/api/auth/me', (route) => route.fulfill({ json: user }));
   await page.route('**/api/me/contributions', (route) => route.fulfill({ status: 503, json: { detail: 'Serviço indisponível.' } }));
@@ -103,7 +103,7 @@ test('server and permission errors preserve the account; protected 401 expires i
   await expect(page.getByRole('button', { name: 'Sair da conta' })).toHaveCount(0);
 });
 
-test('invalid account responses are treated as unavailable without breaking the account menu', async ({ page }) => {
+test('Trata respostas inválidas da conta como indisponíveis sem quebrar o menu', async ({ page }) => {
   await prepare(page);
   await page.route('**/api/auth/me', (route) => route.fulfill({ json: { id: 'incomplete' } }));
   const errors: string[] = [];
@@ -116,7 +116,7 @@ test('invalid account responses are treated as unavailable without breaking the 
   expect(errors).toEqual([]);
 });
 
-test('separate account registration retains fields between modes, recovers from failure and resumes the protected action', async ({ page }) => {
+test('Preserva os campos do cadastro de usuário, recupera falhas e retoma a ação protegida', async ({ page }) => {
   await prepare(page);
   await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: { detail: 'Entre na sua conta.' } }));
   let registrations = 0;

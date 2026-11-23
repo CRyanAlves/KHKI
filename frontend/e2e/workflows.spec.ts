@@ -4,7 +4,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: "window.KHKI_CONFIG = { geoapifyApiKey: '' };" }));
 });
 
-test('public exploration, filters, details and honest map fallback', async ({ page }) => {
+test('Explora banheiros, filtros e detalhes com alternativa explícita quando o mapa está indisponível', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
@@ -44,7 +44,7 @@ test('public exploration, filters, details and honest map fallback', async ({ pa
   expect(errors).toEqual([]);
 });
 
-test('registration preserves intent and submits a private contribution without photos', async ({ page }) => {
+test('Preserva a intenção no cadastro e envia uma contribuição privada sem fotos', async ({ page }) => {
   const simulation = process.env['KHKI_MAPS_SIMULATION_URL'];
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: `window.KHKI_CONFIG = ${JSON.stringify({ geoapifyApiKey: 'simulation-key', geoapifyApiBaseUrl: simulation + '/v1', geoapifyMapsBaseUrl: simulation + '/v1' })};` }));
   await page.goto('/');
@@ -80,7 +80,7 @@ test('registration preserves intent and submits a private contribution without p
   await expect(page.getByText('0 banheiros encontrados')).toBeVisible();
 });
 
-test('review and human moderation publish a negative review and preserve audit', async ({ page }) => {
+test('Publica uma avaliação negativa após moderação humana e preserva a auditoria', async ({ page }) => {
   test.skip(!process.env['KHKI_TEST_ADMIN_PASSWORD'], 'Use o executor isolado npm test para validar a moderação.');
   await page.goto('/');
   await page.getByRole('link', { name: /Café do Centro/ }).click();
@@ -119,7 +119,7 @@ test('review and human moderation publish a negative review and preserve audit',
   await page.screenshot({ path: '../test-results/details-desktop.png', fullPage: true });
 });
 
-test('mobile layout, keyboard login and theme tokens', async ({ page }) => {
+test('Preserva o leiaute do celular, o login por teclado e os tokens de tema', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await expect(page.locator('.mobile-results-summary')).toContainText('3 resultados');
@@ -135,7 +135,7 @@ test('mobile layout, keyboard login and theme tokens', async ({ page }) => {
   await expect.poll(() => page.getByRole('button', { name: 'Entrar ou criar conta', exact: true }).evaluate((element) => getComputedStyle(element).backgroundColor)).toBe('rgb(220, 180, 90)');
 });
 
-test('standalone photo upload stays private and can be rejected independently', async ({ page, browser, baseURL }) => {
+test('Mantém o envio avulso de foto privado e permite rejeitá-lo de forma independente', async ({ page, browser, baseURL }) => {
   test.skip(!process.env['KHKI_TEST_ADMIN_PASSWORD'], 'Use npm test para executar com administrador isolado.');
   await page.goto('/');
   await page.getByRole('link', { name: /Café do Centro/ }).click();

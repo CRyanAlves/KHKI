@@ -17,7 +17,7 @@ async function prepare(page: Page, role: 'USER' | 'ADMIN' = 'USER'): Promise<voi
   await page.route('**/api/auth/me', (route) => route.fulfill({ json: { id: 'test', name: 'Pessoa Teste', role } }));
 }
 
-test('contribution filtering preserves source data and removes internal identifiers from presentation', () => {
+test('Preserva os dados originais ao filtrar contribuições e remove identificadores internos da apresentação', () => {
   const items: Contribution[] = [
     { ...contribution, title: 'Avaliação: Café ' + id, type: 'REVIEW', status: 'REJECTED', reason: 'Verifique ' + id + ' .', createdAt: '2026-11-19T12:00:00Z' },
     { ...contribution, id: 'approved', status: 'APPROVED', reason: 'Cadastro aprovado.' }
@@ -31,7 +31,7 @@ test('contribution filtering preserves source data and removes internal identifi
   expect(JSON.stringify(items)).toBe(before);
 });
 
-test('moderation queue search handles accents and existing transition rules remain restrictive', () => {
+test('Busca na fila de moderação com acentos e preserva as restrições de transição de estado', () => {
   const item: ModerationQueueItem = { contribution, author: 'João', address: 'Indaiatuba', complement: null, category: 'Cafeteria', thumbnailId: null, version: 7 };
   const rows = createModerationQueueRows('BATHROOM', [item], []);
   expect(filterModerationQueue(rows, 'cafe', 'newest')).toHaveLength(1);
@@ -44,7 +44,7 @@ test('moderation queue search handles accents and existing transition rules rema
   expect(canModerateContent('REMOVED', undefined)).toBe(false);
 });
 
-test('registration validation keeps coordinate, changed-address, amount and date boundaries', () => {
+test('Preserva as validações de coordenadas, endereço alterado, valor e data no cadastro', () => {
   const input: BathroomInput = { ...bathroom, complement: bathroom.complement || '', accessDetails: '', hours: '' };
   expect(registrationLocationErrors(input, { lat: -23.1, lng: -47.2 }, false)).toEqual({});
   expect(registrationLocationErrors(input, { lat: -23.1, lng: -47.2 }, true)['location']).toContain('O endereço mudou');
@@ -56,7 +56,7 @@ test('registration validation keeps coordinate, changed-address, amount and date
   expect(registrationVisitDateError('2026-11-22', '2026-11-21')).not.toBe('');
 });
 
-test('report submission blocks duplicates, preserves the reason on failure and supports retry', async ({ page }) => {
+test('Bloqueia denúncias duplicadas, preserva o motivo em falhas e permite nova tentativa', async ({ page }) => {
   await prepare(page);
   await page.route(/\/api\/bathrooms(?:\?.*)?$/, (route) => route.fulfill({ json: [bathroom] }));
   await page.route('**/api/bathrooms/' + id, (route) => route.fulfill({ json: bathroom }));
@@ -95,7 +95,7 @@ test('report submission blocks duplicates, preserves the reason on failure and s
   ]);
 });
 
-test('moderation inspection and decision preserve target, version and reason through the workflow service', async ({ page }) => {
+test('Preserva alvo, versão e motivo na consulta e decisão de moderação pelo serviço do fluxo', async ({ page }) => {
   await prepare(page, 'ADMIN');
   let approved = false;
   let decision: unknown = null;
@@ -119,7 +119,7 @@ test('moderation inspection and decision preserve target, version and reason thr
   expect(decision).toEqual({ status: 'APPROVED', reason: 'Cadastro conferido.', expectedVersion: 7, duplicateOfId: null });
 });
 
-test('direct bathroom details preserve the selected map pin when the review request fails', async ({ page }) => {
+test('Preserva o marcador selecionado nos detalhes por link direto quando a consulta de avaliações falha', async ({ page }) => {
   await prepare(page);
   await page.route(/\/api\/bathrooms(?:\?.*)?$/, (route) => route.fulfill({ json: [] }));
   await page.route('**/api/bathrooms/' + id, (route) => route.fulfill({ json: bathroom }));

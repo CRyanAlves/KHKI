@@ -4,7 +4,7 @@ test.beforeEach(async ({ page }) => {
   test.skip(!simulation, 'Execute npm test para iniciar os serviços isolados.');
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: `window.KHKI_CONFIG = ${JSON.stringify({ geoapifyApiKey: 'simulation-key', geoapifyApiBaseUrl: simulation + '/v1', geoapifyMapsBaseUrl: simulation + '/v1' })};` }));
 });
-test('desktop keeps results mounted and restores independent scroll and focus when closing details', async ({ page }) => {
+test('Mantém os resultados montados e restaura rolagem e foco ao fechar os detalhes no computador', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 650 });
   await page.goto('/');
   await expect(page.locator('.bathroom-card')).toHaveCount(3);
@@ -36,7 +36,7 @@ test('desktop keeps results mounted and restores independent scroll and focus wh
   expect(await canvas!.evaluate((el) => el === document.querySelector('.maplibregl-canvas'))).toBe(true);
   expect(await page.evaluate(() => scrollY)).toBe(0);
 });
-test('rapid result selection ignores stale responses and resets only detail scroll', async ({ page }) => {
+test('Ignora respostas antigas na seleção rápida de resultados e reinicia apenas a rolagem dos detalhes', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 700 });
   const rows = await (await page.request.get('/api/bathrooms')).json();
   const first = rows[0],
@@ -59,7 +59,7 @@ test('rapid result selection ignores stale responses and resets only detail scro
   await expect(page.locator('.bathroom-card.is-selected')).toContainText(second.name);
   await expect(page.locator('.map-marker.is-selected')).toHaveAttribute('aria-label', second.name);
 });
-test('photo selection preserves the cover and opens photos over the map with keyboard navigation and reports', async ({ page }) => {
+test('Preserva a capa e abre fotos sobre o mapa com navegação por teclado e denúncias', async ({ page }) => {
   const rows = await (await page.request.get('/api/bathrooms')).json();
   const row = rows[1];
   await page.goto('/');
@@ -110,7 +110,7 @@ test('photo selection preserves the cover and opens photos over the map with key
   await page.getByRole('button', { name: 'Enviar denúncia', exact: true }).click();
   await expect(page.getByText('Obrigado. A denúncia foi recebida para análise.')).toBeVisible();
 });
-test('unavailable detail recovers and unknown content remains explicit', async ({ page }) => {
+test('Recupera detalhes indisponíveis e informa explicitamente os dados desconhecidos', async ({ page }) => {
   const rows = await (await page.request.get('/api/bathrooms')).json();
   const row = rows[0];
   await page.route('**/api/bathrooms/' + row.id, (route) => route.fulfill({ status: 404, json: { message: 'Local não disponível.' } }));
@@ -131,7 +131,7 @@ test('unavailable detail recovers and unknown content remains explicit', async (
   await expect(page.locator('.workspace-results .bathroom-card')).toHaveCount(3);
   await expect(page.locator('.details-panel').getByText('Aberto agora', { exact: false })).toHaveCount(0);
 });
-test('direct links and route history move routes to the main sidebar with destination and map preserved', async ({ page }) => {
+test('Abre rotas na barra lateral principal por links diretos e histórico, preservando destino e mapa', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const rows = await (await page.request.get('/api/bathrooms')).json();
   const row = rows[0];
@@ -153,7 +153,7 @@ test('direct links and route history move routes to the main sidebar with destin
   await expect(page.locator('.route-summary')).toBeVisible();
   expect(await canvas!.evaluate((el) => el === document.querySelector('.maplibregl-canvas'))).toBe(true);
 });
-test('compact layout uses one panel, both themes and reduced motion without horizontal overflow', async ({ page }) => {
+test('Usa um único painel compacto nos dois temas e com movimento reduzido, sem transbordamento horizontal', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
@@ -198,7 +198,7 @@ test('compact layout uses one panel, both themes and reduced motion without hori
   await expect(page.locator('.workspace-results')).toBeVisible();
 });
 
-test('details slide from behind results and retract before routes occupy the main sidebar', async ({ page }) => {
+test('Desliza os detalhes por trás dos resultados e os recolhe antes de abrir a rota na barra principal', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/');
@@ -238,7 +238,7 @@ test('details slide from behind results and retract before routes occupy the mai
   await expect(page.locator('.workspace-content app-route')).toBeVisible();
   await expect(page.locator('.workspace-results')).toBeHidden();
 });
-test('selecting another bathroom during panel exit cancels navigation to the old destination', async ({ page }) => {
+test('Cancela a navegação ao destino anterior ao selecionar outro banheiro durante a saída do painel', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await page.goto('/');
@@ -258,7 +258,7 @@ test('selecting another bathroom during panel exit cancels navigation to the old
   await expect(page.getByText('Não foi possível abrir a rota. Tente novamente.', { exact: true })).toHaveCount(0);
 });
 
-test('mobile photo area handles unavailable images, preserves the cover and restores the details panel', async ({ page }) => {
+test('Trata fotos indisponíveis no celular, preserva a capa e restaura o painel de detalhes', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const rows = await (await page.request.get('/api/bathrooms')).json();

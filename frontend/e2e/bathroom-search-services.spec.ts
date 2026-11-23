@@ -10,7 +10,7 @@ async function prepare(page: Page): Promise<void> {
   await page.route('https://api.geoapify.com/v1/geocode/autocomplete**', (route) => route.fulfill({ json: { results: [] } }));
 }
 
-test('search loads every result page once and keeps the search query across pages', async ({ page }) => {
+test('Carrega cada página de resultados uma única vez e preserva o termo da busca', async ({ page }) => {
   await prepare(page);
   const rows = Array.from({ length: 201 }, (_, index) => bathroom(String(index)));
   const requests: { offset: number; query: string }[] = [];
@@ -37,7 +37,7 @@ test('search loads every result page once and keeps the search query across page
   await expect(page.locator('.bathroom-card')).toHaveCount(201);
 });
 
-test('repeated result pages stop pagination and expose a recoverable error', async ({ page }) => {
+test('Interrompe a paginação ao receber páginas repetidas e permite recuperar o erro', async ({ page }) => {
   await prepare(page);
   const rows = Array.from({ length: 200 }, (_, index) => bathroom(String(index)));
   let requests = 0;
@@ -51,7 +51,7 @@ test('repeated result pages stop pagination and expose a recoverable error', asy
   expect(requests).toBe(2);
 });
 
-test('mobile suggestions discard older responses without replacing the current suggestions', async ({ page }) => {
+test('Descarta respostas antigas sem substituir as sugestões atuais no celular', async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 852 });
   await prepare(page);
   let releaseOld: () => void = () => {};
@@ -84,7 +84,7 @@ test('mobile suggestions discard older responses without replacing the current s
   await expect(page.locator('.mobile-search-options')).toHaveCount(0);
 });
 
-test('address suggestions remain usable when the bathroom suggestion request fails', async ({ page }) => {
+test('Mantém as sugestões de endereço quando a busca de sugestões de banheiros falha', async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 852 });
   await prepare(page);
   await page.route(/\/api\/bathrooms(?:\?.*)?$/, (route) => {

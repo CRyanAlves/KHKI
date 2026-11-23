@@ -52,7 +52,7 @@ async function drag(page: Page, selector: string, delta: number): Promise<void> 
   }, delta);
 }
 
-test('compact actions remain inside measured sheet and secondary content is not accessible', async ({ page }) => {
+test('Mantém as ações dentro do painel recolhido e retira informações secundárias da navegação acessível', async ({ page }) => {
   await prepare(page);
   const canvas = await page.locator('.maplibregl-canvas').elementHandle();
   for (const theme of ['dark', 'light']) {
@@ -82,7 +82,7 @@ test('compact actions remain inside measured sheet and secondary content is not 
   expect(await canvas!.evaluate((element) => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
 });
 
-test('small screen, enlarged fonts, safe bottom padding and reduced motion keep buttons reachable', async ({ page }) => {
+test('Mantém os botões acessíveis em tela pequena, com fontes ampliadas, área segura e movimento reduzido', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await prepare(page);
@@ -98,7 +98,7 @@ test('small screen, enlarged fonts, safe bottom padding and reduced motion keep 
   await page.screenshot({ path: '../test-results/details-compact-large-font.png' });
 });
 
-test('dragging expands, scroll unlocks at full height and scrolling down restores compact actions', async ({ page }) => {
+test('Expande por arraste, libera a rolagem na altura máxima e restaura as ações ao recolher', async ({ page }) => {
   await prepare(page);
   await peek(page);
   await expect(page.locator('.workspace-content')).toHaveCSS('overflow-y', 'hidden');
@@ -115,7 +115,7 @@ test('dragging expands, scroll unlocks at full height and scrolling down restore
   expect(await page.locator('.workspace-content').evaluate((element) => element.scrollTop)).toBe(0);
 });
 
-test('compact route action opens the existing route flow on the same map', async ({ page }) => {
+test('Abre o fluxo de rota existente no mesmo mapa pela ação do painel recolhido', async ({ page }) => {
   await prepare(page);
   const canvas = await page.locator('.maplibregl-canvas').elementHandle();
   await peek(page);
@@ -125,7 +125,7 @@ test('compact route action opens the existing route flow on the same map', async
   expect(await canvas!.evaluate((element) => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
 });
 
-test('compact review action preserves contextual login and resumes after authentication', async ({ page }) => {
+test('Preserva o login contextual e retoma a avaliação pela ação do painel recolhido', async ({ page }) => {
   await prepare(page);
   await peek(page);
   await page.route('**/api/auth/login', (route) => route.fulfill({ json: { id: 'user', name: 'Pessoa Teste', role: 'USER' } }));
@@ -138,7 +138,7 @@ test('compact review action preserves contextual login and resumes after authent
   await expect(page.getByRole('heading', { name: 'Avaliar banheiro.' })).toBeVisible();
 });
 
-test('closing details restores results and the previous sheet position', async ({ page }) => {
+test('Restaura os resultados e a posição anterior do painel ao fechar os detalhes', async ({ page }) => {
   await prepare(page, false);
   await page.locator('.mobile-sheet-handle').press('ArrowUp');
   const prior = await page.locator('.map-workspace').getAttribute('class');
@@ -151,7 +151,7 @@ test('closing details restores results and the previous sheet position', async (
   await expect(page.getByRole('navigation', { name: 'Navegação mobile' })).toBeVisible();
 });
 
-test('desktop retains the original gallery, metadata and actions', async ({ page }) => {
+test('Preserva a galeria, os metadados e as ações originais no computador', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 950 });
   await prepare(page);
   await expect(page.locator('.details-panel')).not.toHaveClass(/details-compact/);
@@ -162,7 +162,7 @@ test('desktop retains the original gallery, metadata and actions', async ({ page
   await expect(page.locator('.details-primary')).toHaveCSS('display', 'contents');
 });
 
-test('actions stay inside the panel throughout frame-by-frame dragging with enlarged text', async ({ page }) => {
+test('Mantém as ações dentro do painel durante todo o arraste, mesmo com texto ampliado', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await prepare(page);
   await page.addStyleTag({ content: 'html { font-size: 22px; }' });

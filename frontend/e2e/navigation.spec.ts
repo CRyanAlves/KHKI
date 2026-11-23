@@ -145,7 +145,7 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test('GPS watch and absolute compass follow an inclined mobile camera while preserving the map and route source', async ({ page }) => {
+test('Acompanha GPS e bússola absoluta com a câmera inclinada no celular, preservando mapa e origem da rota', async ({ page }) => {
   test.setTimeout(90000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await prepare(page);
@@ -189,7 +189,7 @@ test('GPS watch and absolute compass follow an inclined mobile camera while pres
   expect(await page.evaluate(() => window.navigationHarness.clears)).toEqual([1]);
 });
 
-test('denied compass uses GPS and denied geolocation cleans up the watcher', async ({ page }) => {
+test('Usa GPS quando a bússola é negada e encerra o monitoramento quando a geolocalização é negada', async ({ page }) => {
   await prepare(page);
   await page.evaluate(() => {
     window.navigationHarness.sensorPermission = 'denied';
@@ -204,7 +204,7 @@ test('denied compass uses GPS and denied geolocation cleans up the watcher', asy
   expect(await page.evaluate(() => window.navigationHarness.clears)).toEqual([1]);
 });
 
-test('the environment-gated simulator supports pause, progress, restart and arrival without touching GPS', async ({ page }) => {
+test('Permite pausar, avançar, reiniciar e concluir a simulação habilitada pelo ambiente sem usar GPS', async ({ page }) => {
   await prepare(page);
   const originalPosition = (await state(page)).explorationPosition;
   await expect(page.getByRole('button', { name: 'Simular percurso', exact: true })).toBeHidden();
@@ -255,7 +255,7 @@ test('the environment-gated simulator supports pause, progress, restart and arri
   await expect(page.locator('.map-position.is-navigating')).toHaveCount(0);
 });
 
-test('simulation cannot be activated when the public environment flag is false', async ({ page }) => {
+test('Impede ativar a simulação quando a configuração pública do ambiente está desabilitada', async ({ page }) => {
   await prepare(page, false);
   await expect(page.locator('.navigation-simulator')).toHaveCount(0);
   await page.locator('app-workspace').evaluate((element) => {
@@ -266,7 +266,7 @@ test('simulation cannot be activated when the public environment flag is false',
   expect(await page.evaluate(() => window.navigationHarness.watches)).toBe(0);
 });
 
-test('leaving navigation removes the GPS watch and ignores late fixes', async ({ page }) => {
+test('Encerra o monitoramento do GPS ao sair da navegação e ignora posições recebidas depois', async ({ page }) => {
   await prepare(page);
   await page.getByRole('button', { name: 'Iniciar navegação', exact: true }).click();
   await fix(page);
@@ -281,7 +281,7 @@ test('leaving navigation removes the GPS watch and ignores late fixes', async ({
   expect((await state(page)).active).toBe(false);
 });
 
-test('invalid and stale GPS samples are ignored and a later valid sample recovers', async ({ page }) => {
+test('Ignora posições inválidas ou antigas do GPS e recupera a navegação com uma posição válida posterior', async ({ page }) => {
   await prepare(page);
   await page.getByRole('button', { name: 'Iniciar navegação', exact: true }).click();
   await page.evaluate(() => window.navigationHarness.fix?.({ coords: { latitude: 0, longitude: 0, accuracy: 5 }, timestamp: Date.now() - 60000 } as GeolocationPosition));
@@ -293,7 +293,7 @@ test('invalid and stale GPS samples are ignored and a later valid sample recover
   await page.locator('.navigation-hud').getByRole('button', { name: 'Encerrar navegação', exact: true }).click();
 });
 
-test('switching from live navigation to simulation stops GPS and discards its late updates', async ({ page }) => {
+test('Encerra o GPS ao trocar a navegação real pela simulação e descarta atualizações atrasadas', async ({ page }) => {
   await prepare(page);
   await page.getByRole('button', { name: 'Iniciar navegação', exact: true }).click();
   await fix(page);
@@ -310,7 +310,7 @@ test('switching from live navigation to simulation stops GPS and discards its la
   await page.getByRole('button', { name: 'Encerrar simulação', exact: true }).click();
 });
 
-test('confirmed GPS deviations reroute over HTTP while preserving the profile, destination, camera, watcher and map', async ({ page }) => {
+test('Recalcula desvios confirmados do GPS por HTTP, preservando modo, destino, câmera, monitoramento e mapa', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await prepare(page);
   const requests: URL[] = [];
@@ -348,7 +348,7 @@ test('confirmed GPS deviations reroute over HTTP while preserving the profile, d
   await page.locator('.navigation-hud').getByRole('button', { name: 'Encerrar navegação', exact: true }).click();
 });
 
-test('failed automatic rerouting keeps the route and waits for the cooldown before recovering over HTTP', async ({ page }) => {
+test('Preserva a rota após falha no recálculo automático e aguarda o intervalo antes de tentar novamente por HTTP', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await prepare(page);
   let requests = 0;
@@ -376,7 +376,7 @@ test('failed automatic rerouting keeps the route and waits for the cooldown befo
   await page.locator('.navigation-hud').getByRole('button', { name: 'Encerrar navegação', exact: true }).click();
 });
 
-test('stopping navigation cancels a pending HTTP reroute and prevents its late result from replacing the route', async ({ page }) => {
+test('Cancela o recálculo HTTP ao encerrar a navegação e impede que uma resposta tardia substitua a rota', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await prepare(page);
   await page.route('**/v1/routing*', (route) => {

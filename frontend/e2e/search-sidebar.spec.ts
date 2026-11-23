@@ -4,7 +4,7 @@ test.beforeEach(async ({ page }) => {
   test.skip(!simulation, 'Execute npm test para iniciar os serviços isolados.');
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: `window.KHKI_CONFIG = ${JSON.stringify({ geoapifyApiKey: 'simulation-key', geoapifyApiBaseUrl: simulation + '/v1', geoapifyMapsBaseUrl: simulation + '/v1' })};` }));
 });
-test('search controls stay fixed while result rows scroll with photos on the right', async ({ page }) => {
+test('Mantém os controles de busca fixos enquanto os resultados rolam com fotos à direita', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 650 });
   await page.goto('/');
   const rows = page.locator('.bathroom-card');
@@ -25,7 +25,7 @@ test('search controls stay fixed while result rows scroll with photos on the rig
   expect(await page.locator('.workspace-panel').evaluate((el) => el.scrollTop)).toBe(0);
   expect(await page.evaluate(() => scrollY)).toBe(0);
 });
-test('real result metadata, selection and scroll survive detail return and marker hover', async ({ page, context }) => {
+test('Preserva metadados, seleção e rolagem ao voltar dos detalhes e ao destacar o marcador com o cursor', async ({ page, context }) => {
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation({ latitude: -23.5668, longitude: -46.6501 });
   await page.goto('/');
@@ -41,7 +41,7 @@ test('real result metadata, selection and scroll survive detail return and marke
   await expect(page.getByRole('button', { name: 'Café do Centro', exact: true })).toHaveClass(/is-highlighted/);
   expect(await canvas!.evaluate((el) => el === document.querySelector('.maplibregl-canvas'))).toBe(true);
 });
-test('partial stars, missing reviews, unknown accessibility and failed photos stay truthful', async ({ page }) => {
+test('Exibe estrelas parciais, ausência de avaliações, acessibilidade desconhecida e falhas nas fotos sem inventar dados', async ({ page }) => {
   await page.route(/\/api\/bathrooms(?:\?.*)?$/, async (route) => {
     const response = await route.fetch();
     const rows = await response.json();
@@ -61,7 +61,7 @@ test('partial stars, missing reviews, unknown accessibility and failed photos st
   await expect(page.getByText('Sem foto publicada', { exact: true }).first()).toBeVisible();
   await expect(page.getByText('Aberto agora', { exact: false })).toHaveCount(0);
 });
-test('search Enter, clearing and empty/error recovery preserve filters and sorting', async ({ page }) => {
+test('Preserva filtros e ordenação ao buscar com Enter, limpar ou recuperar resultados vazios e erros', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.bathroom-card')).toHaveCount(3);
   await page.getByRole('combobox', { name: 'Ordenação' }).selectOption('rating');
@@ -84,7 +84,7 @@ test('search Enter, clearing and empty/error recovery preserve filters and sorti
   await page.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
   await expect(page.locator('.bathroom-card')).toHaveCount(2);
 });
-test('mobile and both themes keep the same map and avoid horizontal scrolling', async ({ page }) => {
+test('Preserva o mesmo mapa no celular e nos dois temas sem rolagem horizontal', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await expect(page.locator('.bathroom-card')).toHaveCount(3);

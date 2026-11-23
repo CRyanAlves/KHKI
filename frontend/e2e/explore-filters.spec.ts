@@ -58,7 +58,7 @@ async function markerIds(page: Page): Promise<string[]> {
   return page.locator('.map-marker, .map-cluster').evaluateAll((elements) => elements.flatMap((element) => ((element as HTMLElement).dataset['bathroomIds'] || (element as HTMLElement).dataset['bathroomId'] || '').split(',').filter(Boolean)).sort());
 }
 
-test('access and charging are independent; draft cancel, clear and apply preserve context', async ({ page }) => {
+test('Separa acesso de cobrança e preserva o contexto ao cancelar, limpar ou aplicar filtros', async ({ page }) => {
   await setup(page);
   const map = await page.locator('.maplibregl-canvas').elementHandle();
   await page.getByRole('combobox', { name: 'Ordenação' }).selectOption('rating');
@@ -92,7 +92,7 @@ test('access and charging are independent; draft cancel, clear and apply preserv
   expect(calls).toBe(0);
 });
 
-test('confirmed resources intersect, categories union, and shortcuts never double-count', async ({ page }) => {
+test('Combina recursos por interseção e categorias por união, sem contar atalhos duas vezes', async ({ page }) => {
   await setup(page);
   await page.getByRole('button', { name: 'Acessível', exact: true }).click();
   await expect(page.locator('.bathroom-card')).toHaveCount(3);
@@ -122,7 +122,7 @@ test('confirmed resources intersect, categories union, and shortcuts never doubl
   await expect(page.locator('.bathroom-card').filter({ hasText: 'Local f' })).toHaveCount(0);
 });
 
-test('distance is disabled without reference and does not ask GPS permission', async ({ page }) => {
+test('Desabilita a distância sem localização de referência e não solicita GPS', async ({ page }) => {
   await page.addInitScript(() => {
     (window as any).gpsCalls = 0;
     navigator.geolocation.getCurrentPosition = () => {
@@ -137,7 +137,7 @@ test('distance is disabled without reference and does not ask GPS permission', a
   expect(await page.evaluate(() => (window as any).gpsCalls)).toBe(0);
 });
 
-test('distance uses a valid known location in straight line', async ({ page, context }) => {
+test('Filtra a distância em linha reta a partir de uma localização válida conhecida', async ({ page, context }) => {
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation({ latitude: -23.1, longitude: -47.2 });
   await setup(page);
@@ -148,7 +148,7 @@ test('distance uses a valid known location in straight line', async ({ page, con
   await expect.poll(() => markerIds(page)).toEqual(['a', 'b', 'f']);
 });
 
-test('mobile filters overlay preserves sheet, blocks map and has reachable scrolling and footer', async ({ page }) => {
+test('Preserva o painel ao abrir filtros no celular, bloqueia o mapa e mantém rolagem e rodapé acessíveis', async ({ page }) => {
   await page.setViewportSize({ width: 393, height: 852 });
   await setup(page);
   const sheet = await page.locator('.map-workspace').getAttribute('class');
@@ -183,7 +183,7 @@ test('mobile filters overlay preserves sheet, blocks map and has reachable scrol
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
 });
 
-test('full paginated search supports matches beyond the first 200 records', async ({ page }) => {
+test('Encontra resultados além dos primeiros 200 registros na busca paginada', async ({ page }) => {
   const data = Array.from({ length: 201 }, (_, index) => bathroom('page-' + index, details('PUBLIC', 'NO', null, null, null), -47.2, null, index === 200 ? ['PAPER'] : []));
   await setup(page, data);
   await open(page);
@@ -193,7 +193,7 @@ test('full paginated search supports matches beyond the first 200 records', asyn
   await expect(page.locator('.bathroom-card')).toContainText('Local page-200');
 });
 
-test('errors never look like zero results and active filters can be removed from empty list', async ({ page }) => {
+test('Diferencia erros de resultados vazios e permite remover filtros ativos da lista vazia', async ({ page }) => {
   await setup(page);
   await open(page);
   await panel(page).getByRole('radio', { name: 'Apenas clientes', exact: true }).check();
@@ -211,7 +211,7 @@ test('errors never look like zero results and active filters can be removed from
   await expect(panel(page).getByText('Não foi possível carregar a busca completa.')).toBeVisible();
 });
 
-test('a failed later page never exposes a partial count and retry loads the full search', async ({ page }) => {
+test('Não exibe contagem parcial após falha de paginação e recupera a busca completa na nova tentativa', async ({ page }) => {
   await setup(page);
   const data = Array.from({ length: 201 }, (_, index) => bathroom('complete-' + index, details('PUBLIC', 'NO', null, null, null), -47.2, null, index === 200 ? ['PAPER'] : []));
   let fail = true;

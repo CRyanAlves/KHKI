@@ -8,7 +8,7 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-test('granted geolocation restores a current map position after reload without saving coordinates', async ({ page, context }) => {
+test('Recupera a posição atual do mapa após recarregar com geolocalização permitida, sem salvar coordenadas', async ({ page, context }) => {
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation({ latitude: -23.09, longitude: -47.21 });
   await page.goto('/');
@@ -31,7 +31,7 @@ test('granted geolocation restores a current map position after reload without s
   ).toBe(false);
 });
 
-test('map notices expire, restart their timer and can be dismissed without clearing the GPS position', async ({ page, context }) => {
+test('Expira e reinicia avisos do mapa e permite fechá-los sem apagar a posição do GPS', async ({ page, context }) => {
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation({ latitude: -23.09, longitude: -47.21 });
   await page.goto('/');
@@ -58,7 +58,7 @@ test('map notices expire, restart their timer and can be dismissed without clear
 });
 
 for (const permission of ['prompt', 'denied', 'unsupported', 'failure'] as const) {
-  test('automatic geolocation handles ' + permission + ' without blocking explicit location', async ({ page }) => {
+  test('Trata a geolocalização automática com ' + { prompt: 'solicitação de permissão', denied: 'permissão negada', unsupported: 'recurso não suportado', failure: 'falha de localização' }[permission] + ' sem bloquear a localização explícita', async ({ page }) => {
     await page.addInitScript((permission) => {
       const state = window as unknown as { locationChecks: number; locationRequests: number };
       state.locationChecks = 0;

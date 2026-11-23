@@ -26,7 +26,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: `window.KHKI_CONFIG = ${JSON.stringify({ geoapifyApiKey: 'simulation-key', geoapifyApiBaseUrl: simulation + '/v1', geoapifyMapsBaseUrl: simulation + '/v1' })};` }));
 });
 
-test('three registration steps keep the same map, point, photos and unknown values', async ({ page, browser }) => {
+test('Preserva mapa, ponto, fotos e valores desconhecidos nas três etapas do cadastro', async ({ page, browser }) => {
   await login(page);
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   await expect(page.getByText('Informe o nome do local.', { exact: true })).toBeVisible();
@@ -89,7 +89,7 @@ test('three registration steps keep the same map, point, photos and unknown valu
   await visitor.close();
 });
 
-test('denied GPS does not block a manual point and leaving a draft asks for confirmation', async ({ page }) => {
+test('Permite marcar um ponto manual com GPS negado e pede confirmação ao sair de um rascunho', async ({ page }) => {
   await page.addInitScript(() => {
     const runtime = window as unknown as { registrationGpsCalls: number };
     runtime.registrationGpsCalls = 0;
@@ -121,7 +121,7 @@ test('denied GPS does not block a manual point and leaving a draft asks for conf
   await expect(page).toHaveURL(/\/$/);
 });
 
-test('submission stays disabled while pending and an unconfirmed response is not resent', async ({ page }) => {
+test('Bloqueia o envio durante a requisição e não repete uma submissão sem resposta confirmada', async ({ page }) => {
   await login(page);
   const name = 'Envio sem recibo ' + Date.now();
   await location(page, name);
@@ -155,7 +155,7 @@ test('submission stays disabled while pending and an unconfirmed response is not
   expect((await contributions(page)).filter((item) => item.title === name)).toHaveLength(1);
 });
 
-test('partial photo upload retries only files with a confirmed rejection', async ({ page }) => {
+test('Repete apenas fotos com rejeição confirmada após falha parcial no envio', async ({ page }) => {
   await login(page);
   const name = 'Fotos sem recibo ' + Date.now();
   await location(page, name);
@@ -181,7 +181,7 @@ test('partial photo upload retries only files with a confirmed rejection', async
   expect(own.photoIds).toHaveLength(2);
 });
 
-test('background proximity failure does not expose a technical block or prevent registration', async ({ page }) => {
+test('Permite o cadastro após falha na consulta de proximidade sem exibir bloqueios técnicos', async ({ page }) => {
   await login(page);
   await page.route('**/api/bathrooms/nearby?*', (route) => route.fulfill({ status: 503, json: { detail: 'Consulta temporariamente indisponível.' } }));
   const failure = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/bathrooms/nearby' && response.status() === 503);
@@ -193,7 +193,7 @@ test('background proximity failure does not expose a technical block or prevent 
   await expect(page.getByRole('combobox', { name: 'Horário de funcionamento', exact: true })).toHaveValue('unknown');
 });
 
-test('independent usage and charge, observed resources and visit survive review edits and reach moderation', async ({ page }) => {
+test('Preserva uso e cobrança independentes, recursos observados e visita nas revisões até a moderação', async ({ page }) => {
   await login(page);
   const name = 'Acesso e cobrança ' + Date.now();
   await location(page, name);
@@ -235,7 +235,7 @@ test('independent usage and charge, observed resources and visit survive review 
   await expect(page.locator('app-bathroom-metadata')).toContainText('29/02/2020');
 });
 
-test('invalid optional fee and future visit stay in the draft until corrected', async ({ page }) => {
+test('Mantém taxa opcional inválida e visita futura no rascunho até a correção', async ({ page }) => {
   await login(page);
   await location(page, 'Validação opcional ' + Date.now());
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
@@ -254,7 +254,7 @@ test('invalid optional fee and future visit stay in the draft until corrected', 
   await expect(page.getByRole('heading', { name: 'Recebemos seu cadastro', exact: true })).toBeVisible();
 });
 
-test('registration changes only the panel and keeps the map, camera and document in both directions', async ({ page }) => {
+test('Altera apenas o painel do cadastro e preserva mapa, câmera e documento ao avançar e voltar', async ({ page }) => {
   let styles = 0;
   page.on('request', (request) => {
     if (request.url().includes('/styles/positron/style.json')) styles++;
@@ -285,7 +285,7 @@ test('registration changes only the panel and keeps the map, camera and document
   }
 });
 
-test('registration address shares the route selector with keyboard suggestions, map selection and clearing', async ({ page }) => {
+test('Compartilha o seletor de endereço do cadastro com sugestões por teclado, seleção no mapa e limpeza', async ({ page }) => {
   await login(page);
   await page.getByRole('textbox', { name: 'Nome do estabelecimento ou espaço' }).fill('Seletor de endereço');
   await page.getByRole('combobox', { name: 'Categoria do local' }).selectOption('Biblioteca');
@@ -319,7 +319,7 @@ test('registration address shares the route selector with keyboard suggestions, 
   await expect(page.getByRole('alert').filter({ hasText: 'Informe o endereço' })).toBeVisible();
 });
 
-test('registration GPS in the selector fills the address from the selected position', async ({ page }) => {
+test('Preenche o endereço pela posição selecionada com o GPS do cadastro', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator.permissions, 'query', { configurable: true, value: () => Promise.resolve({ state: 'prompt' }) });
     Object.defineProperty(navigator.geolocation, 'getCurrentPosition', { configurable: true, value: (success: PositionCallback) => success({ coords: { latitude: -23.556, longitude: -46.658, accuracy: 5 }, timestamp: Date.now() } as GeolocationPosition) });
@@ -334,7 +334,7 @@ test('registration GPS in the selector fills the address from the selected posit
 });
 
 for (const scenario of ['unavailable', 'empty'])
-  test('reverse address ' + scenario + ' preserves the point and permits manual correction', async ({ page }) => {
+  test('Preserva o ponto e permite correção manual com endereço reverso ' + (scenario === 'unavailable' ? 'indisponível' : 'vazio'), async ({ page }) => {
     await login(page);
     await location(page, 'Endereço por posição');
     const address = page.getByRole('combobox', { name: 'Endereço completo' });
@@ -354,7 +354,7 @@ for (const scenario of ['unavailable', 'empty'])
     await expect(page.getByRole('combobox', { name: 'Quem pode usar?' })).toBeVisible();
   });
 
-test('late reverse address never overwrites a manual edit', async ({ page }) => {
+test('Impede que uma resposta tardia de endereço sobrescreva uma edição manual', async ({ page }) => {
   await login(page);
   await location(page, 'Resposta atrasada');
   await page.route('**/v1/geocode/reverse?*', (route) => {

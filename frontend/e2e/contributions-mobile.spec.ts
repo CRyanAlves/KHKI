@@ -20,7 +20,7 @@ async function open(page: Page, data = rows): Promise<void> {
   await page.goto('/contribuicoes');
   await expect(page.locator('.contributions-count')).toBeVisible();
 }
-test('combined filters, sorting, count and clearing stay on one page', async ({ page }) => {
+test('Combina filtros, ordenação, contagem e limpeza na mesma página de contribuições', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('khki-theme', 'dark'));
   await open(page);
   await page.screenshot({ path: '../test-results/contributions-mobile-dark.png' });
@@ -39,7 +39,7 @@ test('combined filters, sorting, count and clearing stay on one page', async ({ 
   await expect(page).toHaveURL(/\/contribuicoes$/);
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
-test('all real statuses, safe reasons, long text and existing correction action', async ({ page }) => {
+test('Exibe os estados reais, motivos seguros, textos longos e a ação de correção das contribuições', async ({ page }) => {
   await open(page);
   for (const status of ['Em análise', 'Aprovado', 'Não aprovado', 'Aguardando informações', 'Oculto', 'Removido']) await expect(page.locator('.contributions-status').filter({ hasText: status }).first()).toBeVisible();
   await expect(page.locator('.contributions-list')).not.toContainText('920e3f5b');
@@ -54,7 +54,7 @@ test('all real statuses, safe reasons, long text and existing correction action'
   await page.getByText('Entenda', { exact: true }).click();
   await expect(page.getByText('Fotos são enviadas somente com um cadastro ou uma avaliação e acompanham a análise desse conteúdo.')).toBeVisible();
 });
-test('loading, request failure with retry and genuine empty state', async ({ page }) => {
+test('Exibe carregamento, falha com nova tentativa e lista realmente vazia', async ({ page }) => {
   await auth(page);
   let release!: () => void;
   const gate = new Promise<void>((resolve) => {
@@ -76,7 +76,7 @@ test('loading, request failure with retry and genuine empty state', async ({ pag
   await expect(page.getByText('Sua primeira contribuição começa aqui.')).toBeVisible();
   expect(calls).toBe(2);
 });
-test('small viewport, large fonts, both themes and navbar clearance', async ({ page }) => {
+test('Preserva o espaço da barra inferior em tela pequena, com fontes ampliadas e nos dois temas', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 640 });
   await open(page);
   await page.addStyleTag({ content: 'html { font-size: 22px; }' });
@@ -93,7 +93,7 @@ test('small viewport, large fonts, both themes and navbar clearance', async ({ p
   }
   await page.screenshot({ path: '../test-results/contributions-small.png' });
 });
-test('desktop keeps its original presentation', async ({ page }) => {
+test('Mantém a apresentação original das contribuições no computador', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 950 });
   await auth(page);
   await page.route('**/api/me/contributions', (route) => route.fulfill({ json: rows }));
@@ -103,7 +103,7 @@ test('desktop keeps its original presentation', async ({ page }) => {
   await expect(page.locator('.page-title').getByRole('link', { name: 'Cadastrar banheiro' })).toBeVisible();
 });
 
-test('visitor must authenticate before seeing contributions', async ({ page }) => {
+test('Exige autenticação do visitante antes de exibir suas contribuições', async ({ page }) => {
   await page.route('**/api/auth/csrf', (route) => route.fulfill({ json: {} }));
   await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: {} }));
   let requests = 0;

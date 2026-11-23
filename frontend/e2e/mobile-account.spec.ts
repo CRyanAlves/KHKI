@@ -8,7 +8,7 @@ async function prepare(page: Page, authenticated = false): Promise<void> {
   await page.goto('/');
 }
 
-test('visitor popover anchors to avatar and all closing controls preserve exploration', async ({ page }) => {
+test('Ancora o menu do visitante no perfil e preserva a exploração em todas as formas de fechamento', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('khki-theme', 'dark'));
   await prepare(page);
   const trigger = page.locator('.mobile-search-account');
@@ -44,7 +44,7 @@ test('visitor popover anchors to avatar and all closing controls preserve explor
   }
 });
 
-test('appearance stays inside the popover, persists and follows system preference', async ({ page }) => {
+test('Mantém a aparência dentro do menu, persiste a escolha e acompanha a preferência do sistema', async ({ page }) => {
   await prepare(page);
   await page.locator('.mobile-search-account').click();
   await page.getByRole('button', { name: 'Aparência', exact: true }).click();
@@ -69,7 +69,7 @@ test('appearance stays inside the popover, persists and follows system preferenc
   await expect(page.locator('.login-backdrop')).toBeVisible();
 });
 
-test('authenticated identity, contributions and logout use existing services', async ({ page }) => {
+test('Usa os serviços existentes para identidade autenticada, contribuições e saída da conta', async ({ page }) => {
   await prepare(page, true);
   await page.locator('.mobile-search-account').click();
   const panel = page.getByRole('dialog');
@@ -90,7 +90,7 @@ test('authenticated identity, contributions and logout use existing services', a
   await expect(page.getByText('Faça parte do KHKI')).toBeVisible();
 });
 
-test('short screen, enlarged text and reduced motion keep close accessible', async ({ page }) => {
+test('Mantém o fechamento acessível em tela baixa, com texto ampliado e movimento reduzido', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 360 });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await prepare(page);
@@ -105,7 +105,7 @@ test('short screen, enlarged text and reduced motion keep close accessible', asy
   await page.screenshot({ path: '../test-results/account-small.png' });
 });
 
-test('desktop keeps the existing header and has no mobile account', async ({ page }) => {
+test('Preserva o cabeçalho existente no computador sem exibir o menu de conta do celular', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 950 });
   await prepare(page);
   await expect(page.locator('.site-header')).toBeVisible();
@@ -113,7 +113,7 @@ test('desktop keeps the existing header and has no mobile account', async ({ pag
   await expect(page.locator('app-mobile-account')).toHaveCount(0);
 });
 
-test('registration and contributions keep initials circular and the account anchored', async ({ page }) => {
+test('Mantém as iniciais circulares e o menu da conta ancorado no cadastro e nas contribuições', async ({ page }) => {
   await prepare(page, true);
   await page.route('**/api/me/contributions', (route) => route.fulfill({ json: [] }));
   for (const path of ['/cadastrar', '/contribuicoes']) {

@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: `window.KHKI_CONFIG = ${JSON.stringify({ geoapifyApiKey: 'simulation-key', geoapifyApiBaseUrl: simulation + '/v1', geoapifyMapsBaseUrl: simulation + '/v1' })};` }));
 });
 
-test('urgent action uses the nearest public bathroom outside the active search and starts GPS on the same map', async ({ page, context }) => {
+test('Busca o banheiro público mais próximo fora da pesquisa ativa e inicia o GPS no mesmo mapa pela ação de urgência', async ({ page, context }) => {
   const bathrooms = await (await page.request.get('/api/bathrooms')).json();
   const nearest = bathrooms.find((bathroom: { name: string }) => bathroom.name === 'Café do Centro');
   await context.grantPermissions(['geolocation']);
@@ -27,7 +27,7 @@ test('urgent action uses the nearest public bathroom outside the active search a
   await page.locator('.navigation-hud').getByRole('button', { name: 'Encerrar navegação', exact: true }).click();
 });
 
-test('urgent action handles location denial without leaving exploration', async ({ page }) => {
+test('Trata a recusa de localização na ação de urgência sem sair da exploração', async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(navigator.geolocation, 'getCurrentPosition', { configurable: true, value: (_success: PositionCallback, failure: PositionErrorCallback) => failure({ code: 1 } as GeolocationPositionError) });
   });
@@ -39,7 +39,7 @@ test('urgent action handles location denial without leaving exploration', async 
   await expect(page.locator('.navigation-hud')).toHaveCount(0);
 });
 
-test('one map survives selection, route, browser history and panel collapse with search context', async ({ page }) => {
+test('Preserva o mesmo mapa e o contexto da busca na seleção, rota, histórico e recolhimento do painel', async ({ page }) => {
   test.setTimeout(90000);
   await page.setViewportSize({ width: 1440, height: 650 });
   let styles = 0;
@@ -94,7 +94,7 @@ test('one map survives selection, route, browser history and panel collapse with
   expect(await map!.evaluate((element) => element === document.querySelector('app-map'))).toBe(true);
 });
 
-test('direct links, map area, marker highlight and mobile sheet remain usable', async ({ page, context }) => {
+test('Mantém links diretos, área do mapa, destaque do marcador e painel do celular utilizáveis', async ({ page, context }) => {
   const bathrooms = await (await page.request.get('/api/bathrooms')).json();
   const bathroom = bathrooms.find((value: { name: string }) => value.name === 'Café do Centro');
   await page.goto('/banheiros/' + bathroom.id);
@@ -130,7 +130,7 @@ test('direct links, map area, marker highlight and mobile sheet remain usable', 
   await page.screenshot({ path: '../test-results/workspace-mobile-route.png', fullPage: true });
 });
 
-test('nearby bathroom markers cluster and expand without replacing the official pins', async ({ page }) => {
+test('Agrupa e expande marcadores de banheiros próximos sem substituir os ícones oficiais', async ({ page }) => {
   const bathrooms = await (await page.request.get('/api/bathrooms')).json();
   await page.route(
     (url) => url.pathname === '/api/bathrooms',
@@ -143,7 +143,7 @@ test('nearby bathroom markers cluster and expand without replacing the official 
   await expect(page.locator('.map-marker img').first()).toHaveAttribute('src', /assets\/brand\/khki-pin.png$/);
 });
 
-test('sidebar overlays a full-size map and selection flies without replacing map or pins', async ({ page }) => {
+test('Sobrepõe a barra lateral ao mapa completo e aproxima a seleção sem substituir mapa ou marcadores', async ({ page }) => {
   let styles = 0;
   page.on('request', (request) => {
     if (request.url().includes('/styles/positron/style.json')) styles++;

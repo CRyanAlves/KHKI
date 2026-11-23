@@ -30,7 +30,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: `window.KHKI_CONFIG = ${JSON.stringify({ geoapifyApiKey: 'simulation-key', geoapifyApiBaseUrl: simulation + '/v1', geoapifyMapsBaseUrl: simulation + '/v1' })};` }));
 });
 
-test('moderation queue preserves filters, compares real nearby records and requests information privately', async ({ page, browser }) => {
+test('Preserva filtros da moderação, compara registros próximos reais e solicita informações de forma privada', async ({ page, browser }) => {
   await administrator(page);
   const bathroom = await pendingBathroom(page, 'Revisão');
   const picture = await page.request.post('/api/bathrooms/' + bathroom.id + '/photos', { headers: await headers(page), multipart: { file: { name: 'banheiro.jpg', mimeType: 'image/jpeg', buffer: readFileSync('../data/demo-regional/images/anexo-01.jpg') } } });
@@ -94,7 +94,7 @@ test('moderation queue preserves filters, compares real nearby records and reque
   await page.screenshot({ path: '../test-results/moderation-mobile-review.png', fullPage: true });
 });
 
-test('moderation rejects duplicates with a linked audit and blocks stale decisions', async ({ page }) => {
+test('Rejeita duplicados com auditoria vinculada e bloqueia decisões de moderação desatualizadas', async ({ page }) => {
   await administrator(page);
   const bathroom = await pendingBathroom(page, 'Duplicata');
   await page.goto('/admin');
@@ -125,7 +125,7 @@ test('moderation rejects duplicates with a linked audit and blocks stale decisio
   await expect(page.locator('.review-content').getByText('Rejeitado', { exact: true }).first()).toBeVisible();
 });
 
-test('report moderation hides the real content atomically and common users cannot enter administration', async ({ page, browser }) => {
+test('Oculta o conteúdo denunciado de forma atômica e bloqueia a administração para usuários comuns', async ({ page, browser }) => {
   await administrator(page);
   const bathroom = await pendingBathroom(page, 'Denúncia');
   expect((await page.request.post('/api/admin/content/BATHROOM/' + bathroom.id + '/decision', { headers: await headers(page), data: { status: 'APPROVED', reason: 'Cadastro aprovado para testar denúncia.', expectedVersion: 0 } })).ok()).toBe(true);
@@ -152,7 +152,7 @@ test('report moderation hides the real content atomically and common users canno
   await visitor.close();
 });
 
-test('moderation sidebar animates, toggles only from blank space or footer and respects reduced motion', async ({ page }) => {
+test('Anima a barra de moderação, alterna apenas pelo espaço livre ou rodapé e respeita movimento reduzido', async ({ page }) => {
   await administrator(page);
   let queueRequests = 0;
   page.on('request', (request) => {
@@ -222,7 +222,7 @@ test('moderation sidebar animates, toggles only from blank space or footer and r
   await page.screenshot({ path: '../test-results/moderation-mobile-sidebar-expanded.png', fullPage: true });
 });
 
-test('photos tab lists standalone uploads and parent approval publishes attachments together', async ({ page, browser }) => {
+test('Lista envios avulsos na aba de fotos e publica anexos junto com a aprovação do conteúdo principal', async ({ page, browser }) => {
   await administrator(page);
   const registration = await pendingBathroom(page, 'Anexos do cadastro');
   const reviewParent = await pendingBathroom(page, 'Contexto de avulsas');

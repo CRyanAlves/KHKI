@@ -21,7 +21,7 @@ test.beforeEach(async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
 });
 
-test('origin suggestions use debounced HTTP, keyboard selection and automatic routing without changing the map or header', async ({ page }) => {
+test('Busca sugestões de origem após a pausa de digitação e calcula a rota por teclado sem alterar mapa ou cabeçalho', async ({ page }) => {
   let searches = 0;
   let routes = 0;
   page.on('request', (request) => {
@@ -66,7 +66,7 @@ test('origin suggestions use debounced HTTP, keyboard selection and automatic ro
 });
 
 for (const denied of [false, true])
-  test('origin geolocation is explicit and ' + (denied ? 'denial permits recovery by address' : 'coordinates calculate the route automatically'), async ({ page }) => {
+  test('Solicita a geolocalização da origem explicitamente e ' + (denied ? 'permite recuperar por endereço após a recusa' : 'calcula a rota automaticamente com as coordenadas'), async ({ page }) => {
     await page.addInitScript(
       ({ denied }) => {
         const state = window as unknown as { originGpsCalls: number };
@@ -97,7 +97,7 @@ for (const denied of [false, true])
     }
   });
 
-test('map origin selection can be cancelled, accepts one click and retains context after returning to details', async ({ page }) => {
+test('Permite cancelar a seleção da origem no mapa, aceita um clique e preserva o contexto ao voltar aos detalhes', async ({ page }) => {
   await openRoute(page);
   await address(page);
   const original = await origin(page).inputValue();
@@ -120,7 +120,7 @@ test('map origin selection can be cancelled, accepts one click and retains conte
   await expect(page.locator('.route-summary')).toBeVisible();
 });
 
-test('four real transport parameters recalculate automatically and discard an older slow request', async ({ page }) => {
+test('Recalcula os quatro modos de transporte e descarta respostas antigas mais lentas', async ({ page }) => {
   await openRoute(page);
   const profiles: string[] = [];
   await page.route('**/v1/routing*', (route) => {
@@ -144,7 +144,7 @@ test('four real transport parameters recalculate automatically and discard an ol
   expect(profiles).toEqual(expect.arrayContaining(['drive', 'motorcycle', 'bicycle', 'walk']));
 });
 
-test('late suggestions are discarded and search failures preserve text without treating it as a valid origin', async ({ page }) => {
+test('Descarta sugestões atrasadas e preserva o texto em falhas sem tratá-lo como origem válida', async ({ page }) => {
   await openRoute(page);
   await origin(page).fill('lento');
   await page.waitForRequest((request) => request.url().includes('/autocomplete?'));
@@ -161,7 +161,7 @@ test('late suggestions are discarded and search failures preserve text without t
   await address(page);
 });
 
-test('failed automatic calculation preserves the selected origin and offers only contextual retry', async ({ page }) => {
+test('Preserva a origem após falha no cálculo automático e oferece nova tentativa contextual', async ({ page }) => {
   await openRoute(page);
   let requests = 0;
   await page.route('**/v1/routing*', (route) => {
@@ -180,7 +180,7 @@ test('failed automatic calculation preserves the selected origin and offers only
   expect(requests).toBe(2);
 });
 
-test('changing destination preserves a valid origin and automatically calculates the new endpoint', async ({ page }) => {
+test('Preserva uma origem válida ao trocar o destino e calcula a nova rota automaticamente', async ({ page }) => {
   await openRoute(page);
   await address(page);
   const bathrooms = (await (await page.request.get('/api/bathrooms')).json()) as { id: string; name: string; latitude: number; longitude: number }[];
@@ -200,7 +200,7 @@ test('changing destination preserves a valid origin and automatically calculates
   await expect(page.locator('.destination-box strong')).toHaveText(next.name);
 });
 
-test('cancelling map selection resumes a pending route without losing its confirmed origin', async ({ page }) => {
+test('Retoma uma rota pendente ao cancelar a seleção no mapa sem perder a origem confirmada', async ({ page }) => {
   await openRoute(page);
   let count = 0;
   await page.route('**/v1/routing*', (route) => {
@@ -219,7 +219,7 @@ test('cancelling map selection resumes a pending route without losing its confir
   await expect(origin(page)).toHaveValue('Rua de teste');
 });
 
-test('origin popup overlays the panel in both themes and mobile map selection supports a keyboard alternative', async ({ page }) => {
+test('Sobrepõe as sugestões de origem ao painel nos dois temas e permite selecionar no mapa pelo teclado no celular', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openRoute(page);
   for (const dark of [false, true]) {

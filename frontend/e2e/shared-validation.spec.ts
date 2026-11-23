@@ -2,13 +2,13 @@ import { expect, test } from '@playwright/test';
 import { jsonObject } from '../src/app/shared/utils/json-object';
 import { distanceMeters, validPoint } from '../src/app/shared/geo/navigation-geometry';
 
-test('shared JSON object reader rejects malformed shapes without inventing fields', () => {
+test('Rejeita formatos JSON inválidos no leitor compartilhado sem inventar campos', () => {
   for (const value of [null, undefined, [], 'text', 7, true]) expect(jsonObject(value)).toEqual({});
   const response = { features: [], message: 'Resposta do serviço' };
   expect(jsonObject(response)).toBe(response);
 });
 
-test('shared coordinates and distance support registration, filters and navigation consistently', () => {
+test('Usa coordenadas e distâncias compartilhadas de forma consistente no cadastro, nos filtros e na navegação', () => {
   expect(validPoint({ lat: -23.1, lng: -47.2 })).toBe(true);
   for (const point of [
     { lat: NaN, lng: 0 },

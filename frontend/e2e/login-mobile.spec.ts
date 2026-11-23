@@ -20,7 +20,7 @@ async function resizeVisualViewport(page: Page, height: number, top = 0): Promis
   );
 }
 
-test('mobile login fills the viewport, uses official assets and restores exploration on close', async ({ page }) => {
+test('Preenche a tela no login do celular, usa os recursos oficiais e restaura a exploração ao fechar', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('khki-theme', 'dark'));
   await page.goto('/');
   await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
@@ -42,7 +42,7 @@ test('mobile login fills the viewport, uses official assets and restores explora
   expect(await map!.evaluate((element) => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
 });
 
-test('viewport reduction compacts login, preserves values between fields and restores the illustration', async ({ page }) => {
+test('Compacta o login quando a tela diminui, preserva os campos e restaura a ilustração', async ({ page }) => {
   await openLogin(page);
   await page.getByLabel('E-mail', { exact: true }).fill('pessoa@example.com');
   await expect(page.locator('.city-illustration')).toBeVisible();
@@ -68,7 +68,7 @@ test('viewport reduction compacts login, preserves values between fields and res
   await expect(page.getByLabel('E-mail', { exact: true })).toHaveValue('pessoa@example.com');
 });
 
-test('inline validation and delayed authentication reject duplicate submits and preserve errors', async ({ page }) => {
+test('Valida os campos, bloqueia envios duplicados durante a autenticação e preserva erros', async ({ page }) => {
   let calls = 0;
   let respond!: () => void;
   const pending = new Promise<void>((resolve) => {
@@ -103,7 +103,7 @@ test('inline validation and delayed authentication reject duplicate submits and 
   await expect(form.getByRole('button', { name: 'Entrar', exact: true })).toBeEnabled();
 });
 
-test('authenticated response resumes the protected route and registration remains available', async ({ page }) => {
+test('Retoma a rota protegida após autenticar e mantém o cadastro disponível', async ({ page }) => {
   await page.route('**/api/auth/me', (route) => route.fulfill({ status: 401, json: { detail: 'Entre na sua conta.' } }));
   await page.route('**/api/auth/login', (route) => route.fulfill({ json: { id: '11111111-1111-4111-8111-111111111111', name: 'Pessoa de teste', role: 'USER' } }));
   await openLogin(page);
@@ -121,7 +121,7 @@ test('authenticated response resumes the protected route and registration remain
   await expect(page.getByLabel('Nome do estabelecimento ou espaço', { exact: false })).toBeVisible();
 });
 
-test('the real local backend rejects invalid credentials without closing the form', async ({ page }) => {
+test('Rejeita credenciais inválidas no backend local real sem fechar o formulário', async ({ page }) => {
   await openLogin(page);
   await page.getByLabel('E-mail', { exact: true }).fill(`login-ui-${Date.now()}@example.invalid`);
   await page.getByLabel('Senha', { exact: true }).fill('invalid-test-password');
@@ -132,7 +132,7 @@ test('the real local backend rejects invalid credentials without closing the for
   await expect(page.getByRole('dialog')).toBeVisible();
 });
 
-test('small screens, enlarged fonts, landscape and desktop keep the form usable', async ({ page }) => {
+test('Mantém o formulário utilizável em telas pequenas, com fontes ampliadas e em orientação horizontal ou no computador', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await openLogin(page);
   await expect(page.locator('.login-brand')).toHaveAttribute('src', 'assets/brand/khki-logo.png');

@@ -28,7 +28,7 @@ async function drag(page: Page, selector: string, delta: number): Promise<void> 
   await page.waitForTimeout(320);
 }
 
-test('three sheet stops, direct dragging, list scroll, safe navigation and full size map', async ({ page }) => {
+test('Oferece três posições do painel, arraste direto, rolagem da lista e navegação segura com o mapa completo', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('navigation', { name: 'Navegação mobile' })).toBeVisible();
   await expect(page.locator('.map-workspace')).toHaveClass(/mobile-sheet-peek/);
@@ -57,7 +57,7 @@ test('three sheet stops, direct dragging, list scroll, safe navigation and full 
   await page.screenshot({ path: '../test-results/mobile-new-explore.png' });
 });
 
-test('details restore list height and scroll, keep selected pin, and gallery swipes full screen', async ({ page }) => {
+test('Restaura altura e rolagem da lista, preserva o marcador e permite deslizar fotos em tela cheia', async ({ page }) => {
   const rows = await (await page.request.get('/api/bathrooms')).json();
   await page.route('**/api/bathrooms/' + rows[0].id, async (route) => {
     const response = await route.fetch();
@@ -95,7 +95,7 @@ test('details restore list height and scroll, keep selected pin, and gallery swi
   await expect(page.locator('.map-workspace')).not.toHaveClass(/mobile-sheet-full|mobile-sheet-peek/);
 });
 
-test('mobile search suggestions, keyboard, clearing, error and navigation visibility', async ({ page }) => {
+test('Mantém sugestões de busca, teclado, limpeza, erro e visibilidade da navegação no celular', async ({ page }) => {
   await page.goto('/');
   const input = page.getByRole('combobox', { name: 'Buscar banheiro ou endereço' });
   await input.fill('Cafe');
@@ -118,7 +118,7 @@ test('mobile search suggestions, keyboard, clearing, error and navigation visibi
   await page.screenshot({ path: '../test-results/mobile-new-search.png' });
 });
 
-test('account supports real login intent, theme system and hides moderation on mobile', async ({ page }) => {
+test('Preserva a intenção real de login e o tema do sistema e oculta a moderação no celular', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.site-header')).toBeHidden();
   await expect(page.locator('.mobile-search-pin')).toHaveAttribute('src', 'assets/brand/khki-pin.png');
@@ -147,7 +147,7 @@ test('account supports real login intent, theme system and hides moderation on m
   await expect(page.getByRole('combobox', { name: 'Endereço completo' })).toBeVisible();
 });
 
-test('one continuous gesture expands before scrolling and returns through scroll before collapsing', async ({ page }) => {
+test('Expande antes de rolar em um gesto contínuo e retorna ao início antes de recolher', async ({ page }) => {
   const rows = await (await page.request.get('/api/bathrooms')).json();
   await page.route(/\/api\/bathrooms(?:\?.*)?$/, (route) => route.fulfill({ json: Array.from({ length: 20 }, (_, index) => ({ ...rows[index % rows.length], id: `00000000-0000-4000-8000-${String(index).padStart(12, '0')}` })) }));
   await page.goto('/');
@@ -161,7 +161,7 @@ test('one continuous gesture expands before scrolling and returns through scroll
   expect(await page.locator('.result-list').evaluate((element) => element.scrollTop)).toBe(0);
 });
 
-test('expanded details prioritize information and device back closes gallery before details', async ({ page }) => {
+test('Prioriza informações nos detalhes expandidos e fecha a galeria antes dos detalhes ao voltar', async ({ page }) => {
   const rows = await (await page.request.get('/api/bathrooms')).json();
   await page.route('**/api/bathrooms/' + rows[0].id, async (route) => {
     const response = await route.fetch();
@@ -187,7 +187,7 @@ test('expanded details prioritize information and device back closes gallery bef
   await expect(page.locator('.mobile-search')).toBeVisible();
 });
 
-test('route origin, real mode profiles and active navigation use a clean mobile canvas', async ({ page, context }) => {
+test('Usa uma apresentação limpa no celular para origem da rota, modos de transporte e navegação ativa', async ({ page, context }) => {
   await context.grantPermissions(['geolocation']);
   await context.setGeolocation({ latitude: -23.55, longitude: -46.65 });
   await selectBathroom(page);
@@ -215,7 +215,7 @@ test('route origin, real mode profiles and active navigation use a clean mobile 
   await expect(page.getByRole('radio', { name: 'Moto', exact: true })).toBeChecked();
 });
 
-test('desktop keeps its original header, sidebar and navigation without mobile elements', async ({ page }) => {
+test('Preserva cabeçalho, barra lateral e navegação originais no computador sem elementos do celular', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 950 });
   await page.goto('/');
   await expect(page.getByRole('navigation', { name: 'Navegação principal' })).toBeVisible();
@@ -228,7 +228,7 @@ test('desktop keeps its original header, sidebar and navigation without mobile e
   expect(panel!.height).toBeGreaterThan(800);
 });
 
-test('list gestures over a result do not select it and closing details restores the full sheet and scroll', async ({ page }) => {
+test('Não seleciona resultados durante gestos de lista e restaura altura e rolagem ao fechar os detalhes', async ({ page }) => {
   await page.goto('/');
   await expand(page, 2);
   await page.locator('.result-list').evaluate((element) => (element.scrollTop = 100));
@@ -246,7 +246,7 @@ test('list gestures over a result do not select it and closing details restores 
   await expect(page).toHaveURL('/');
 });
 
-test('mobile map pan offers search in the visible area and a pin opens the same details sheet', async ({ page }) => {
+test('Oferece busca na área visível ao mover o mapa no celular e abre o mesmo painel pelo marcador', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Buscar nesta área', exact: true })).toHaveCount(0);
@@ -265,7 +265,7 @@ test('mobile map pan offers search in the visible area and a pin opens the same 
   await expect(page.locator('.workspace-results')).toBeHidden();
 });
 
-test('keyboard-sized viewport keeps origin editable and administration is desktop-only in presentation', async ({ page }) => {
+test('Mantém a origem editável com o teclado aberto e restringe a apresentação da administração ao computador', async ({ page }) => {
   test.skip(!process.env['KHKI_TEST_ADMIN_PASSWORD'], 'Use o executor isolado com administrador.');
   await selectBathroom(page);
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
@@ -292,7 +292,7 @@ test('keyboard-sized viewport keeps origin editable and administration is deskto
   await expect(page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('link', { name: 'Moderação', exact: true })).toBeVisible();
 });
 
-test('all workspace sheets share their maximum top edge and hide controls behind expansion', async ({ page }) => {
+test('Alinha a altura máxima dos painéis e oculta os controles atrás deles durante a expansão', async ({ page }) => {
   await page.goto('/');
   await expand(page, 2);
   await expect(page.locator('.mobile-search')).toBeHidden();
@@ -313,7 +313,7 @@ test('all workspace sheets share their maximum top edge and hide controls behind
   expect(await canvas!.evaluate((element) => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
 });
 
-test('registration shares sheet dragging and locks its nested scroll before maximum height', async ({ page }) => {
+test('Permite arrastar o painel de cadastro e bloqueia sua rolagem interna antes da altura máxima', async ({ page }) => {
   test.skip(!process.env['KHKI_TEST_ADMIN_PASSWORD'], 'Use o executor isolado com administrador.');
   await page.goto('/');
   await page.getByRole('navigation', { name: 'Navegação mobile' }).getByRole('link', { name: 'Cadastrar', exact: true }).click();

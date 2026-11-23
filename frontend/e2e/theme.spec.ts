@@ -4,7 +4,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: "window.KHKI_CONFIG = { geoapifyApiKey: '' };" }));
 });
 
-test('theme follows system until explicit choice, persists and applies to pages and dialogs', async ({ page }) => {
+test('Segue o tema do sistema até uma escolha explícita, persiste a preferência e a aplica a páginas e diálogos', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.goto('/sobre');
   await expect(page).toHaveURL(/\/$/);
@@ -41,7 +41,7 @@ test('theme follows system until explicit choice, persists and applies to pages 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 
-test('theme toggle remains visible on mobile with no horizontal overflow', async ({ page }) => {
+test('Mantém o seletor de tema visível no celular sem transbordamento horizontal', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.getByRole('button', { name: 'Ativar modo escuro', exact: true }).click();
@@ -54,7 +54,7 @@ test('theme toggle remains visible on mobile with no horizontal overflow', async
   await page.screenshot({ path: '../test-results/theme-dark-mobile.png', fullPage: true });
 });
 
-test('unavailable storage still allows theme switching', async ({ page }) => {
+test('Permite trocar o tema mesmo quando o armazenamento está indisponível', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.addInitScript(() => {
     Object.defineProperty(Storage.prototype, 'getItem', {
@@ -74,7 +74,7 @@ test('unavailable storage still allows theme switching', async ({ page }) => {
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 
-test('header tabs have readable selected and hover states in both themes and respect reduced motion', async ({ page }) => {
+test('Mantém as abas do cabeçalho legíveis na seleção e sob o cursor nos dois temas e respeita movimento reduzido', async ({ page }) => {
   const contrast = (foreground: string, background: string) => {
     const luminance = (color: string) => {
       const channels = color
@@ -118,7 +118,7 @@ test('header tabs have readable selected and hover states in both themes and res
   expect(await page.getByRole('link', { name: 'Cadastrar banheiro', exact: true }).evaluate((element) => parseFloat(getComputedStyle(element, '::before').transitionDuration))).toBeLessThanOrEqual(0.001);
 });
 
-test('sidebar slides, rotates the same icon and preserves its content on desktop and mobile', async ({ page }) => {
+test('Desliza a barra lateral, gira o mesmo ícone e preserva o conteúdo no computador e no celular', async ({ page }) => {
   await page.goto('/');
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 900 });

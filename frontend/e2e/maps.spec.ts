@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: `window.KHKI_CONFIG = ${JSON.stringify({ geoapifyApiKey: 'simulation-key', geoapifyApiBaseUrl: simulation + '/v1', geoapifyMapsBaseUrl: simulation + '/v1' })};` }));
 });
 
-test('Geoapify simulated HTTP: map, geocoding, pedestrian route and attribution', async ({ page }) => {
+test('Simula Geoapify por HTTP para mapa, geocodificação, rota a pé e atribuições', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('/');
@@ -44,7 +44,7 @@ test('Geoapify simulated HTTP: map, geocoding, pedestrian route and attribution'
   expect(errors).toEqual([]);
 });
 
-test('Geoapify simulated HTTP: clear errors for quota, missing result and malformed coordinates', async ({ page }) => {
+test('Exibe erros claros na simulação Geoapify por cota, resultado ausente e coordenadas inválidas', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: /Café do Centro/ }).click();
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
@@ -61,7 +61,7 @@ test('Geoapify simulated HTTP: clear errors for quota, missing result and malfor
   }
 });
 
-test('driving profile uses vehicle routing and changing mode clears the previous result', async ({ page }) => {
+test('Usa rotas para veículos no modo de carro e limpa o resultado anterior ao trocar de modo', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('link', { name: /Café do Centro/ }).click();
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();

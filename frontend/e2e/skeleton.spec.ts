@@ -34,7 +34,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: "window.KHKI_CONFIG = { geoapifyApiKey: '' };" }));
 });
 
-test('search skeleton follows themes and reduced motion and gives way to data or an error', async ({ page }) => {
+test('Adapta os esqueletos de carregamento da busca aos temas e ao movimento reduzido e os substitui por dados ou erro', async ({ page }) => {
   const release = await hold(page, (url) => url.pathname === '/api/bathrooms');
   await page.goto('/');
   const skeleton = page.locator('app-explore app-skeleton');
@@ -58,7 +58,7 @@ test('search skeleton follows themes and reduced motion and gives way to data or
   await expect(skeleton).toHaveCount(0);
 });
 
-test('details, route and contribution forms keep the map while loading', async ({ page }) => {
+test('Preserva o mapa durante o carregamento de detalhes, rota e contribuições', async ({ page }) => {
   await login(page);
   const bathrooms = await (await page.request.get('/api/bathrooms')).json();
   const id = bathrooms[0].id;
@@ -91,7 +91,7 @@ test('details, route and contribution forms keep the map while loading', async (
   }
 });
 
-test('registration and contributions show their own skeletons without discarding inputs', async ({ page }) => {
+test('Exibe o carregamento próprio do cadastro e das contribuições sem descartar os campos preenchidos', async ({ page }) => {
   await login(page);
   let release = await hold(page, (url) => url.pathname === '/api/bathrooms');
   await page.getByRole('link', { name: 'Cadastrar banheiro', exact: true }).click();
@@ -111,7 +111,7 @@ test('registration and contributions show their own skeletons without discarding
   await expect(page.locator('app-contributions app-skeleton')).toHaveCount(0);
 });
 
-test('moderation categories, content and history replace pending content with skeletons', async ({ page }) => {
+test('Substitui conteúdo pendente por esqueletos de carregamento nas categorias, detalhes e histórico da moderação', async ({ page }) => {
   await login(page);
   let release = await hold(page, (url) => url.pathname === '/api/admin/queue/details');
   await page.getByRole('link', { name: 'Moderação', exact: true }).click();
@@ -142,7 +142,7 @@ test('moderation categories, content and history replace pending content with sk
   await expect(page.locator('.review-history app-skeleton')).toHaveCount(0);
 });
 
-test('protected navigation shows a skeleton while restoring the session and then releases the page', async ({ page }) => {
+test('Exibe o carregamento ao recuperar a sessão e libera a página protegida após a verificação', async ({ page }) => {
   await login(page);
   const release = await hold(page, (url) => url.pathname === '/api/auth/me');
   await page.goto('/cadastrar');
@@ -154,7 +154,7 @@ test('protected navigation shows a skeleton while restoring the session and then
   await expect(page.getByRole('textbox', { name: 'Nome do local' })).toBeVisible();
 });
 
-test('map and route calculation skeletons release the same canvas when ready', async ({ page }) => {
+test('Remove os esqueletos do mapa e do cálculo da rota quando estão prontos, preservando a mesma área', async ({ page }) => {
   test.skip(!process.env['KHKI_MAPS_SIMULATION_URL'], 'Execute npm test para usar o mapa simulado.');
   const simulation = process.env['KHKI_MAPS_SIMULATION_URL'];
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: `window.KHKI_CONFIG = ${JSON.stringify({ geoapifyApiKey: 'simulation-key', geoapifyApiBaseUrl: simulation + '/v1', geoapifyMapsBaseUrl: simulation + '/v1' })};` }));

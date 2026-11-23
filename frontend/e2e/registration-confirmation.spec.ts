@@ -4,7 +4,7 @@ for (const viewport of [
   { width: 393, height: 852 },
   { width: 1440, height: 950 }
 ]) {
-  test(`registration confirms discard inside the application at ${viewport.width}px`, async ({ page, baseURL }) => {
+  test(`Confirma o descarte do cadastro dentro da aplicação em ${viewport.width}px`, async ({ page, baseURL }) => {
     await page.setViewportSize(viewport);
     await page.route('**/api/auth/csrf', (route) => route.fulfill({ json: {} }));
     await page.route('**/api/auth/me', (route) => route.fulfill({ json: { id: 'test', name: 'Pessoa Teste', role: 'USER' } }));

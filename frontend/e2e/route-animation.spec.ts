@@ -13,7 +13,7 @@ declare global {
   }
 }
 
-test('route dashes animate without recreating the map or geometry and stop for reduced motion', async ({ page }) => {
+test('Anima os traços da rota sem recriar mapa ou geometria e interrompe a animação com movimento reduzido', async ({ page }) => {
   await page.route('**/config.js', (route) => route.fulfill({ contentType: 'application/javascript', body: "window.KHKI_CONFIG = { geoapifyApiKey: 'browser-test' };" }));
   await page.route(
     (url) => url.pathname.endsWith('/style.json'),

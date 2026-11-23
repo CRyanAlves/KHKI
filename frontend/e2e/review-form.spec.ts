@@ -19,7 +19,7 @@ async function rate(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Estrutura: 3 de 5', exact: true }).click();
 }
 
-test('unselected scores, keyboard selection, original limits and return to bathroom', async ({ page }) => {
+test('Inicia sem notas, permite seleção por teclado, preserva limites e retorna ao banheiro', async ({ page }) => {
   await prepare(page);
   const send = page.getByRole('button', { name: 'Enviar avaliação', exact: true });
   await expect(send).toBeDisabled();
@@ -43,7 +43,7 @@ test('unselected scores, keyboard selection, original limits and return to bathr
   await expect(page).toHaveURL(/\/banheiros\/review-form$/);
 });
 
-test('photo validation, preview, replacement and removal preserve one-file limit', async ({ page }) => {
+test('Valida, exibe, substitui e remove a foto, preservando o limite de um arquivo', async ({ page }) => {
   await prepare(page);
   const input = page.locator('app-review input[type=file]');
   await input.setInputFiles({ name: 'texto.txt', mimeType: 'text/plain', buffer: Buffer.from('arquivo inválido') });
@@ -62,7 +62,7 @@ test('photo validation, preview, replacement and removal preserve one-file limit
   await expect(page.getByRole('button', { name: 'Adicionar foto' })).toBeVisible();
 });
 
-test('failure preserves fields and photo, in-flight submission is locked and retry succeeds', async ({ page }) => {
+test('Preserva campos e foto em falhas, bloqueia o envio em andamento e permite nova tentativa', async ({ page }) => {
   await prepare(page);
   await rate(page);
   await page.getByRole('textbox', { name: 'Sua experiência' }).fill('Limpo, com itens conservados.');
@@ -99,7 +99,7 @@ test('failure preserves fields and photo, in-flight submission is locked and ret
   expect(uploads).toBe(1);
 });
 
-test('empty optional fields submit without upload and partial upload failure keeps success warning', async ({ page }) => {
+test('Envia campos opcionais vazios sem anexar foto e mantém o aviso de sucesso após falha parcial no envio', async ({ page }) => {
   await prepare(page);
   await rate(page);
   let body: unknown;
@@ -120,7 +120,7 @@ test('empty optional fields submit without upload and partial upload failure kee
   await expect(page.getByRole('alert')).toHaveText('Avaliação salva. A foto não foi enviada: Foto recusada.');
 });
 
-test('mobile small viewport, enlarged fonts and themes keep the form scrollable without outer overflow', async ({ page }) => {
+test('Permite rolar o formulário no celular com tela pequena, fontes ampliadas e temas, sem transbordamento externo', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await prepare(page);
   await rate(page);
@@ -141,7 +141,7 @@ test('mobile small viewport, enlarged fonts and themes keep the form scrollable 
   await page.screenshot({ path: '../test-results/review-short-viewport.png' });
 });
 
-test('desktop and mobile retain the side panel with a single surface and complete title', async ({ page }) => {
+test('Preserva o painel lateral no computador e no celular com superfície única e título completo', async ({ page }) => {
   await prepare(page);
   for (const viewport of [
     { width: 1440, height: 1000 },
@@ -163,9 +163,9 @@ test('desktop and mobile retain the side panel with a single surface and complet
   }
 });
 
-test.describe('touch interaction', () => {
+test.describe('Interação por toque', () => {
   test.use({ viewport: { width: 393, height: 852 }, hasTouch: true });
-  test('rating taps select scores without dragging the mobile panel', async ({ page }) => {
+  test('Seleciona as notas por toque sem arrastar o painel do celular', async ({ page }) => {
     await prepare(page);
     await page.getByRole('button', { name: 'Limpeza: 4 de 5', exact: true }).tap();
     await page.getByRole('button', { name: 'Estrutura: 3 de 5', exact: true }).tap();

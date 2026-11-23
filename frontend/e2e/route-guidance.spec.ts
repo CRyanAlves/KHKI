@@ -1,7 +1,7 @@
 import { expect, Page, test } from '@playwright/test';
 import { formatRouteDuration, parseManeuvers, upcomingDirections } from '../src/app/features/route/service/route-maneuver-guidance';
 
-test('route duration formats minute and hour boundaries without showing 60 remaining minutes', () => {
+test('Formata a duração da rota entre minutos e horas sem exibir 60 minutos restantes', () => {
   for (const [minutes, text] of [
     [1, '1 min'],
     [59, '59 min'],
@@ -15,7 +15,7 @@ test('route duration formats minute and hour boundaries without showing 60 remai
   for (const value of [undefined, NaN, Infinity, -1]) expect(formatRouteDuration(value)).toBe('Tempo não informado');
 });
 
-test('maneuvers use real geometry indices, separate legs and correct direction icons', () => {
+test('Usa índices reais da geometria nas manobras, separa os trechos e exibe os ícones corretos', () => {
   const coordinates = [
     [
       [0, 0],
@@ -54,7 +54,7 @@ test('maneuvers use real geometry indices, separate legs and correct direction i
   expect(upcomingDirections(steps, 0, true)[0].icon).toBe('Flag');
 });
 
-test('invalid positioning is not guessed from instruction count and unknown types remain safe', () => {
+test('Não deduz posições inválidas pela quantidade de instruções e trata tipos desconhecidos com segurança', () => {
   const steps = parseManeuvers(
     [
       {
@@ -99,7 +99,7 @@ async function prepare(page: Page, long = false): Promise<void> {
   await expect(page.locator('.navigation-direction')).toHaveCount(2);
 }
 
-test('hour summary and two directional cards sit in the lower left of the same map in both themes', async ({ page }) => {
+test('Exibe o resumo de horas e dois cartões de direção no canto inferior esquerdo do mesmo mapa nos dois temas', async ({ page }) => {
   test.setTimeout(90000);
   await prepare(page, true);
   await expect(page.getByRole('heading', { name: '1 h 5 min', exact: true })).toBeVisible();
@@ -118,7 +118,7 @@ test('hour summary and two directional cards sit in the lower left of the same m
   await page.screenshot({ path: '../test-results/guidance-desktop-dark.png' });
 });
 
-test('simulated progress advances left and right instructions and arrival on mobile without calling routing again', async ({ page }) => {
+test('Avança instruções de direção e chegada no celular durante a simulação sem recalcular a rota', async ({ page }) => {
   test.setTimeout(90000);
   await page.setViewportSize({ width: 390, height: 844 });
   await prepare(page);
@@ -150,7 +150,7 @@ test('simulated progress advances left and right instructions and arrival on mob
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('GPS progress updates the next maneuver, ignores backward jitter and keeps the source map', async ({ page }) => {
+test('Atualiza a próxima manobra pelo GPS, ignora oscilações para trás e preserva o mapa original', async ({ page }) => {
   test.setTimeout(90000);
   await page.addInitScript(() => {
     Object.defineProperty(navigator.geolocation, 'watchPosition', {
