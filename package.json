@@ -3,6 +3,10 @@
   "private": true,
   "scripts": {
     "format": "node scripts/format.cjs",
-    "format:check": "node scripts/format.cjs --check"
+    "format:check": "node scripts/format.cjs --check",
+    "setup:jmeter": "node tests/jmeter/setup.cjs",
+    "test:jmeter": "node tests/jmeter/run-local.cjs",
+    "test:jmeter:production:preflight": "node tests/jmeter/run-production.cjs --preflight",
+    "test:jmeter:production": "node tests/jmeter/run-production.cjs"
   }
 }

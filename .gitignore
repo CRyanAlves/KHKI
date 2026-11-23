@@ -9,6 +9,8 @@ backend/data/
 *.log
 frontend/public/config.js
 test-results/
+tests/jmeter/results/
+tests/jmeter/tools/
 frontend/test-results/
 frontend/playwright-report/
 
