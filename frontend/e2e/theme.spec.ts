@@ -18,7 +18,7 @@ test('Segue o tema do sistema até uma escolha explícita, persiste a preferênc
   expect(navigation!.x - logo!.x - logo!.width).toBeLessThan(40);
   expect(actions!.x).toBeGreaterThan(navigation!.x + navigation!.width);
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(13, 23, 28)');
-  await expect(page.locator('.workspace-panel')).toHaveCSS('background-color', 'rgb(13, 23, 28)');
+  await expect(page.locator('.workspace-results')).toHaveCSS('background-color', 'rgb(21, 39, 47)');
   await expect(page.locator('.bathroom-card').first()).toHaveCSS('color', 'rgb(242, 246, 247)');
   await page.emulateMedia({ colorScheme: 'light' });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -44,12 +44,14 @@ test('Segue o tema do sistema até uma escolha explícita, persiste a preferênc
 test('Mantém o seletor de tema visível no celular sem transbordamento horizontal', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
-  await page.getByRole('button', { name: 'Ativar modo escuro', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Ativar modo claro', exact: true })).toBeInViewport();
-  await expect(page.getByRole('button', { name: 'Entrar', exact: true })).toBeInViewport();
-  await page.getByRole('button', { name: 'Abrir navegação', exact: true }).click();
-  await expect(page.getByRole('link', { name: 'Cadastrar banheiro', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Abrir navegação', exact: true }).click();
+  await page.getByRole('button', { name: 'Abrir sua conta', exact: true }).click();
+  await page.getByRole('button', { name: 'Aparência', exact: true }).click();
+  await page.getByRole('radio', { name: 'Escuro', exact: true }).check();
+  await expect(page.getByRole('radio', { name: 'Claro', exact: true })).toBeInViewport();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await page.getByRole('button', { name: 'Fechar conta', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Abrir sua conta', exact: true })).toBeInViewport();
+  await expect(page.getByRole('navigation', { name: 'Navegação mobile', exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: '../test-results/theme-dark-mobile.png', fullPage: true });
 });
@@ -120,7 +122,7 @@ test('Mantém as abas do cabeçalho legíveis na seleção e sob o cursor nos do
 
 test('Desliza a barra lateral, gira o mesmo ícone e preserva o conteúdo no computador e no celular', async ({ page }) => {
   await page.goto('/');
-  for (const width of [1440, 390]) {
+  for (const width of [1440]) {
     await page.setViewportSize({ width, height: 900 });
     const panel = page.locator('.workspace-panel');
     const toggle = page.locator('.panel-toggle');
@@ -172,4 +174,16 @@ test('Desliza a barra lateral, gira o mesmo ícone e preserva o conteúdo no com
   await page.locator('.panel-toggle').click();
   await expect(page.locator('.workspace-panel')).toBeHidden();
   expect(await page.locator('.workspace-panel').evaluate((element) => parseFloat(getComputedStyle(element).transitionDuration))).toBeLessThanOrEqual(0.001);
+  await page.locator('.panel-toggle').click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileMap = await page.locator('app-map').elementHandle();
+  const mobileResults = await page.locator('app-explore').elementHandle();
+  await expect(page.locator('.panel-toggle')).toBeHidden();
+  await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
+  await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
+  await expect(page.locator('.map-workspace')).toHaveClass(/mobile-sheet-full/);
+  await page.getByRole('button', { name: 'Recolher painel', exact: true }).click();
+  await expect(page.locator('.map-workspace')).toHaveClass(/mobile-sheet-peek/);
+  expect(await mobileMap!.evaluate((element) => element === document.querySelector('app-map'))).toBe(true);
+  expect(await mobileResults!.evaluate((element) => element === document.querySelector('app-explore'))).toBe(true);
 });

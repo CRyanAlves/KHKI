@@ -135,38 +135,53 @@ test('Preserva o leiaute do celular, o login por teclado e os tokens de tema', a
   await expect.poll(() => page.getByRole('button', { name: 'Entrar ou criar conta', exact: true }).evaluate((element) => getComputedStyle(element).backgroundColor)).toBe('rgb(220, 180, 90)');
 });
 
-test('Mantém o envio avulso de foto privado e permite rejeitá-lo de forma independente', async ({ page, browser, baseURL }) => {
+test('Mantém a foto privada e a modera junto com a avaliação após o login contextual', async ({ page, browser, baseURL }) => {
   test.skip(!process.env['KHKI_TEST_ADMIN_PASSWORD'], 'Use npm test para executar com administrador isolado.');
   await page.goto('/');
   await page.getByRole('link', { name: /Café do Centro/ }).click();
-  await page.getByRole('link', { name: 'Adicionar foto', exact: true }).click();
-  await page.getByRole('textbox', { name: 'E-mail', exact: true }).fill(process.env['KHKI_TEST_ADMIN_EMAIL']!);
-  await page.getByLabel('Senha', { exact: true }).fill(process.env['KHKI_TEST_ADMIN_PASSWORD']!);
-  await page.getByRole('button', { name: 'Entrar', exact: true }).last().click();
-  await expect(page).toHaveURL(/\/fotos$/);
-  const image = await page.screenshot();
-  await page.getByLabel('Foto do banheiro').setInputFiles({ name: 'fixture-interface.png', mimeType: 'image/png', buffer: image });
-  const uploaded = page.waitForResponse((response) => response.url().includes('/photos') && response.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Enviar foto para análise' }).click();
-  const photo = await (await uploaded).json();
-  expect(photo.status).toBe('PENDING');
-  await expect(page.getByRole('heading', { name: 'Foto em análise' })).toBeVisible();
+  await page.getByRole('link', { name: 'Avaliar', exact: true }).click();
+  const login = page.getByRole('dialog');
+  await login.getByRole('textbox', { name: 'E-mail', exact: true }).fill(process.env['KHKI_TEST_ADMIN_EMAIL']!);
+  await login.getByLabel('Senha', { exact: true }).fill(process.env['KHKI_TEST_ADMIN_PASSWORD']!);
+  await login.getByRole('button', { name: 'Entrar', exact: true }).click();
+  await expect(page).toHaveURL(/\/avaliar$/);
+  await page.getByRole('button', { name: 'Limpeza: 4 de 5', exact: true }).click();
+  await page.getByRole('button', { name: 'Estrutura: 3 de 5', exact: true }).click();
+  await page.getByRole('textbox', { name: 'Sua experiência' }).fill('Avaliação com foto para verificar a moderação conjunta.');
+  await page.locator('app-review input[type=file]').setInputFiles('../data/demo-regional/images/anexo-01.jpg');
+  const created = page.waitForResponse((response) => new URL(response.url()).pathname.endsWith('/reviews') && response.request().method() === 'POST');
+  const uploaded = page.waitForResponse((response) => new URL(response.url()).pathname.endsWith('/photos') && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Enviar avaliação', exact: true }).click();
+  const review = await (await created).json();
+  const upload = await uploaded;
+  expect(upload.status()).toBe(201);
+  expect((await upload.json()).id).toBe(review.id);
+  await expect(page.getByRole('heading', { name: 'Avaliação em análise' })).toBeVisible();
+  const detail = await (await page.request.get('/api/admin/content/REVIEW/' + review.id)).json();
+  expect(detail.photos).toHaveLength(1);
+  const imageUrl = new URL('/api/photos/' + detail.photos[0].id, baseURL).href;
   const visitor = await browser.newContext();
-  expect((await visitor.request.get(`${baseURL}/api/photos/${photo.id}`)).status()).toBe(404);
-  await visitor.close();
-  await page.getByRole('link', { name: 'Moderação', exact: true }).click();
-  await page.getByRole('button', { name: /^Fotos \(/ }).click();
-  await page
-    .locator('.queue-table tbody tr')
-    .filter({ has: page.locator('img[src$="' + photo.id + '"]') })
-    .getByRole('button', { name: 'Analisar Foto: Café do Centro', exact: true })
-    .click();
-  await expect(page.getByRole('img', { name: 'Foto privada para análise humana' })).toBeVisible();
-  await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Imagem de teste de interface; não mostra um banheiro vazio.');
-  await page.getByRole('button', { name: 'Rejeitar', exact: true }).click();
-  await page.getByRole('dialog').getByRole('button', { name: 'Confirmar rejeição', exact: true }).click();
-  await expect(page.getByText('Decisão registrada com responsável, data e motivo.')).toBeVisible();
-  await page.getByRole('link', { name: 'Minhas contribuições', exact: true }).click();
-  await expect(page.locator('.contribution-row').filter({ hasText: 'Imagem de teste de interface; não mostra um banheiro vazio.' }).getByText('Rejeitado', { exact: true })).toBeVisible();
-  await expect(page.getByText('Motivo da decisão: Imagem de teste de interface; não mostra um banheiro vazio.')).toBeVisible();
+  try {
+    expect((await visitor.request.get(imageUrl)).status()).toBe(404);
+    await page.getByRole('link', { name: 'Moderação', exact: true }).click();
+    await page.getByRole('button', { name: /^Avaliações \(/ }).click();
+    await page
+      .locator('.queue-table tbody tr')
+      .filter({ has: page.locator('img[src$="' + detail.photos[0].id + '"]') })
+      .getByRole('button', { name: 'Analisar Avaliação: Café do Centro', exact: true })
+      .click();
+    await expect(page.getByRole('button', { name: 'Ampliar foto anexada' })).toBeVisible();
+    const reason = 'Avaliação de teste rejeitada para verificar a privacidade do anexo.';
+    await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill(reason);
+    await page.getByRole('button', { name: 'Rejeitar', exact: true }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Confirmar rejeição', exact: true }).click();
+    await expect(page.getByText('Decisão registrada com responsável, data e motivo.')).toBeVisible();
+    expect((await visitor.request.get(imageUrl)).status()).toBe(404);
+    await page.getByRole('link', { name: 'Minhas contribuições', exact: true }).click();
+    const contribution = page.locator('.contribution-row').filter({ hasText: reason });
+    await expect(contribution.getByText('Rejeitado', { exact: true })).toBeVisible();
+    await expect(contribution).toContainText(reason);
+  } finally {
+    await visitor.close();
+  }
 });

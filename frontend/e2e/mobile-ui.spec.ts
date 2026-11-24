@@ -249,14 +249,17 @@ test('Não seleciona resultados durante gestos de lista e restaura altura e rola
 test('Oferece busca na área visível ao mover o mapa no celular e abre o mesmo painel pelo marcador', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('.maplibregl-canvas')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Buscar nesta área', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Buscar nesta área', exact: true })).toBeVisible();
   await page.mouse.move(180, 350);
   await page.mouse.down();
   await page.mouse.move(230, 400, { steps: 8 });
   await page.mouse.up();
   await expect(page.getByRole('button', { name: 'Buscar nesta área', exact: true })).toBeVisible();
+  const searched = page.waitForResponse((response) => new URL(response.url()).pathname === '/api/bathrooms' && response.request().method() === 'GET');
   await page.getByRole('button', { name: 'Buscar nesta área', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Buscar nesta área', exact: true })).toHaveCount(0);
+  expect((await searched).ok()).toBe(true);
+  await expect(page.getByRole('button', { name: 'Buscar nesta área', exact: true })).toBeEnabled();
+  await expect(page.getByText('Resultados filtrados pela área visível do mapa.', { exact: true })).toBeVisible();
   await page.goto('/');
   const pin = page.getByRole('button', { name: 'Café do Centro', exact: true });
   await pin.click();

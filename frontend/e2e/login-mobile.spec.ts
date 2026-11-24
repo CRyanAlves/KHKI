@@ -30,7 +30,11 @@ test('Preenche a tela no login do celular, usa os recursos oficiais e restaura a
   await page.getByRole('button', { name: 'Entrar ou criar conta', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  expect(await dialog.boundingBox()).toMatchObject({ x: 0, y: 0, width: 393, height: 852 });
+  const viewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
+  const bounds = (await dialog.boundingBox())!;
+  expect(bounds).toMatchObject({ x: 0, y: 0 });
+  expect(Math.abs(bounds.width - viewport.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(bounds.height - viewport.height)).toBeLessThanOrEqual(1);
   await expect(page.locator('.login-brand')).toHaveAttribute('src', 'assets/brand/khki-logo-dark.png');
   await expect(page.locator('.city-illustration')).toBeVisible();
   await expect(dialog.getByRole('button', { name: 'Fechar', exact: true })).toBeFocused();

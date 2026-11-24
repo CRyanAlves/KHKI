@@ -94,11 +94,7 @@ test('Preserva a capa e abre fotos sobre o mapa com navegação por teclado e de
   await page.keyboard.press('Escape');
   await expect(viewer).toBeHidden();
   await expect(page.getByRole('button', { name: 'Ver foto 2', exact: true })).toBeFocused();
-  await page.getByRole('button', { name: 'Denunciar foto', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Cadastre-se', exact: true })).toBeVisible();
-  await expect(page.getByRole('dialog', { name: 'Denunciar conteúdo', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Fechar', exact: true }).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Denunciar foto', exact: true })).toHaveCount(0);
   await page.getByRole('tab', { name: /Avaliações \(/ }).click();
   await expect(page.getByText('Ainda sem avaliações. Compartilhe sua experiência.')).toBeVisible();
   await page.getByRole('button', { name: 'Denunciar informações deste local', exact: true }).click();
@@ -163,10 +159,8 @@ test('Usa um único painel compacto nos dois temas e com movimento reduzido, sem
   await expect(page.locator('.workspace-results')).toBeHidden();
   for (const theme of ['escuro', 'claro']) {
     await page.getByRole('button', { name: 'Abrir sua conta', exact: true }).click();
-    await page
-      .getByRole('dialog', { name: 'Sua conta', exact: true })
-      .getByRole('button', { name: theme === 'escuro' ? 'Escuro' : 'Claro', exact: true })
-      .click();
+    await page.getByRole('button', { name: 'Aparência', exact: true }).click();
+    await page.getByRole('radio', { name: theme === 'escuro' ? 'Escuro' : 'Claro', exact: true }).check();
     await page.getByRole('button', { name: 'Fechar conta', exact: true }).click();
     await expect(page.locator('.map-loading')).toHaveCount(0);
     expect(await page.locator('.workspace-content').evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
@@ -286,12 +280,7 @@ test('Trata fotos indisponíveis no celular, preserva a capa e restaura o painel
   await expect(page.locator('.mobile-detail-photos img').first()).toHaveAttribute('src', cover!);
   await viewer.getByRole('button', { name: 'Exibir foto 1', exact: true }).click();
   await expect(viewer.locator('.photo-viewer-stage img')).toBeVisible();
-  await viewer.getByRole('button', { name: 'Denunciar foto exibida', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Cadastre-se', exact: true })).toBeVisible();
-  await expect(page.getByRole('dialog', { name: 'Denunciar conteúdo', exact: true })).toHaveCount(0);
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(viewer).toBeVisible();
+  await expect(viewer.getByRole('button', { name: 'Denunciar foto exibida', exact: true })).toHaveCount(0);
   await viewer.getByRole('button', { name: 'Voltar ao mapa', exact: true }).click();
   await expect(viewer).toHaveCount(0);
   await expect(page.locator('.workspace-panel')).toBeVisible();

@@ -24,6 +24,12 @@ async function pendingBathroom(page: Page, suffix: string): Promise<{ id: string
   expect(response.status()).toBe(201);
   return { id: (await response.json()).id, name };
 }
+async function moderationVersion(page: Page, type: 'BATHROOM' | 'REVIEW', id: string): Promise<number> {
+  const response = await page.request.get('/api/admin/content/' + type + '/' + id);
+  expect(response.ok()).toBe(true);
+  return (await response.json()).version;
+}
+
 test.beforeEach(async ({ page }) => {
   test.skip(!process.env['KHKI_TEST_ADMIN_PASSWORD'] || !process.env['KHKI_MAPS_SIMULATION_URL'], 'Execute npm test para usar API e mapas isolados.');
   const simulation = process.env['KHKI_MAPS_SIMULATION_URL'];
@@ -33,9 +39,10 @@ test.beforeEach(async ({ page }) => {
 test('Preserva filtros da moderação, compara registros próximos reais e solicita informações de forma privada', async ({ page, browser }) => {
   await administrator(page);
   const bathroom = await pendingBathroom(page, 'Revisão');
-  const picture = await page.request.post('/api/bathrooms/' + bathroom.id + '/photos', { headers: await headers(page), multipart: { file: { name: 'banheiro.jpg', mimeType: 'image/jpeg', buffer: readFileSync('../data/demo-regional/images/anexo-01.jpg') } } });
+  const picture = await page.request.post('/api/bathrooms/' + bathroom.id + '/photos?registrationAttachment=true', { headers: await headers(page), multipart: { file: { name: 'banheiro.jpg', mimeType: 'image/jpeg', buffer: readFileSync('../data/demo-regional/images/anexo-01.jpg') } } });
   expect(picture.status()).toBe(201);
-  const photoId = (await picture.json()).id;
+  const own = await (await page.request.get('/api/me/contributions/BATHROOM/' + bathroom.id)).json();
+  const photoId = own.photoIds[0];
   await page.getByRole('link', { name: 'Moderação', exact: true }).click();
   await expect(page.getByRole('navigation', { name: 'Categorias de moderação' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Moderação', exact: true })).toHaveCount(0);
@@ -60,8 +67,8 @@ test('Preserva filtros da moderação, compara registros próximos reais e solic
   await page.getByRole('button', { name: 'Comparar cadastro', exact: true }).click();
   await expect(page.getByRole('region', { name: 'Comparação de cadastros' })).toBeVisible();
   expect(await canvas!.evaluate((element) => element === document.querySelector('.maplibregl-canvas'))).toBe(true);
-  await expect(page.getByRole('button', { name: 'Ampliar foto: Em análise', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Ampliar foto: Em análise', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Ampliar foto anexada', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Ampliar foto anexada', exact: true }).click();
   await expect(page.getByRole('dialog', { name: 'Foto ampliada para moderação' })).toBeVisible();
   await page.keyboard.press('Escape');
   await page.screenshot({ path: '../test-results/moderation-dark-review.png', fullPage: true });
@@ -87,11 +94,12 @@ test('Preserva filtros da moderação, compara registros próximos reais e solic
   await page.locator('.moderation-shell').evaluate(async (element) => {
     await Promise.all(element.getAnimations().map((animation) => animation.finished));
   });
-  await expect(page.locator('.review-content')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Moderação no desktop', exact: true })).toBeVisible();
+  await expect(page.locator('.review-content')).toBeHidden();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  expect(await page.locator('.moderation-page').evaluate((element) => getComputedStyle(element).overflow)).toBe('visible');
-  expect(await page.locator('.review-content').evaluate((element) => element.scrollHeight <= element.clientHeight + 1)).toBe(true);
-  await page.screenshot({ path: '../test-results/moderation-mobile-review.png', fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect(page.locator('.review-content')).toBeVisible();
+  await expect(page.locator('.review-content')).toContainText('Aguardando informações');
 });
 
 test('Rejeita duplicados com auditoria vinculada e bloqueia decisões de moderação desatualizadas', async ({ page }) => {
@@ -114,7 +122,7 @@ test('Rejeita duplicados com auditoria vinculada e bloqueia decisões de modera�
   await page.getByRole('textbox', { name: 'Buscar contribuições' }).fill(another.name);
   await page.getByRole('button', { name: 'Analisar ' + another.name, exact: true }).click();
   await expect(page.getByRole('button', { name: 'Aprovar cadastro', exact: true })).toBeVisible();
-  const response = await page.request.post('/api/admin/content/BATHROOM/' + another.id + '/decision', { headers: await headers(page), data: { status: 'REJECTED', reason: 'Decisão concorrente de outro administrador.', expectedVersion: 0 } });
+  const response = await page.request.post('/api/admin/content/BATHROOM/' + another.id + '/decision', { headers: await headers(page), data: { status: 'REJECTED', reason: 'Decisão concorrente de outro administrador.', expectedVersion: await moderationVersion(page, 'BATHROOM', another.id) } });
   expect(response.ok()).toBe(true);
   await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Tentativa com versão antiga.');
   await page.getByRole('button', { name: 'Aprovar cadastro', exact: true }).click();
@@ -128,7 +136,7 @@ test('Rejeita duplicados com auditoria vinculada e bloqueia decisões de modera�
 test('Oculta o conteúdo denunciado de forma atômica e bloqueia a administração para usuários comuns', async ({ page, browser }) => {
   await administrator(page);
   const bathroom = await pendingBathroom(page, 'Denúncia');
-  expect((await page.request.post('/api/admin/content/BATHROOM/' + bathroom.id + '/decision', { headers: await headers(page), data: { status: 'APPROVED', reason: 'Cadastro aprovado para testar denúncia.', expectedVersion: 0 } })).ok()).toBe(true);
+  expect((await page.request.post('/api/admin/content/BATHROOM/' + bathroom.id + '/decision', { headers: await headers(page), data: { status: 'APPROVED', reason: 'Cadastro aprovado para testar denúncia.', expectedVersion: await moderationVersion(page, 'BATHROOM', bathroom.id) } })).ok()).toBe(true);
   expect((await page.request.post('/api/reports', { headers: await headers(page), data: { targetType: 'BATHROOM', targetId: bathroom.id, reason: 'INCORRECT' } })).status()).toBe(202);
   await page.goto('/admin');
   await page.getByRole('button', { name: /^Denúncias \(/ }).click();
@@ -203,7 +211,7 @@ test('Anima a barra de moderação, alterna apenas pelo espaço livre ou rodapé
   });
   await page
     .getByRole('navigation', { name: 'Categorias de moderação' })
-    .getByRole('button', { name: /^Fotos \(/ })
+    .getByRole('button', { name: /^Avaliações \(/ })
     .click();
   await expect(shell).not.toHaveClass(/sidebar-collapsed/);
   await expect(input).toHaveValue('Filtro preservado');
@@ -213,71 +221,82 @@ test('Anima a barra de moderação, alterna apenas pelo espaço livre ou rodapé
   await expect(shell).toHaveCSS('transition-property', 'none');
   await expect(page.locator('.moderation-sidebar-arrow')).toHaveCSS('transition-property', 'none');
   await page.setViewportSize({ width: 390, height: 844 });
-  const mobileContentWidth = (await page.locator('.moderation-page').boundingBox())!.width;
-  await page.getByRole('button', { name: 'Expandir categorias de moderação', exact: true }).click();
-  expect((await page.locator('.moderation-page').boundingBox())!.width).toBe(mobileContentWidth);
+  await expect(page.getByRole('heading', { name: 'Moderação no desktop', exact: true })).toBeVisible();
+  await expect(input).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: '../test-results/moderation-mobile-restricted.png', fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByRole('button', { name: 'Expandir categorias de moderação', exact: true }).click();
   await expect(input).toHaveValue('Filtro preservado');
-  await expect(page.getByRole('button', { name: 'Minimizar categorias de moderação', exact: true })).toBeInViewport();
-  await page.screenshot({ path: '../test-results/moderation-mobile-sidebar-expanded.png', fullPage: true });
 });
 
-test('Lista envios avulsos na aba de fotos e publica anexos junto com a aprovação do conteúdo principal', async ({ page, browser }) => {
+test('Publica fotos junto com o cadastro e a avaliação e bloqueia envio e moderação avulsos', async ({ page, browser }) => {
   await administrator(page);
   const registration = await pendingBathroom(page, 'Anexos do cadastro');
-  const reviewParent = await pendingBathroom(page, 'Contexto de avulsas');
-  const approveContext = await page.request.post('/api/admin/content/BATHROOM/' + reviewParent.id + '/decision', { headers: await headers(page), data: { status: 'APPROVED', reason: 'Contexto para fotos avulsas e avaliação.' } });
+  const reviewParent = await pendingBathroom(page, 'Anexo da avaliação');
+  const approveContext = await page.request.post('/api/admin/content/BATHROOM/' + reviewParent.id + '/decision', { headers: await headers(page), data: { status: 'APPROVED', reason: 'Contexto aprovado para avaliação com foto.', expectedVersion: await moderationVersion(page, 'BATHROOM', reviewParent.id) } });
   expect(approveContext.ok()).toBe(true);
-  const upload = async (bathroomId: string, query = '') => {
-    const result = await page.request.post('/api/bathrooms/' + bathroomId + '/photos' + query, { headers: await headers(page), multipart: { file: { name: 'foto.jpg', mimeType: 'image/jpeg', buffer: readFileSync('../data/demo-regional/images/anexo-01.jpg') } } });
-    expect(result.status()).toBe(201);
-    return (await result.json()).id as string;
-  };
-  const attachment = await upload(registration.id, '?registrationAttachment=true');
-  const unwantedAttachment = await upload(registration.id, '?registrationAttachment=true');
+  const sendPhoto = async (bathroomId: string, query: string) => page.request.post('/api/bathrooms/' + bathroomId + '/photos' + query, { headers: await headers(page), multipart: { file: { name: 'foto.jpg', mimeType: 'image/jpeg', buffer: readFileSync('../data/demo-regional/images/anexo-01.jpg') } } });
+  for (let index = 0; index < 2; index++) {
+    const response = await sendPhoto(registration.id, '?registrationAttachment=true');
+    expect(response.status()).toBe(201);
+    expect((await response.json()).id).toBe(registration.id);
+  }
+  const registrationPhotos: string[] = (await (await page.request.get('/api/me/contributions/BATHROOM/' + registration.id)).json()).photoIds;
+  expect(registrationPhotos).toHaveLength(2);
   const review = await page.request.post('/api/bathrooms/' + reviewParent.id + '/reviews', { headers: await headers(page), data: { cleanliness: 3, structure: 4, comment: 'Avaliação com anexo.' } });
   expect(review.status()).toBe(201);
   const reviewId = (await review.json()).id;
-  const reviewPhoto = await upload(reviewParent.id, '?reviewId=' + reviewId);
-  const standalone = await upload(reviewParent.id);
-  await page.getByRole('link', { name: 'Moderação', exact: true }).click();
-  await page.getByRole('button', { name: /^Fotos \(/ }).click();
-  await expect(page.locator('.queue-table tbody tr').filter({ hasText: 'Foto: ' + registration.name })).toHaveCount(0);
-  await expect(page.locator('.queue-table tbody tr').filter({ hasText: 'Foto: ' + reviewParent.name })).toHaveCount(1);
-  const queue = await (await page.request.get('/api/admin/queue')).json();
-  expect(queue.some((row: { id: string }) => row.id === standalone)).toBe(true);
-  expect(queue.some((row: { id: string }) => [attachment, unwantedAttachment, reviewPhoto].includes(row.id))).toBe(false);
-  await page.getByRole('button', { name: /^Banheiros \(/ }).click();
-  await page.getByRole('textbox', { name: 'Buscar contribuições' }).fill(registration.name);
-  await page.getByRole('button', { name: 'Analisar ' + registration.name, exact: true }).click();
-  await expect(page.locator('.review-photos')).toContainText('Fotos enviadas (2)');
-  await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Uma foto não é adequada para publicação.');
-  await page.getByRole('button', { name: 'Rejeitar foto', exact: true }).last().click();
-  await page
-    .getByRole('dialog')
-    .filter({ has: page.getByRole('heading', { name: 'Confirmar rejeição da foto' }) })
-    .getByRole('button', { name: 'Confirmar rejeição da foto', exact: true })
-    .click();
-  await expect(page.getByRole('status')).toContainText('Decisão registrada');
-  const rejected = (await (await page.request.get('/api/me/contributions')).json()).find((row: { id: string; status: string }) => [attachment, unwantedAttachment].includes(row.id) && row.status === 'REJECTED').id;
-  const accepted = rejected === attachment ? unwantedAttachment : attachment;
-  await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Cadastro e foto restante conferidos.');
-  await page.getByRole('button', { name: 'Aprovar cadastro', exact: true }).click();
-  const confirmation = page.getByRole('dialog', { name: 'Confirmar aprovação' });
-  await expect(confirmation).toContainText('fotos pendentes anexadas');
-  await confirmation.getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
-  await expect(page.locator('.review-photo-entry').filter({ hasText: 'Aprovado' })).toHaveCount(1);
-  await page.getByRole('button', { name: 'Voltar à fila', exact: true }).click();
-  await page.getByRole('button', { name: /^Avaliações \(/ }).click();
-  await page.getByRole('textbox', { name: 'Buscar contribuições' }).fill(reviewParent.name);
-  await page.getByRole('button', { name: 'Analisar Avaliação: ' + reviewParent.name, exact: true }).click();
-  await expect(page.locator('.review-photos')).toContainText('Fotos enviadas (1)');
-  await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Avaliação e foto conferidas.');
-  await page.getByRole('button', { name: 'Aprovar', exact: true }).click();
-  await page.getByRole('dialog', { name: 'Confirmar aprovação' }).getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
-  await expect(page.locator('.review-photo-entry')).toContainText('Aprovado');
+  const reviewPhoto = await sendPhoto(reviewParent.id, '?reviewId=' + reviewId);
+  expect(reviewPhoto.status()).toBe(201);
+  expect((await reviewPhoto.json()).id).toBe(reviewId);
+  const reviewDetail = await (await page.request.get('/api/admin/content/REVIEW/' + reviewId)).json();
+  const reviewPhotos: string[] = reviewDetail.photos.map((photo: { id: string }) => photo.id);
+  expect(reviewPhotos).toHaveLength(1);
+  const standalone = await sendPhoto(reviewParent.id, '');
+  expect(standalone.status()).toBe(400);
+  expect((await standalone.json()).detail).toContain('Fotos avulsas não são permitidas');
+  const individualReport = await page.request.post('/api/reports', { headers: await headers(page), data: { targetType: 'PHOTO', targetId: registrationPhotos[0], reason: 'INAPPROPRIATE' } });
+  expect(individualReport.status()).toBe(400);
+  const individualDecision = await page.request.post('/api/admin/content/PHOTO/' + registrationPhotos[0] + '/decision', { headers: await headers(page), data: { status: 'REJECTED', reason: 'Não deve existir moderação individual de fotos.' } });
+  expect(individualDecision.status()).toBe(400);
   const visitor = await browser.newContext();
-  for (const id of [accepted, reviewPhoto]) expect((await visitor.request.get(new URL('/api/photos/' + id, page.url()).href)).status()).toBe(200);
-  for (const id of [rejected, standalone]) expect((await visitor.request.get(new URL('/api/photos/' + id, page.url()).href)).status()).toBe(404);
-  await visitor.close();
+  try {
+    for (const id of [...registrationPhotos, ...reviewPhotos]) expect((await visitor.request.get(new URL('/api/photos/' + id, page.url()).href)).status()).toBe(404);
+    await page.getByRole('link', { name: 'Moderação', exact: true }).click();
+    await expect(page.getByRole('button', { name: /^Fotos \(/ })).toHaveCount(0);
+    const queue = await (await page.request.get('/api/admin/queue')).json();
+    expect(queue.filter((row: { id: string }) => [registration.id, reviewId].includes(row.id))).toHaveLength(2);
+    expect(queue.every((row: { type: string }) => ['BATHROOM', 'REVIEW'].includes(row.type))).toBe(true);
+    await page.getByRole('textbox', { name: 'Buscar contribuições' }).fill(registration.name);
+    await page.getByRole('button', { name: 'Analisar ' + registration.name, exact: true }).click();
+    await expect(page.locator('.review-photos')).toContainText('Fotos enviadas (2)');
+    await expect(page.getByRole('button', { name: 'Rejeitar foto', exact: true })).toHaveCount(0);
+    await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Cadastro e fotos conferidos.');
+    await page.getByRole('button', { name: 'Aprovar cadastro', exact: true }).click();
+    const confirmation = page.getByRole('dialog', { name: 'Confirmar aprovação' });
+    await expect(confirmation).toContainText('fotos pendentes anexadas');
+    await confirmation.getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
+    await expect(page.getByRole('status')).toContainText('Decisão registrada');
+    for (const id of registrationPhotos) expect((await visitor.request.get(new URL('/api/photos/' + id, page.url()).href)).status()).toBe(200);
+    expect((await visitor.request.get(new URL('/api/photos/' + reviewPhotos[0], page.url()).href)).status()).toBe(404);
+    await page.getByRole('button', { name: 'Voltar à fila', exact: true }).click();
+    await page.getByRole('button', { name: /^Avaliações \(/ }).click();
+    await page.getByRole('textbox', { name: 'Buscar contribuições' }).fill(reviewParent.name);
+    await page.getByRole('button', { name: 'Analisar Avaliação: ' + reviewParent.name, exact: true }).click();
+    await expect(page.locator('.review-photos')).toContainText('Fotos enviadas (1)');
+    await page.getByRole('textbox', { name: 'Motivo da decisão ou encerramento' }).fill('Avaliação e foto conferidas.');
+    await page.getByRole('button', { name: 'Aprovar', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Confirmar aprovação' }).getByRole('button', { name: 'Confirmar aprovação', exact: true }).click();
+    await expect(page.getByRole('status')).toContainText('Decisão registrada');
+    expect((await visitor.request.get(new URL('/api/photos/' + reviewPhotos[0], page.url()).href)).status()).toBe(200);
+  } finally {
+    await visitor.close();
+    for (const id of [registration.id, reviewParent.id]) {
+      const detail = await (await page.request.get('/api/admin/content/BATHROOM/' + id)).json();
+      if (detail.contribution.status !== 'APPROVED') continue;
+      const response = await page.request.post('/api/admin/content/BATHROOM/' + id + '/decision', { headers: await headers(page), data: { status: 'HIDDEN', reason: 'Limpeza dos registros publicados pelo teste de anexos.', expectedVersion: await moderationVersion(page, 'BATHROOM', id) } });
+      expect(response.ok()).toBe(true);
+    }
+  }
 });

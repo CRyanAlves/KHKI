@@ -71,8 +71,7 @@ test('Preserva o mapa durante o carregamento de detalhes, rota e contribuições
   await page.route('**/api/bathrooms/' + id, (route) => route.fallback());
   for (const [path, selector, label] of [
     ['rota', 'app-route', 'Carregando destino…'],
-    ['avaliar', 'app-review', 'Carregando formulário…'],
-    ['fotos', 'app-photos', 'Carregando formulário…']
+    ['avaliar', 'app-review', 'Carregando formulário…']
   ]) {
     release = await hold(page, (url) => url.pathname === '/api/bathrooms/' + id);
     await page.evaluate(
@@ -89,20 +88,33 @@ test('Preserva o mapa durante o carregamento de detalhes, rota e contribuições
     await expect(skeleton).toHaveCount(0);
     await expect(page.locator(selector + (path === 'rota' ? ' app-origin-picker' : ' form'))).toBeVisible();
   }
+  const reviewForm = await page.locator('app-review').elementHandle();
+  await page.evaluate(
+    (url) => {
+      history.pushState(null, '', url);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    },
+    '/banheiros/' + id + '/fotos'
+  );
+  await expect(page).toHaveURL(new RegExp('/banheiros/' + id + '/avaliar$'));
+  await expect(page.locator('app-review form')).toBeVisible();
+  expect(await reviewForm!.evaluate((element) => element === document.querySelector('app-review'))).toBe(true);
+  expect(await map!.evaluate((element) => element === document.querySelector('app-map'))).toBe(true);
 });
 
 test('Exibe o carregamento próprio do cadastro e das contribuições sem descartar os campos preenchidos', async ({ page }) => {
   await login(page);
   let release = await hold(page, (url) => url.pathname === '/api/bathrooms');
   await page.getByRole('link', { name: 'Cadastrar banheiro', exact: true }).click();
-  await expect(page.locator('app-register app-skeleton')).toContainText('Carregando banheiros cadastrados…');
-  await page.getByRole('textbox', { name: 'Nome do local' }).fill('Rascunho preservado');
+  await expect(page.getByRole('heading', { name: 'Cadastrar banheiro', exact: true })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Nome do estabelecimento ou espaço' }).fill('Rascunho preservado');
   release();
   await expect(page.locator('app-register app-skeleton')).toHaveCount(0);
-  await expect(page.getByRole('textbox', { name: 'Nome do local' })).toHaveValue('Rascunho preservado');
-  page.on('dialog', (dialog) => dialog.accept());
+  await expect(page.getByRole('textbox', { name: 'Nome do estabelecimento ou espaço' })).toHaveValue('Rascunho preservado');
+
   release = await hold(page, (url) => url.pathname === '/api/me/contributions');
   await page.getByRole('link', { name: 'Minhas contribuições', exact: true }).click();
+  await page.getByRole('alertdialog', { name: 'Descartar cadastro?' }).getByRole('button', { name: 'Descartar e sair' }).click();
   await expect(page.locator('app-contributions app-skeleton')).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -120,7 +132,7 @@ test('Substitui conteúdo pendente por esqueletos de carregamento nas categorias
   await expect(page.locator('.queue-table app-skeleton')).toHaveCount(0);
   await page.getByRole('combobox', { name: 'Status da contribuição', exact: true }).selectOption('APPROVED');
   await expect(page.locator('.queue-table app-skeleton')).toHaveCount(0);
-  for (const title of ['Avaliações', 'Fotos', 'Denúncias', 'Banheiros']) {
+  for (const title of ['Avaliações', 'Denúncias', 'Banheiros']) {
     await page
       .getByRole('navigation', { name: 'Categorias de moderação' })
       .getByRole('button', { name: new RegExp('^' + title) })
@@ -151,7 +163,7 @@ test('Exibe o carregamento ao recuperar a sessão e libera a página protegida a
   release();
   await expect(page.locator('.navigation-loading')).toHaveCount(0);
   await expect(page.locator('#main-content')).toHaveAttribute('aria-busy', 'false');
-  await expect(page.getByRole('textbox', { name: 'Nome do local' })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Nome do estabelecimento ou espaço' })).toBeVisible();
 });
 
 test('Remove os esqueletos do mapa e do cálculo da rota quando estão prontos, preservando a mesma área', async ({ page }) => {

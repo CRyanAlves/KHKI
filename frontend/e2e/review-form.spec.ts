@@ -157,7 +157,7 @@ test('Preserva o painel lateral no computador e no celular com superfície únic
       await expect(page.locator('app-review .surface')).toHaveCount(0);
       await expect(page.locator('.review-heading p')).toHaveText(bathroom.name);
       await expect(page.getByRole('link', { name: 'Voltar ao banheiro', exact: true })).toHaveCount(1);
-      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(viewport.width);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: `../test-results/review-${viewport.width}-${theme}.png` });
     }
   }

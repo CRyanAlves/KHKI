@@ -90,6 +90,7 @@ async function prepare(page: Page, long = false): Promise<void> {
       return route.continue({ url: url.toString() });
     });
   await page.goto('/');
+  if (page.viewportSize()!.width <= 768) await page.getByRole('button', { name: 'Expandir painel', exact: true }).click();
   await page.locator('.bathroom-card').first().click();
   await page.getByRole('link', { name: 'Como chegar', exact: true }).click();
   const input = page.getByRole('combobox', { name: 'Sua origem', exact: true });
@@ -126,6 +127,7 @@ test('Avança instruções de direção e chegada no celular durante a simulaç�
   page.on('request', (request) => {
     if (new URL(request.url()).pathname.endsWith('/routing')) calls++;
   });
+  await page.locator('.navigation-simulator-toggle').click();
   await page.getByRole('button', { name: 'Simular percurso', exact: true }).click();
   await page.getByRole('button', { name: 'Pausar simulação', exact: true }).click();
   await page.getByRole('button', { name: 'Avançar 10 s', exact: true }).click();
@@ -137,7 +139,7 @@ test('Avança instruções de direção e chegada no celular durante a simulaç�
   await expect
     .poll(async () => {
       const marker = await page.locator('.map-position.is-navigating').boundingBox();
-      const card = await page.locator('.navigation-map-stack').boundingBox();
+      const card = await page.locator('.navigation-hud').boundingBox();
       return !!marker && !!card && marker.y + marker.height < card.y;
     })
     .toBe(true);

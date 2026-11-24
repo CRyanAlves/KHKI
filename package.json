@@ -2,6 +2,8 @@
   "name": "khki",
   "private": true,
   "scripts": {
+    "test": "node scripts/verify-browser.cjs",
+    "test:report": "node frontend/node_modules/@playwright/test/cli.js show-report test-results/playwright",
     "format": "node scripts/format.cjs",
     "format:check": "node scripts/format.cjs --check",
     "setup:jmeter": "node tests/jmeter/setup.cjs",

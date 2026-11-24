@@ -226,7 +226,8 @@ test('Sobrepõe as sugestões de origem ao painel nos dois temas e permite selec
     if (dark) {
       await page.getByRole('button', { name: 'Recolher painel', exact: true }).click();
       await page.getByRole('button', { name: 'Abrir sua conta', exact: true }).click();
-      await page.getByRole('dialog', { name: 'Sua conta', exact: true }).getByRole('button', { name: 'Escuro', exact: true }).click();
+      await page.getByRole('button', { name: 'Aparência', exact: true }).click();
+      await page.getByRole('radio', { name: 'Escuro', exact: true }).check();
       await page.getByRole('button', { name: 'Fechar conta', exact: true }).click();
     }
     const map = await page.locator('.workspace-map').boundingBox();

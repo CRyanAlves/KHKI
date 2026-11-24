@@ -8,7 +8,16 @@ const apiPort = Number(process.env.KHKI_TEST_API_PORT || 8082);
 if (!Number.isInteger(apiPort) || apiPort < 1024 || apiPort > 65535) throw new Error('Porta da API de testes inválida.');
 fs.mkdirSync(path.join(root, 'test-results'), { recursive: true });
 const proxy = path.join(root, 'test-results', 'browser-proxy.json');
-fs.writeFileSync(proxy, JSON.stringify({ '/api': { target: 'http://127.0.0.1:' + apiPort, secure: false, changeOrigin: true } }));
+fs.writeFileSync(
+  proxy,
+  JSON.stringify({
+    '/api': {
+      target: 'http://127.0.0.1:' + apiPort,
+      secure: false,
+      changeOrigin: true
+    }
+  })
+);
 const environment = {
   ...process.env,
   PORT: String(apiPort),
@@ -27,7 +36,11 @@ environment.KHKI_TEST_ADMIN_PASSWORD = environment.ADMIN_PASSWORD;
 environment.KHKI_MAPS_SIMULATION_URL = 'http://127.0.0.1:4900/geoapify';
 const children = [];
 function launch(command, directory, logName) {
-  const child = spawn('cmd.exe', ['/d', '/s', '/c', command], { cwd: path.join(root, directory), env: environment, windowsHide: true });
+  const child = spawn('cmd.exe', ['/d', '/s', '/c', command], {
+    cwd: path.join(root, directory),
+    env: environment,
+    windowsHide: true
+  });
   const log = fs.createWriteStream(path.join(root, 'test-results', logName));
   child.stdout.pipe(log);
   child.stderr.pipe(log);
@@ -73,7 +86,12 @@ async function stop(child) {
     await wait('http://127.0.0.1:4900/geoapify/health', maps);
     if (api.exitCode !== null) throw new Error('A API de testes encerrou antes da execução.');
     const result = await new Promise((resolve) => {
-      const tests = spawn(process.execPath, [path.join(root, 'frontend/node_modules/@playwright/test/cli.js'), 'test', ...process.argv.slice(2)], { cwd: path.join(root, 'frontend'), env: environment, stdio: 'inherit', windowsHide: true });
+      const tests = spawn(process.execPath, [path.join(root, 'frontend/node_modules/@playwright/test/cli.js'), 'test', ...process.argv.slice(2)], {
+        cwd: path.join(root, 'frontend'),
+        env: environment,
+        stdio: 'inherit',
+        windowsHide: true
+      });
       tests.once('exit', (code) => resolve(code));
     });
     process.exitCode = result || 0;

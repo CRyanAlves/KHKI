@@ -1,6 +1,14 @@
-import { expect, Page, test } from '@playwright/test';
+import { BrowserContext, expect, Page, test } from '@playwright/test';
+
+let administratorCookies: Awaited<ReturnType<BrowserContext['cookies']>> = [];
 
 async function login(page: Page): Promise<void> {
+  if (administratorCookies.length) {
+    await page.context().addCookies(administratorCookies);
+    await page.goto('/cadastrar');
+    await expect(page).toHaveURL(/\/cadastrar$/);
+    return;
+  }
   await page.goto('/');
   await page.getByRole('link', { name: 'Cadastrar banheiro', exact: true }).click();
   const dialog = page.getByRole('dialog');
@@ -8,6 +16,7 @@ async function login(page: Page): Promise<void> {
   await dialog.getByLabel('Senha', { exact: true }).fill(process.env['KHKI_TEST_ADMIN_PASSWORD']!);
   await dialog.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page).toHaveURL(/\/cadastrar$/);
+  administratorCookies = await page.context().cookies();
 }
 async function location(page: Page, name: string): Promise<void> {
   await page.getByRole('textbox', { name: 'Nome do estabelecimento ou espaço', exact: false }).fill(name);
@@ -81,11 +90,12 @@ test('Preserva mapa, ponto, fotos e valores desconhecidos nas três etapas do ca
   expect(payload.hours).toBe('');
   expect(payload.accessible).toBeNull();
   await expect(page.getByRole('heading', { name: 'Recebemos seu cadastro', exact: true })).toBeVisible();
-  const photos = (await contributions(page)).filter((value) => value.type === 'PHOTO' && value.bathroomId === bathroom.id);
-  expect(photos).toHaveLength(1);
+  const ownBathroom = await (await page.request.get('/api/me/contributions/BATHROOM/' + bathroom.id)).json();
+  expect(ownBathroom.photoIds).toHaveLength(1);
+  expect((await contributions(page)).filter((value) => value.type === 'PHOTO' && value.bathroomId === bathroom.id)).toHaveLength(0);
   const visitor = await browser.newContext();
   expect((await visitor.request.get(new URL('/api/bathrooms/' + bathroom.id, page.url()).href)).status()).toBe(404);
-  expect((await visitor.request.get(new URL('/api/photos/' + photos[0].id, page.url()).href)).status()).toBe(404);
+  expect((await visitor.request.get(new URL('/api/photos/' + ownBathroom.photoIds[0], page.url()).href)).status()).toBe(404);
   await visitor.close();
 });
 
@@ -113,11 +123,12 @@ test('Permite marcar um ponto manual com GPS negado e pede confirmação ao sair
   await expect(page.getByRole('combobox', { name: 'Endereço completo' })).toHaveValue('Rua da Posição, 100 — São Paulo, SP');
   await page.getByRole('button', { name: 'Continuar', exact: true }).click();
   await expect(page.getByRole('combobox', { name: 'Quem pode usar?' })).toBeVisible();
-  page.once('dialog', (dialog) => dialog.dismiss());
   await page.getByRole('link', { name: 'Explorar', exact: true }).click();
+  const confirmation = page.getByRole('alertdialog', { name: 'Descartar cadastro?' });
+  await confirmation.getByRole('button', { name: 'Continuar preenchendo' }).click();
   await expect(page).toHaveURL(/\/cadastrar$/);
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('link', { name: 'Explorar', exact: true }).click();
+  await confirmation.getByRole('button', { name: 'Descartar e sair' }).click();
   await expect(page).toHaveURL(/\/$/);
 });
 

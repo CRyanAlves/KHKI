@@ -205,6 +205,7 @@ test('Usa GPS quando a bússola é negada e encerra o monitoramento quando a geo
 });
 
 test('Permite pausar, avançar, reiniciar e concluir a simulação habilitada pelo ambiente sem usar GPS', async ({ page }) => {
+  await page.clock.install();
   await prepare(page);
   const originalPosition = (await state(page)).explorationPosition;
   await expect(page.getByRole('button', { name: 'Simular percurso', exact: true })).toBeHidden();
@@ -223,10 +224,8 @@ test('Permite pausar, avançar, reiniciar e concluir a simulação habilitada pe
   const summary = page.locator('.navigation-summary');
   await expect(summary.locator('small')).toHaveText(['Restantes', 'Tempo estimado', 'Chegada']);
   const initialDistance = await summary.locator('strong').nth(0).innerText();
-  const initialArrival = await summary.locator('strong').nth(2).innerText();
   const initialDuration = await page.locator('app-workspace').evaluate((element) => (window as unknown as { ng: { getComponent(element: Element): WorkspaceRuntime } }).ng.getComponent(element).navigation.remainingDurationMillis());
   const paused = (await state(page)).position;
-  await page.clock.install();
   await page.clock.fastForward(5000);
   await expect(summary.locator('strong').nth(2)).toHaveText(/^\d{2}:\d{2}$/);
   expect((await state(page)).position).toEqual(paused);
@@ -235,8 +234,10 @@ test('Permite pausar, avançar, reiniciar e concluir a simulação habilitada pe
   await expect(summary.locator('strong').nth(0)).not.toHaveText(initialDistance);
   const updatedDuration = await page.locator('app-workspace').evaluate((element) => (window as unknown as { ng: { getComponent(element: Element): WorkspaceRuntime } }).ng.getComponent(element).navigation.remainingDurationMillis());
   expect(updatedDuration).toBeLessThan(initialDuration!);
+  const pausedArrival = await summary.locator('strong').nth(2).innerText();
   await page.clock.fastForward(120000);
-  await expect(summary.locator('strong').nth(2)).not.toHaveText(initialArrival);
+  await page.clock.runFor(1100);
+  await expect(summary.locator('strong').nth(2)).not.toHaveText(pausedArrival);
   expect((await state(page)).position).not.toEqual(paused);
   await page.evaluate(() => window.dispatchEvent(new DeviceOrientationEvent('deviceorientationabsolute', { absolute: true, alpha: 170, beta: 90, gamma: 0 })));
   expect((await state(page)).source).toBe('simulation');
